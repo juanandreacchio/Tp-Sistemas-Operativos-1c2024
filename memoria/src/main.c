@@ -6,11 +6,12 @@ t_config *config_memoria;
 char *puerto_memoria;
 
 int main(int argc, char* argv[]) {
-    logger_memoria = iniciar_logger("../config/memoria.log", "Memoria", LOG_LEVEL_INFO);
-    config_memoria = iniciar_config("../config/memoria.config");
+    logger_memoria = iniciar_logger("config/memoria.log", "Memoria", LOG_LEVEL_INFO);
 
-    int socket_servidor_memoria = iniciar_servidor(logger, puerto_memoria, "Memoria");
-    int socket_cliente = esperar_cliente(logger_memoria, socket_servidor_memoria);
+    iniciar_config();
+
+    int socket_servidor_memoria = iniciar_servidor(logger_memoria, puerto_memoria, "Memoria");
+    int socket_cliente = esperar_cliente(socket_servidor_memoria, logger_memoria);
     
     t_list* lista;
     while (1) {
@@ -18,12 +19,12 @@ int main(int argc, char* argv[]) {
 
         switch (cod_op) {
             case MENSAJE:
-                recibir_mensaje(socket_cliente);
+                recibir_mensaje(socket_cliente, logger_memoria);
                 break;
             case PAQUETE:
                 lista = recibir_paquete(socket_cliente);
                 log_info(logger_memoria, "Se recibio un paquete");
-                list_iterate(lista, (void*) mostrar_paquete);
+                list_iterate(lista, (void*) iterator);
                 break;
             case -1:
                 log_error(logger_memoria, "No se pudo recibir el codigo de operacion");
@@ -40,13 +41,13 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-
-void mostrar_paquete(char* value) {
-	log_info(logger,"%s", value);
+void iniciar_config(){
+    config_memoria = config_create("config/memoria.config");
+    puerto_memoria = config_get_string_value(config_memoria, "PUERTO_ESCUCHA");   
 }
 
-void obtener_config(){
-    puerto = config_get_string_value(config, "PUERTO_ESCUCHA");   
+void iterator(char* value) {
+	log_info(logger_memoria,"%s", value);
 }
 
 

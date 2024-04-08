@@ -26,11 +26,10 @@ typedef struct
 typedef struct
 {
 	op_code codigo_operacion;
-	t_buffer* buffer;s
+	t_buffer* buffer;
 } t_paquete;
 
 t_log* iniciar_logger(char *path, char *nombre, t_log_level nivel);
-t_config *iniciar_config(char *path);
 int crear_conexion(char* ip, char* puerto);
 void liberar_conexion(int socket_cliente);
 

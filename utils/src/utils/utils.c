@@ -9,17 +9,14 @@ t_log* iniciar_logger(char *path, char *nombre, t_log_level nivel)
 {
 	t_log* nuevo_logger;
 	nuevo_logger = log_create(path, nombre, 1, nivel);
-	if(nuevo_logger == NULL ){printf("no pude cargar el logger");exit(1);}
+	if (nuevo_logger == NULL)
+	{
+		printf("No se pudo crear el logger\n");
+		exit(1);
+	}
 	log_info(nuevo_logger,"Soy un Log");
 	return nuevo_logger;
 }
-
-t_config *iniciar_config(char *path)
-{
-    t_config *nuevo_config = config_create(path);
-    return nuevo_config;
-}
-
 
 
 // ------------------ FUNCIONES DE CONEXION/CLIENTE ------------------
@@ -85,7 +82,7 @@ int iniciar_servidor(t_log* logger, char* puerto, char* nombre)
 	listen(socket_servidor, SOMAXCONN);
 
 	freeaddrinfo(servinfo);
-	log_trace(logger, "Listo para escuchar a %s:%s (%s)", ip, puerto, nombre);
+	log_trace(logger, "Listo para escuchar a %s", nombre);
 
 	return socket_servidor;
 }
@@ -99,6 +96,60 @@ int esperar_cliente(int socket_servidor, t_log* logger)
 	return socket_cliente;
 }
 
+// ------------------ FUNCIONES DE ENVIO/RECIBIR ------------------
+
+int recibir_operacion(int socket_cliente)
+{
+	int cod_op;
+	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+		return cod_op;
+	else
+	{
+		close(socket_cliente);
+		return -1;
+	}
+}
+
+void* recibir_buffer(int* size, int socket_cliente)
+{
+	void * buffer;
+
+	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
+	buffer = malloc(*size);
+	recv(socket_cliente, buffer, *size, MSG_WAITALL);
+
+	return buffer;
+}
+
+void recibir_mensaje(int socket_cliente, t_log* logger)
+{
+	int size;
+	char* buffer = recibir_buffer(&size, socket_cliente);
+	log_info(logger, "Me llego el mensaje %s", buffer);
+	free(buffer);
+}
+
+t_list* recibir_paquete(int socket_cliente)
+{
+	int size;
+	int desplazamiento = 0;
+	void * buffer;
+	t_list* valores = list_create();
+	int tamanio;
+
+	buffer = recibir_buffer(&size, socket_cliente);
+	while(desplazamiento < size)
+	{
+		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
+		desplazamiento+=sizeof(int);
+		char* valor = malloc(tamanio);
+		memcpy(valor, buffer+desplazamiento, tamanio);
+		desplazamiento+=tamanio;
+		list_add(valores, valor);
+	}
+	free(buffer);
+	return valores;
+}
 
 // ------------------ FUNCIONES DE FINALIZACION ------------------
 
