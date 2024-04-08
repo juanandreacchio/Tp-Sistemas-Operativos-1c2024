@@ -20,10 +20,10 @@ int main(void)
     send(conexion_memoria, "Handshake kernel y memoria",strlen("Handshake kernel y memoria") + 1,0);
     
     conexion_cpu = crear_conexion(ip_cpu, puerto_dispatch);
-    send(conexion_cpu, "Handshake kernel y puerto dispatch",strlen("Handshake kernel y cpu") + 1,0);
+    send(conexion_cpu, "Handshake kernel y puerto dispatch",strlen("Handshake kernel y puerto dispatch") + 1,0);
 
     conexion_cpu = crear_conexion(ip_cpu, puerto_interrupt);
-    send(conexion_cpu, "Handshake kernel y puerto interrupt",strlen("Handshake kernel y cpu") + 1,0);
+    send(conexion_cpu, "Handshake kernel y puerto interrupt",strlen("Handshake kernel y puerto interrupt") + 1,0);
 
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "Kernel");
 

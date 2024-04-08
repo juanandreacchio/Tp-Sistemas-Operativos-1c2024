@@ -46,8 +46,7 @@ void mostrar_paquete(char* value) {
 }
 
 void obtener_config(){
-    puerto = config_get_string_value(config, "PUERTO_ESCUCHA");
-    ip = config_get_string_value(config, "IP_MEMORIA");    
+    puerto = config_get_string_value(config, "PUERTO_ESCUCHA");   
 }
 
 

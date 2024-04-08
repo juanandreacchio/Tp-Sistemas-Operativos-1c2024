@@ -3,14 +3,13 @@
 
 // inicializacion
 t_log *logger_entradasalida;
-uint32_t conexion_kernel;
+uint32_t conexion_kernel, conexion_memoria;
 
 t_config *config_entradasalida;
 char *ip_kernel;
 char *puerto_kernel;
 char *ip_memoria;
 char *puerto_memoria;
-char *puerto_servidor;
 
 
 int main(int argc, char* argv[]) {
@@ -20,10 +19,10 @@ int main(int argc, char* argv[]) {
     iniciar_config();
 
     conexion_kernel = crear_conexion(ip_kernel, puerto_kernel);
-    send(conexion_kernel, "Handshake entrada salida y memoria",strlen("Handshake entrada salida y memoria") + 1,0);
+    send(conexion_kernel, "Handshake entrada salida y kernel",strlen("Handshake entrada salida y kernel") + 1,0);
 
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
-    send(conexion_memoria, "Handshake kernel y memoria",strlen("Handshake kernel y memoria") + 1,0);
+    send(conexion_memoria, "Handshake entrada salida y memoria",strlen("Handshake entrada salida y memoria") + 1,0);
 
 	terminar_programa(conexion_kernel ,logger_entradasalida, config_entradasalida);
 
@@ -37,5 +36,4 @@ void iniciar_config() {
     puerto_kernel = config_get_string_value(config_entradasalida, "PUERTO_KERNEL");
     ip_memoria = config_get_string_value(config_entradasalida, "IP_MEMORIA");
     puerto_memoria = config_get_string_value(config_entradasalida, "PUERTO_MEMORIA");
-    puerto_servidor = config_get_string_value(config_entradasalida, "PUERTO_SERVIDOR");
 }
