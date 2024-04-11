@@ -5,5 +5,19 @@
 #include <utils/hello.h>
 #include <../src/utils/utils.c>
 
-extern t_log* logger_cpu;
+#ifndef CPU_H_
+#define CPU_H_
+
+extern t_log *logger_cpu;
+extern t_config* config_cpu;
+extern char* ip_memoria;
+extern char *puerto_memoria;
+extern char *puerto_dispatch;
+extern char *puerto_interrupt;
+extern uint32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_interrupt;
+extern int socket_servidor_dispatch, socket_servidor_interrupt;
+
+void iniciar_config();
+
+#endif
 

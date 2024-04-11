@@ -1,29 +1,23 @@
 #include <../include/utils.h>
 
-
 // ------------------ FUNCIONES DE LOGGER ------------------
 
-
-
-t_log* iniciar_logger(char *path, char *nombre, t_log_level nivel)
+t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel)
 {
-	t_log* nuevo_logger;
+	t_log *nuevo_logger;
 	nuevo_logger = log_create(path, nombre, 1, nivel);
 	if (nuevo_logger == NULL)
 	{
 		printf("No se pudo crear el logger\n");
 		exit(1);
 	}
-	log_info(nuevo_logger,"Soy un Log");
+	log_info(nuevo_logger, "Soy un Log");
 	return nuevo_logger;
 }
 
-
 // ------------------ FUNCIONES DE CONEXION/CLIENTE ------------------
 
-
-
-int crear_conexion(char *ip, char* puerto)
+int crear_conexion(char *ip, char *puerto)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
@@ -36,10 +30,11 @@ int crear_conexion(char *ip, char* puerto)
 	getaddrinfo(ip, puerto, &hints, &server_info);
 
 	// Ahora vamos a crear el socket.
-	int socket_cliente = socket(server_info->ai_family,server_info->ai_socktype,server_info->ai_protocol);
+	int socket_cliente = socket(server_info->ai_family, server_info->ai_socktype, server_info->ai_protocol);
 
 	// Ahora que tenemos el socket, vamos a conectarlo
-	if(connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1){
+	if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
+	{
 		printf("error con la conexion");
 	}
 
@@ -53,14 +48,9 @@ void liberar_conexion(int socket_cliente)
 	close(socket_cliente);
 }
 
-
-
 // ------------------ FUNCIONES DE SERVIDOR ------------------
 
-
-
-
-int iniciar_servidor(t_log* logger, char* puerto, char* nombre)
+int iniciar_servidor(t_log *logger, char *puerto, char *nombre)
 {
 	int socket_servidor;
 
@@ -73,21 +63,19 @@ int iniciar_servidor(t_log* logger, char* puerto, char* nombre)
 
 	getaddrinfo(NULL, puerto, &hints, &servinfo);
 
-	
 	socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
-	
+
 	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
 
-	
 	listen(socket_servidor, SOMAXCONN);
 
 	freeaddrinfo(servinfo);
-	log_trace(logger, "Listo para escuchar a %s", nombre);
+	log_info(logger, "Listo para escuchar a %s", nombre);
 
 	return socket_servidor;
 }
 
-int esperar_cliente(int socket_servidor, t_log* logger)
+int esperar_cliente(int socket_servidor, t_log *logger)
 {
 	// Aceptamos un nuevo cliente
 	int socket_cliente = accept(socket_servidor, NULL, NULL);
@@ -101,7 +89,7 @@ int esperar_cliente(int socket_servidor, t_log* logger)
 int recibir_operacion(int socket_cliente)
 {
 	int cod_op;
-	if(recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+	if (recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
 		return cod_op;
 	else
 	{
@@ -110,9 +98,9 @@ int recibir_operacion(int socket_cliente)
 	}
 }
 
-void* recibir_buffer(int* size, int socket_cliente)
+void *recibir_buffer(int *size, int socket_cliente)
 {
-	void * buffer;
+	void *buffer;
 
 	recv(socket_cliente, size, sizeof(int), MSG_WAITALL);
 	buffer = malloc(*size);
@@ -121,30 +109,30 @@ void* recibir_buffer(int* size, int socket_cliente)
 	return buffer;
 }
 
-void recibir_mensaje(int socket_cliente, t_log* logger)
+void recibir_mensaje(int socket_cliente, t_log *logger)
 {
 	int size;
-	char* buffer = recibir_buffer(&size, socket_cliente);
+	char *buffer = recibir_buffer(&size, socket_cliente);
 	log_info(logger, "Me llego el mensaje %s", buffer);
 	free(buffer);
 }
 
-t_list* recibir_paquete(int socket_cliente)
+t_list *recibir_paquete(int socket_cliente)
 {
 	int size;
 	int desplazamiento = 0;
-	void * buffer;
-	t_list* valores = list_create();
+	void *buffer;
+	t_list *valores = list_create();
 	int tamanio;
 
 	buffer = recibir_buffer(&size, socket_cliente);
-	while(desplazamiento < size)
+	while (desplazamiento < size)
 	{
 		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
-		desplazamiento+=sizeof(int);
-		char* valor = malloc(tamanio);
-		memcpy(valor, buffer+desplazamiento, tamanio);
-		desplazamiento+=tamanio;
+		desplazamiento += sizeof(int);
+		char *valor = malloc(tamanio);
+		memcpy(valor, buffer + desplazamiento, tamanio);
+		desplazamiento += tamanio;
 		list_add(valores, valor);
 	}
 	free(buffer);
@@ -153,9 +141,7 @@ t_list* recibir_paquete(int socket_cliente)
 
 // ------------------ FUNCIONES DE FINALIZACION ------------------
 
-
-
-void terminar_programa(int conexion, t_log* logger, t_config* config)
+void terminar_programa(int conexion, t_log *logger, t_config *config)
 {
 	log_destroy(logger);
 	config_destroy(config);

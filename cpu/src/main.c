@@ -4,14 +4,26 @@
 
 t_log *logger_cpu;
 t_config* config_cpu;
-int conexion_memoria;
+char* ip_memoria;
+char *puerto_memoria;
+char *puerto_dispatch;
+char *puerto_interrupt;
+uint32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_interrupt;
+int socket_servidor_dispatch, socket_servidor_interrupt;
 
 int main(void) {
-	logger_cpu = iniciar_logger("config/cpu.log","CPU",LOG_LEVEL_INFO);
     iniciar_config();
-	char* mensaje = "handshake cpu with memoria";
-	send(conexion_memoria,mensaje,strlen(mensaje)+1,0);
-	int socket_servidor_cpu = iniciar_servidor(logger_cpu, puerto_servidor, "Memoria");
+
+	conexion_memoria = crear_conexion(ip_memoria,puerto_memoria);
+	send(conexion_memoria, "CPU", strlen("CPU") + 1, 0);
+
+
+	socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "Dispatch");
+	socket_servidor_interrupt = iniciar_servidor(logger_cpu, puerto_interrupt, "Interrupt");
+
+	conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
+	conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
+
 }
 
 
@@ -19,9 +31,9 @@ int main(void) {
 void iniciar_config()
 {
 	config_cpu = config_create("./config/cpu.config");
-	ip_cpu = config_get_string_value(config_cpu, "IP_CPU");
+	logger_cpu = iniciar_logger("config/cpu.log","CPU",LOG_LEVEL_INFO);
 	ip_memoria = config_get_string_value(config_cpu, "IP_MEMORIA");
-	puerto_servidor = config_get_string_value(config_cpu, "PUERTO_SERVIDOR");
+	puerto_dispatch = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_DISPATCH");
 	puerto_memoria = config_get_string_value(config_cpu, "PUERTO_MEMORIA");
-	conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
+	puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
 }

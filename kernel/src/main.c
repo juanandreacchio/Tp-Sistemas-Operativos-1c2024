@@ -10,25 +10,32 @@ char *puerto_escucha;
 char *puerto_dispatch;
 char *puerto_interrupt;
 char *ip;
-u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt;
+uint32_t conexion_memoria, *conexion_dispatch, *conexion_interrupt;
+int socket_servidor_kernel, socket_cliente_kernel;
 
 int main(void)
 {
     iniciar_config();
 
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
-    send(conexion_memoria, "Handshake kernel y memoria",strlen("Handshake kernel y memoria") + 1,0);
-    
-    conexion_cpu = crear_conexion(ip_cpu, puerto_dispatch);
-    send(conexion_cpu, "Handshake kernel y puerto dispatch",strlen("Handshake kernel y puerto dispatch") + 1,0);
+    send(conexion_memoria, "Kernel", strlen("Kernel") + 1, 0); // Para hacerle saber a memoria que módulo se conecta
 
-    conexion_cpu = crear_conexion(ip_cpu, puerto_interrupt);
-    send(conexion_cpu, "Handshake kernel y puerto interrupt",strlen("Handshake kernel y puerto interrupt") + 1,0);
+    conexion_dispatch = crear_conexion(ip_cpu, puerto_dispatch);
+
+    conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt);
 
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "Kernel");
 
-    int conexion_kernel = esperar_cliente(socket_servidor_kernel);
-    
+    while (1)
+    {
+        pthread_t thread;
+        int socket_cliente = esperar_cliente(socket_servidor_kernel, logger_kernel);
+        pthread_create(&thread,
+                       NULL,
+                       atender_interfaz_io(),
+                       socket_cliente);
+        pthread_detach(thread);
+    }
 
     log_info(logger_kernel, "Se cerrará la conexión.");
     terminar_programa(socket_servidor_kernel, logger_kernel, config_kernel);
@@ -44,4 +51,9 @@ void iniciar_config(void)
     puerto_interrupt = config_get_string_value(config_kernel, "PUERTO_INTERRUPT");
     puerto_memoria = config_get_string_value(config_kernel, "PUERTO_MEMORIA");
     puerto_escucha = config_get_string_value(config_kernel, "PUERTO_ESCUCHA");
+}
+
+void atender_interfaz_io()
+{
+    log_info(logger_kernel, "Atendiendo interfaz de entrada/salida.");
 }

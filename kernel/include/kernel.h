@@ -26,4 +26,4 @@ extern u_int32_t conexion_memoria, conexion_io, conexion_cpu;;
 
 void iniciar_config();
 
-#endif endregion KERNEL_H_
+#endif
