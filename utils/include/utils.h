@@ -13,8 +13,10 @@
 
 typedef enum
 {
-	MENSAJE,
-	PAQUETE
+	KERNEL,
+	CPU,
+	MEMORIA,
+	ENTRADA_SALIDA
 }op_code;
 
 typedef struct
@@ -35,9 +37,9 @@ void liberar_conexion(int socket_cliente);
 int iniciar_servidor(t_log *logger, char *puerto, char *nombre);
 int esperar_cliente(int socket_servidor, t_log *logger);
 void* serializar_paquete(t_paquete* paquete, int bytes);
-void enviar_mensaje(char* mensaje, int socket_cliente);
+void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion);
 void eliminar_paquete(t_paquete* paquete);
-int recibir_operacion(int socket_cliente);
+op_code recibir_operacion(int socket_cliente);
 void *recibir_buffer(int *size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log* logger);
 t_list *recibir_paquete(int socket_cliente);

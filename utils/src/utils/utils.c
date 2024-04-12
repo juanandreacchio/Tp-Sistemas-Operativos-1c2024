@@ -1,5 +1,22 @@
 #include <../include/utils.h>
 
+char* cod_op_to_string(op_code codigo_operacion)
+{
+	switch (codigo_operacion)
+	{
+	case KERNEL:
+		return "KERNEL";
+	case CPU:
+		return "CPU";
+	case MEMORIA:
+		return "MEMORIA";
+	case ENTRADA_SALIDA:
+		return "ENTRADA_SALIDA";
+	default:
+		return "CODIGO DE OPERACION INVALIDO";
+	}
+}
+
 // ------------------ FUNCIONES DE LOGGER ------------------
 
 t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel)
@@ -100,22 +117,34 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 	return magic;
 }
 
-void enviar_mensaje(char* mensaje, int socket_cliente)
+void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 
-	paquete->codigo_operacion = MENSAJE;
+	paquete->codigo_operacion = codigo_operacion;
 	paquete->buffer = malloc(sizeof(t_buffer));
 	paquete->buffer->size = strlen(mensaje) + 1;
 	paquete->buffer->stream = malloc(paquete->buffer->size);
 	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
 	
 
-	int bytes = paquete->buffer->size + 2*sizeof(int);
+	int bytes = paquete->buffer->size + sizeof(op_code) + sizeof(int);
 
 	void* a_enviar = serializar_paquete(paquete, bytes);
+	// Printeo todo para ver que se envia
+	/*printf("Codigo de operacion: %d\n", paquete->codigo_operacion);
+	printf("Tamanio del buffer: %d\n", paquete->buffer->size);
+	printf("Mensaje: %s\n", (char*)paquete->buffer->stream);
+	printf("Tamnio del mensaje: %ld\n", strlen(mensaje)+1);
+	printf("Tamanio del paquete: %d\n", bytes);
+	printf("Bytes a enviar: %d\n", bytes);
+	printf("Socket cliente: %d\n", socket_cliente);*/
 	
-	send(socket_cliente, a_enviar, bytes, 0);
+	int resultado = send(socket_cliente, a_enviar, bytes, 0);
+	if(resultado == -1)
+	{
+		printf("Error al enviar mensaje\n");
+	}
 
 	free(a_enviar);
 	eliminar_paquete(paquete);
@@ -130,12 +159,12 @@ void eliminar_paquete(t_paquete* paquete)
 
 // ------------------ FUNCIONES DE RECIBIR ----------------------
 
-int recibir_operacion(int socket_cliente)
+op_code recibir_operacion(int socket_cliente)
 {
-	int cod_op;
-	if (recv(socket_cliente, &cod_op, sizeof(int), MSG_WAITALL) > 0)
+	op_code cod_op;
+	if (recv(socket_cliente, &cod_op, sizeof(op_code), MSG_WAITALL) > 0) {
 		return cod_op;
-	else
+	} else
 	{
 		close(socket_cliente);
 		return -1;

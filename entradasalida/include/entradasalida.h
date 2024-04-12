@@ -18,4 +18,6 @@ extern char *ip_memoria;
 extern char *puerto_memoria;
 
 void iniciar_config();
+void* iniciar_conexion_kernel(void* arg);
+void* iniciar_conexion_memoria(void* arg);
 #endif

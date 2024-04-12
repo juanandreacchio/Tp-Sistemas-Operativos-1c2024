@@ -19,13 +19,13 @@ int main(void)
 
     //iniciar conexion con Kernel
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
-    enviar_mensaje("Kernel",conexion_memoria);
+    enviar_mensaje("", conexion_memoria, KERNEL);
 
     //iniciar conexion con CPU_dispath
     conexion_dispatch = crear_conexion(ip_cpu, puerto_dispatch);
     conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt);
-    enviar_mensaje("Kernel",conexion_dispatch);
-    enviar_mensaje("Kernel",conexion_interrupt); 
+    enviar_mensaje("", conexion_dispatch, KERNEL);
+    enviar_mensaje("", conexion_interrupt, KERNEL);
 
     //iniciar Servidor
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "Kernel");
@@ -34,11 +34,7 @@ int main(void)
     {
         pthread_t thread;
         int socket_cliente = esperar_cliente(socket_servidor_kernel, logger_kernel);
-        pthread_create(&thread,
-                       NULL,
-                       atender_interfaz_io(),
-                       socket_cliente);
-        pthread_detach(thread);
+        pthread_create(&thread, NULL, atender_cliente, socket_cliente);
     }
 
     log_info(logger_kernel, "Se cerrará la conexión.");
@@ -57,7 +53,18 @@ void iniciar_config(void)
     puerto_escucha = config_get_string_value(config_kernel, "PUERTO_ESCUCHA");
 }
 
-void atender_interfaz_io()
+void* atender_cliente(int socket_cliente)
 {
-    log_info(logger_kernel, "Atendiendo interfaz de entrada/salida.");
+    op_code codigo_operacion = recibir_operacion(socket_cliente);
+    switch (codigo_operacion)
+    {
+    case ENTRADA_SALIDA:
+        log_info(logger_kernel, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
+        // TODO: implementar
+        break;
+    default:
+        log_info(logger_kernel, "Se recibio un mensaje de un modulo desconocido");
+        break;
+    }
+    return NULL;
 }

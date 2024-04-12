@@ -15,26 +15,17 @@ int main(void) {
     iniciar_config();
 
 	conexion_memoria = crear_conexion(ip_memoria,puerto_memoria);
-	enviar_mensaje("CPU",conexion_memoria);
+	enviar_mensaje("", conexion_memoria, CPU);
 
-
+	pthread_t hilo_dispatch, hilo_interrupt;
 	
 	// iniciar servidor Dispatch y Interrupt
-	socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "Dispatch");
-	socket_servidor_interrupt = iniciar_servidor(logger_cpu, puerto_interrupt, "Interrupt");
-	conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
-	conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
-	recibir_operacion(conexion_kernel_dispatch);
-	recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
-	recibir_operacion(conexion_kernel_interrupt);
-	recibir_mensaje(conexion_kernel_interrupt, logger_cpu);
-	
+	pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
+    pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
 
-	
-
+    pthread_join(hilo_dispatch, NULL);
+    pthread_join(hilo_interrupt, NULL);
 }
-
-
 
 void iniciar_config()
 {
@@ -44,4 +35,24 @@ void iniciar_config()
 	puerto_dispatch = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_DISPATCH");
 	puerto_memoria = config_get_string_value(config_cpu, "PUERTO_MEMORIA");
 	puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
+}
+
+void* iniciar_servidor_dispatch(void* arg) {
+	socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "Dispatch");
+    while(1) {
+        conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
+		log_info(logger_cpu, "Se recibio un mensaje del modulo %s", cod_op_to_string(recibir_operacion(conexion_kernel_dispatch)));
+        recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
+    }
+    return NULL;
+}
+
+void* iniciar_servidor_interrupt(void* arg) {
+	socket_servidor_interrupt = iniciar_servidor(logger_cpu, puerto_interrupt, "Interrupt");
+    while(1) {
+		conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
+		log_info(logger_cpu, "Se recibio un mensaje del modulo %s", cod_op_to_string(recibir_operacion(conexion_kernel_interrupt)));
+        recibir_mensaje(conexion_kernel_interrupt, logger_cpu);
+    }
+    return NULL;
 }

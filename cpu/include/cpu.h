@@ -18,6 +18,7 @@ extern u_int32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_int
 extern int socket_servidor_dispatch, socket_servidor_interrupt;
 
 void iniciar_config();
-
+void* iniciar_servidor_dispatch(void* arg);
+void* iniciar_servidor_interrupt(void* arg);
 #endif
 

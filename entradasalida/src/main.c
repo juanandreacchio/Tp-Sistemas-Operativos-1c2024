@@ -15,10 +15,14 @@ char *puerto_memoria;
 int main(void) {
     iniciar_config();
 
-    conexion_kernel = crear_conexion(ip_kernel, puerto_kernel);
+    pthread_t hilo_kernel, hilo_memoria;
 
-    conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
-    send(conexion_memoria, "IO", strlen("IO") + 1, 0);
+    pthread_create(&hilo_kernel, NULL, iniciar_conexion_kernel, NULL);
+    pthread_create(&hilo_memoria, NULL, iniciar_conexion_memoria, NULL);
+
+    pthread_join(hilo_kernel, NULL);
+    pthread_join(hilo_memoria, NULL);
+
 
 
 	terminar_programa(conexion_kernel ,logger_entradasalida, config_entradasalida);
@@ -34,4 +38,22 @@ void iniciar_config() {
     puerto_kernel = config_get_string_value(config_entradasalida, "PUERTO_KERNEL");
     ip_memoria = config_get_string_value(config_entradasalida, "IP_MEMORIA");
     puerto_memoria = config_get_string_value(config_entradasalida, "PUERTO_MEMORIA");
+}
+
+void* iniciar_conexion_kernel(void* arg) {
+    conexion_kernel = crear_conexion(ip_kernel, puerto_kernel);
+    enviar_mensaje("", conexion_kernel, ENTRADA_SALIDA);
+    while(1) {
+        // TODO: implementar
+    }
+    return NULL;
+}
+
+void* iniciar_conexion_memoria(void* arg) {
+    conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
+    enviar_mensaje("", conexion_memoria, ENTRADA_SALIDA);
+    while(1) {
+        // TODO: implementar
+    }
+    return NULL;
 }

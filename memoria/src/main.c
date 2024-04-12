@@ -19,23 +19,9 @@ int main(int argc, char *argv[])
     {
         pthread_t thread;
         int socket_cliente = esperar_cliente(socket_servidor_memoria, logger_memoria);
-        char* modulo_cliente;
-        recibir_operacion(socket_cliente);
-        modulo_cliente = recibir_mensaje_guardar_variable(socket_cliente);
-        log_info(logger_memoria,modulo_cliente);
-        //funciona la conexion y los mensajes tiene que correr:
-        //memoria primero despues cpu y despues kernel y funciona
-        //si lo corres en otro orden tira broken pipe porque intenta enviar mensajes a servidores que no estan levantados
-        //podriamos manejar el error para que si pase se qude esperando pero no c como hacerlo todavia
-
-        //lo que esta abajo esta comentado no c porque no funciona la verdad pero bueno ya lo vere otro dia 
-        /*
-        pthread_create(&thread,
-                       NULL,
-                       atender_cliente(modulo_cliente),
-                       socket_cliente);
+        pthread_create(&thread, NULL, atender_cliente, socket_cliente);
         pthread_detach(thread);
-        */
+        
     }
     
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
@@ -55,12 +41,27 @@ void iterator(char *value)
     log_info(logger_memoria, "%s", value);
 }
 
-void atender_cliente(char *modulo){
-    if (strcmp(modulo, "Kernel") == 0) {
-        log_info(logger_memoria, "Atendiendo cliente Kernel");
-    } else if (strcmp(modulo, "CPU") == 0) {
-        log_info(logger_memoria, "Atendiendo cliente CPU");
-    } else if (strcmp(modulo, "IO") == 0) {
-        log_info(logger_memoria, "Atendiendo cliente IO");
+void* atender_cliente(int socket_cliente)
+{
+    op_code codigo_operacion = recibir_operacion(socket_cliente);
+    switch (codigo_operacion)
+    {
+    case KERNEL:
+        log_info(logger_memoria, "Se recibio un mensaje del modulo KERNEL");
+        // TODO: implementar
+        break;
+    case CPU:
+        log_info(logger_memoria, "Se recibio un mensaje del modulo CPU");
+        // TODO: implementar
+        break;
+    case ENTRADA_SALIDA:
+        log_info(logger_memoria, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
+        // TODO: implementar
+        break;
+    default:
+        log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
+        // TODO: implementar
+        break;
     }
+    return NULL;
 }
