@@ -16,8 +16,9 @@ extern char *ip_kernel;
 extern char *puerto_kernel;
 extern char *ip_memoria;
 extern char *puerto_memoria;
+extern pthread_t thread_memoria, thread_kernel;
 
 void iniciar_config();
-void* iniciar_conexion_kernel(void* arg);
-void* iniciar_conexion_memoria(void* arg);
+void *iniciar_conexion_kernel(void *arg);
+void *iniciar_conexion_memoria(void *arg);
 #endif

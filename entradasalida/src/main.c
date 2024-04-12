@@ -9,16 +9,19 @@ char *ip_kernel;
 char *puerto_kernel;
 char *ip_memoria;
 char *puerto_memoria;
+pthread_t thread_memoria, thread_kernel;
 
 int main(void)
 {
     iniciar_config();
 
-    conexion_kernel = crear_conexion(ip_kernel, puerto_kernel);
-    enviar_mensaje("", conexion_kernel, ENTRADA_SALIDA);
 
-    conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
-    enviar_mensaje("", conexion_memoria, ENTRADA_SALIDA);
+
+    pthread_create(&thread_kernel, NULL, iniciar_conexion_kernel, NULL);
+    pthread_create(&thread_memoria, NULL, iniciar_conexion_memoria, NULL);
+
+    pthread_join(thread_kernel, NULL);
+    pthread_join(thread_memoria, NULL);
 
     terminar_programa(conexion_kernel, logger_entradasalida, config_entradasalida);
 
