@@ -32,15 +32,16 @@ typedef struct
 t_log* iniciar_logger(char *path, char *nombre, t_log_level nivel);
 int crear_conexion(char* ip, char* puerto);
 void liberar_conexion(int socket_cliente);
-
-/*
-void recibir_mensaje(int socket_cliente, t_log* logger);
+int iniciar_servidor(t_log *logger, char *puerto, char *nombre);
+int esperar_cliente(int socket_servidor, t_log *logger);
+void* serializar_paquete(t_paquete* paquete, int bytes);
 void enviar_mensaje(char* mensaje, int socket_cliente);
-t_paquete* crear_paquete(void);
-void crear_buffer(t_paquete* paquete);
-void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
-void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void eliminar_paquete(t_paquete* paquete);
+int recibir_operacion(int socket_cliente);
+void *recibir_buffer(int *size, int socket_cliente);
+void recibir_mensaje(int socket_cliente, t_log* logger);
+t_list *recibir_paquete(int socket_cliente);
 
-*/
+
+
 #endif /* UTILS_H_ */

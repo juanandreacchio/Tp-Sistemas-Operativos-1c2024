@@ -11,22 +11,33 @@ int main(int argc, char *argv[])
 {
     // logger memoria
 
-    // servidor de cpu
+    // iniciar servidor
     iniciar_config();
     socket_servidor_memoria = iniciar_servidor(logger_memoria, puerto_memoria, "MEMORIA");
+
     while (1)
     {
         pthread_t thread;
         int socket_cliente = esperar_cliente(socket_servidor_memoria, logger_memoria);
-        char modulo_cliente[25];
-        recv(socket_cliente, modulo_cliente, sizeof(modulo_cliente), 0);
+        char* modulo_cliente;
+        recibir_operacion(socket_cliente);
+        modulo_cliente = recibir_mensaje_guardar_variable(socket_cliente);
+        log_info(logger_memoria,modulo_cliente);
+        //funciona la conexion y los mensajes tiene que correr:
+        //memoria primero despues cpu y despues kernel y funciona
+        //si lo corres en otro orden tira broken pipe porque intenta enviar mensajes a servidores que no estan levantados
+        //podriamos manejar el error para que si pase se qude esperando pero no c como hacerlo todavia
+
+        //lo que esta abajo esta comentado no c porque no funciona la verdad pero bueno ya lo vere otro dia 
+        /*
         pthread_create(&thread,
                        NULL,
                        atender_cliente(modulo_cliente),
                        socket_cliente);
         pthread_detach(thread);
+        */
     }
-
+    
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
 
     return 0;

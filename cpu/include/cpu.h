@@ -14,7 +14,7 @@ extern char* ip_memoria;
 extern char *puerto_memoria;
 extern char *puerto_dispatch;
 extern char *puerto_interrupt;
-extern uint32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_interrupt;
+extern u_int32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_interrupt;
 extern int socket_servidor_dispatch, socket_servidor_interrupt;
 
 void iniciar_config();
