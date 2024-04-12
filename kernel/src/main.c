@@ -17,17 +17,17 @@ int main(void)
 {
     iniciar_config();
 
-    //iniciar conexion con Kernel
+    // iniciar conexion con Kernel
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
     enviar_mensaje("", conexion_memoria, KERNEL);
 
-    //iniciar conexion con CPU_dispath
+    // iniciar conexion con CPU_dispath
     conexion_dispatch = crear_conexion(ip_cpu, puerto_dispatch);
     conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt);
     enviar_mensaje("", conexion_dispatch, KERNEL);
     enviar_mensaje("", conexion_interrupt, KERNEL);
 
-    //iniciar Servidor
+    // iniciar Servidor
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "Kernel");
 
     while (1)
@@ -35,6 +35,7 @@ int main(void)
         pthread_t thread;
         int socket_cliente = esperar_cliente(socket_servidor_kernel, logger_kernel);
         pthread_create(&thread, NULL, atender_cliente, socket_cliente);
+        pthread_detach(thread);
     }
 
     log_info(logger_kernel, "Se cerrará la conexión.");
@@ -53,7 +54,7 @@ void iniciar_config(void)
     puerto_escucha = config_get_string_value(config_kernel, "PUERTO_ESCUCHA");
 }
 
-void* atender_cliente(int socket_cliente)
+void *atender_cliente(int socket_cliente)
 {
     op_code codigo_operacion = recibir_operacion(socket_cliente);
     switch (codigo_operacion)

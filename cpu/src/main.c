@@ -41,7 +41,7 @@ void* iniciar_servidor_dispatch(void* arg) {
 	socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "Dispatch");
     while(1) {
         conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
-		log_info(logger_cpu, "Se recibio un mensaje del modulo %s", cod_op_to_string(recibir_operacion(conexion_kernel_dispatch)));
+		log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Dispatch", cod_op_to_string(recibir_operacion(conexion_kernel_dispatch)));
         recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
     }
     return NULL;
@@ -51,7 +51,7 @@ void* iniciar_servidor_interrupt(void* arg) {
 	socket_servidor_interrupt = iniciar_servidor(logger_cpu, puerto_interrupt, "Interrupt");
     while(1) {
 		conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
-		log_info(logger_cpu, "Se recibio un mensaje del modulo %s", cod_op_to_string(recibir_operacion(conexion_kernel_interrupt)));
+		log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Interrupt", cod_op_to_string(recibir_operacion(conexion_kernel_interrupt)));
         recibir_mensaje(conexion_kernel_interrupt, logger_cpu);
     }
     return NULL;
