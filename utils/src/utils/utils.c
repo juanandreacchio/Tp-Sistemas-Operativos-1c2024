@@ -25,7 +25,7 @@ t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel)
 	nuevo_logger = log_create(path, nombre, 1, nivel);
 	if (nuevo_logger == NULL)
 	{
-		log_error(nuevo_logger, "No se pudo crear el logger: %s", strerror(errno));
+		printf("Error al crear el logger: %s", strerror(errno));
 		exit(1);
 	}
 	log_info(nuevo_logger, "Logger creado");
