@@ -16,8 +16,8 @@ int main(void)
 {
 	iniciar_config();
 
-	conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
-	enviar_mensaje("", conexion_memoria, CPU);
+	conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
+	enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
 
 	// iniciar servidor Dispatch y Interrupt
 	pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
@@ -39,7 +39,7 @@ void iniciar_config()
 
 void *iniciar_servidor_dispatch(void *arg)
 {
-	socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "Dispatch");
+	socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "DISPATCH");
 	while (1)
 	{
 		conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
@@ -51,7 +51,7 @@ void *iniciar_servidor_dispatch(void *arg)
 
 void *iniciar_servidor_interrupt(void *arg)
 {
-	socket_servidor_interrupt = iniciar_servidor(logger_cpu, puerto_interrupt, "Interrupt");
+	socket_servidor_interrupt = iniciar_servidor(logger_cpu, puerto_interrupt, "INTERRUPT");
 	while (1)
 	{
 		conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);

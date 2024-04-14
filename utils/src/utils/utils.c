@@ -25,16 +25,16 @@ t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel)
 	nuevo_logger = log_create(path, nombre, 1, nivel);
 	if (nuevo_logger == NULL)
 	{
-		printf("No se pudo crear el logger\n");
+		log_error(nuevo_logger, "No se pudo crear el logger: %s", strerror(errno));
 		exit(1);
 	}
-	log_info(nuevo_logger, "Soy un Log");
+	log_info(nuevo_logger, "Logger creado");
 	return nuevo_logger;
 }
 
 // ------------------ FUNCIONES DE CONEXION/CLIENTE ------------------
 
-int crear_conexion(char *ip, char *puerto)
+int crear_conexion(char *ip, char *puerto, t_log *logger)
 {
 	struct addrinfo hints;
 	struct addrinfo *server_info;
@@ -52,7 +52,9 @@ int crear_conexion(char *ip, char *puerto)
 	// Ahora que tenemos el socket, vamos a conectarlo
 	if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
 	{
-		printf("error con la conexion");
+		
+		log_error(logger, "Error al conectar el socket: %s", strerror(errno));
+		return -1;
 	}
 
 	freeaddrinfo(server_info);
@@ -87,7 +89,7 @@ int iniciar_servidor(t_log *logger, char *puerto, char *nombre)
 	listen(socket_servidor, SOMAXCONN);
 
 	freeaddrinfo(servinfo);
-	log_info(logger, "el servidor de %s esta listo", nombre);
+	log_info(logger, "Servidor de %s escuchando en el puerto %s", nombre, puerto);
 
 	return socket_servidor;
 }
@@ -117,7 +119,7 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 	return magic;
 }
 
-void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion)
+void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion, t_log *logger)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 
@@ -143,7 +145,7 @@ void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion)
 	int resultado = send(socket_cliente, a_enviar, bytes, 0);
 	if(resultado == -1)
 	{
-		printf("Error al enviar mensaje\n");
+		log_error(logger, "Error al enviar mensaje al socket %d: %s", socket_cliente, strerror(errno));
 	}
 
 	free(a_enviar);

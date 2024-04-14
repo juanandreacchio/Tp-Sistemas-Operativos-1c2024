@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
     {
         pthread_t thread;
         int socket_cliente = esperar_cliente(socket_servidor_memoria, logger_memoria);
-        pthread_create(&thread, NULL, atender_cliente, socket_cliente);
+        pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
         pthread_detach(thread);
         
     }
@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 void iniciar_config()
 {
     config_memoria = config_create("config/memoria.config");
-    logger_memoria = iniciar_logger("config/memoria.log", "Memoria", LOG_LEVEL_INFO);
+    logger_memoria = iniciar_logger("config/memoria.log", "MEMORIA", LOG_LEVEL_INFO);
     puerto_memoria = config_get_string_value(config_memoria, "PUERTO_ESCUCHA");
 }
 
@@ -41,9 +41,9 @@ void iterator(char *value)
     log_info(logger_memoria, "%s", value);
 }
 
-void* atender_cliente(int socket_cliente)
+void* atender_cliente(void *socket_cliente)
 {
-    op_code codigo_operacion = recibir_operacion(socket_cliente);
+    op_code codigo_operacion = recibir_operacion((int)(long int)socket_cliente);
     switch (codigo_operacion)
     {
     case KERNEL:

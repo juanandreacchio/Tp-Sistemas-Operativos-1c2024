@@ -25,7 +25,7 @@ extern u_int32_t conexion_memoria, conexion_io, conexion_cpu;;
 
 
 void iniciar_config();
-void* atender_cliente(int socket_cliente);
+void* atender_cliente(void *socket_cliente);
 
 
 #endif

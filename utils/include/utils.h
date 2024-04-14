@@ -11,6 +11,8 @@
 #include <commons/log.h>
 #include <commons/config.h>
 #include <pthread.h>
+#include <errno.h>
+
 typedef enum
 {
 	KERNEL,
@@ -32,12 +34,12 @@ typedef struct
 } t_paquete;
 
 t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel);
-int crear_conexion(char *ip, char *puerto);
+int crear_conexion(char *ip, char *puerto, t_log *logger);
 void liberar_conexion(int socket_cliente);
 int iniciar_servidor(t_log *logger, char *puerto, char *nombre);
 int esperar_cliente(int socket_servidor, t_log *logger);
 void *serializar_paquete(t_paquete *paquete, int bytes);
-void enviar_mensaje(char *mensaje, int socket_cliente, op_code codigo_operacion);
+void enviar_mensaje(char *mensaje, int socket_cliente, op_code codigo_operaciom, t_log *logger);
 void eliminar_paquete(t_paquete *paquete);
 op_code recibir_operacion(int socket_cliente);
 void *recibir_buffer(int *size, int socket_cliente);

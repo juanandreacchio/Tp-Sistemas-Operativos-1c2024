@@ -17,6 +17,6 @@ extern int socket_servidor_memoria;
 
 void iterator(char* value);
 void iniciar_config();
-void* atender_cliente(int socket_cliente);
+void* atender_cliente(void *socket_cliente);
 
 #endif

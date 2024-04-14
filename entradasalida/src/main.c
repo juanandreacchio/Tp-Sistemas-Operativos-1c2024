@@ -40,8 +40,8 @@ void iniciar_config()
 
 void *iniciar_conexion_kernel(void *arg)
 {
-    conexion_kernel = crear_conexion(ip_kernel, puerto_kernel);
-    enviar_mensaje("", conexion_kernel, ENTRADA_SALIDA);
+    conexion_kernel = crear_conexion(ip_kernel, puerto_kernel, logger_entradasalida);
+    enviar_mensaje("", conexion_kernel, ENTRADA_SALIDA, logger_entradasalida);
     while (1)
     {
         // TODO: implementar
@@ -51,8 +51,8 @@ void *iniciar_conexion_kernel(void *arg)
 
 void *iniciar_conexion_memoria(void *arg)
 {
-    conexion_memoria = crear_conexion(ip_memoria, puerto_memoria);
-    enviar_mensaje("", conexion_memoria, ENTRADA_SALIDA);
+    conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_entradasalida);
+    enviar_mensaje("", conexion_memoria, ENTRADA_SALIDA, logger_entradasalida);
     while (1)
     {
         // TODO: implementar
