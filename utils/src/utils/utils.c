@@ -1,5 +1,34 @@
 #include <../include/utils.h>
 
+t_pcb* crear_pcb(u_int32_t pid, u_int32_t quantum, t_psw psw)
+{
+	t_pcb* pcb = malloc(sizeof(t_pcb));
+	pcb->pid = pid;
+	pcb->pc = 0 ;
+	pcb->quantum = quantum;
+	pcb->psw = psw;
+	pcb->registros = inicializar_registros();
+}
+
+void destruir_pcb(t_pcb* pcb)
+{
+	free(pcb);
+}
+
+t_registros inicializar_registros()
+{
+	t_registros registros;
+    strcpy(registros.AX,"\0");
+	strcpy(registros.BX,"\0");
+	strcpy(registros.CX,"\0");
+	strcpy(registros.DX,"\0");
+	strcpy(registros.EAX,"\0");
+	strcpy(registros.EBX,"\0");
+	strcpy(registros.ECX,"\0");
+	strcpy(registros.EDX,"\0");
+	return registros;
+}
+
 char* cod_op_to_string(op_code codigo_operacion)
 {
 	switch (codigo_operacion)
@@ -118,6 +147,42 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 	desplazamiento+= paquete->buffer->size;
 	return magic;
 }
+
+void crear_buffer(t_paquete* paquete)
+{
+	paquete->buffer = malloc(sizeof(t_buffer));
+	paquete->buffer->size = 0;
+	paquete->buffer->stream = NULL;
+}
+
+t_paquete* crear_paquete(void)
+{
+	t_paquete* paquete = malloc(sizeof(t_paquete));
+	paquete->codigo_operacion = PAQUETE;
+	crear_buffer(paquete);
+	return paquete;
+}
+
+void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio)
+{
+	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
+
+	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
+	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
+
+	paquete->buffer->size += tamanio + sizeof(int);
+}
+
+void enviar_paquete(t_paquete* paquete, int socket_cliente)
+{
+	int bytes = paquete->buffer->size + 2*sizeof(int);
+	void* a_enviar = serializar_paquete(paquete, bytes);
+
+	send(socket_cliente, a_enviar, bytes, 0);
+
+	free(a_enviar);
+}
+
 
 void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion, t_log *logger)
 {
