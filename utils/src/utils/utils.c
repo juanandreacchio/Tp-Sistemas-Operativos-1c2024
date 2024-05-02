@@ -1,6 +1,40 @@
 #include <../include/utils.h>
 
-char* cod_op_to_string(op_code codigo_operacion)
+t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, t_psw psw)
+{
+	t_pcb *pcb = malloc(sizeof(t_pcb));
+	pcb->pid = pid;
+	pcb->instrucciones = lista_instrucciones;
+	pcb->pc = 0;
+	pcb->quantum = quantum;
+	pcb->psw = psw;
+	pcb->registros = inicializar_registros();
+	return pcb;
+}
+
+void destruir_pcb(t_pcb *pcb)
+{
+	free(pcb);
+}
+
+t_registros inicializar_registros()
+{
+	t_registros registros;
+	registros->AX = 0;
+	registros->BX = 0;
+	registros->CX = 0;
+	registros->DX = 0;
+	registros->EAX = 0;
+	registros->EBX = 0;
+	registros->ECX = 0;
+	registros->EDX = 0;
+	registros->SI = 0;
+	registros->DI = 0;
+	registros->PC = 0;
+	return registros;
+}
+
+char *cod_op_to_string(op_code codigo_operacion)
 {
 	switch (codigo_operacion)
 	{
@@ -52,7 +86,7 @@ int crear_conexion(char *ip, char *puerto, t_log *logger)
 	// Ahora que tenemos el socket, vamos a conectarlo
 	if (connect(socket_cliente, server_info->ai_addr, server_info->ai_addrlen) == -1)
 	{
-		
+
 		log_error(logger, "Error al conectar el socket: %s", strerror(errno));
 		return -1;
 	}
@@ -105,34 +139,68 @@ int esperar_cliente(int socket_servidor, t_log *logger)
 
 // ------------------ FUNCIONES DE ENVIO ----------------------
 
-void* serializar_paquete(t_paquete* paquete, int bytes)
+void *serializar_paquete(t_paquete *paquete, int bytes)
 {
-	void * magic = malloc(bytes);
+	void *magic = malloc(bytes);
 	int desplazamiento = 0;
 
 	memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
-	desplazamiento+= sizeof(int);
+	desplazamiento += sizeof(int);
 	memcpy(magic + desplazamiento, &(paquete->buffer->size), sizeof(int));
-	desplazamiento+= sizeof(int);
+	desplazamiento += sizeof(int);
 	memcpy(magic + desplazamiento, paquete->buffer->stream, paquete->buffer->size);
-	desplazamiento+= paquete->buffer->size;
+	desplazamiento += paquete->buffer->size;
 	return magic;
 }
 
-void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion, t_log *logger)
+void crear_buffer(t_paquete *paquete)
 {
-	t_paquete* paquete = malloc(sizeof(t_paquete));
+	paquete->buffer = malloc(sizeof(t_buffer));
+	paquete->buffer->size = 0;
+	paquete->buffer->stream = NULL;
+}
+
+t_paquete *crear_paquete(int codigo_operacion)
+{
+	t_paquete *paquete = malloc(sizeof(t_paquete));
+	paquete->codigo_operacion = codigo_operacion;
+	crear_buffer(paquete);
+	return paquete;
+}
+
+void agregar_a_paquete(t_paquete *paquete, void *valor, int tamanio)
+{
+	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
+
+	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
+	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
+
+	paquete->buffer->size += tamanio + sizeof(int);
+}
+
+void enviar_paquete(t_paquete *paquete, int socket_cliente)
+{
+	int bytes = paquete->buffer->size + 2 * sizeof(int);
+	void *a_enviar = serializar_paquete(paquete, bytes);
+
+	send(socket_cliente, a_enviar, bytes, 0);
+
+	free(a_enviar);
+}
+
+void enviar_mensaje(char *mensaje, int socket_cliente, op_code codigo_operacion, t_log *logger)
+{
+	t_paquete *paquete = malloc(sizeof(t_paquete));
 
 	paquete->codigo_operacion = codigo_operacion;
 	paquete->buffer = malloc(sizeof(t_buffer));
 	paquete->buffer->size = strlen(mensaje) + 1;
 	paquete->buffer->stream = malloc(paquete->buffer->size);
 	memcpy(paquete->buffer->stream, mensaje, paquete->buffer->size);
-	
 
 	int bytes = paquete->buffer->size + sizeof(op_code) + sizeof(int);
 
-	void* a_enviar = serializar_paquete(paquete, bytes);
+	void *a_enviar = serializar_paquete(paquete, bytes);
 	// Printeo todo para ver que se envia
 	/*printf("Codigo de operacion: %d\n", paquete->codigo_operacion);
 	printf("Tamanio del buffer: %d\n", paquete->buffer->size);
@@ -141,9 +209,9 @@ void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion,
 	printf("Tamanio del paquete: %d\n", bytes);
 	printf("Bytes a enviar: %d\n", bytes);
 	printf("Socket cliente: %d\n", socket_cliente);*/
-	
+
 	int resultado = send(socket_cliente, a_enviar, bytes, 0);
-	if(resultado == -1)
+	if (resultado == -1)
 	{
 		log_error(logger, "Error al enviar mensaje al socket %d: %s", socket_cliente, strerror(errno));
 	}
@@ -152,7 +220,7 @@ void enviar_mensaje(char* mensaje, int socket_cliente, op_code codigo_operacion,
 	eliminar_paquete(paquete);
 }
 
-void eliminar_paquete(t_paquete* paquete)
+void eliminar_paquete(t_paquete *paquete)
 {
 	free(paquete->buffer->stream);
 	free(paquete->buffer);
@@ -164,14 +232,17 @@ void eliminar_paquete(t_paquete* paquete)
 op_code recibir_operacion(int socket_cliente)
 {
 	op_code cod_op;
-	if (recv(socket_cliente, &cod_op, sizeof(op_code), MSG_WAITALL) > 0) {
+	if (recv(socket_cliente, &cod_op, sizeof(op_code), MSG_WAITALL) > 0)
+	{
 		return cod_op;
-	} else
+	}
+	else
 	{
 		close(socket_cliente);
 		return -1;
 	}
 }
+
 
 void *recibir_buffer(int *size, int socket_cliente)
 {
@@ -191,7 +262,7 @@ void recibir_mensaje(int socket_cliente, t_log *logger)
 	free(buffer);
 }
 
-char* recibir_mensaje_guardar_variable(int socket_cliente)
+char *recibir_mensaje_guardar_variable(int socket_cliente)
 {
 	int size;
 	char *buffer = recibir_buffer(&size, socket_cliente);
@@ -199,26 +270,20 @@ char* recibir_mensaje_guardar_variable(int socket_cliente)
 	free(buffer);
 }
 
-t_list *recibir_paquete(int socket_cliente)
+t_paquete *recibir_paquete(int socket_cliente)
 {
-	int size;
-	int desplazamiento = 0;
-	void *buffer;
-	t_list *valores = list_create();
-	int tamanio;
+    t_paquete *paquete = malloc(sizeof(t_paquete));
+    paquete->buffer = malloc(sizeof(t_buffer));
+    paquete->buffer->stream = NULL;
+    paquete->buffer->size = 0;
+    paquete->codigo_operacion = 0;
 
-	buffer = recibir_buffer(&size, socket_cliente);
-	while (desplazamiento < size)
-	{
-		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
-		desplazamiento += sizeof(int);
-		char *valor = malloc(tamanio);
-		memcpy(valor, buffer + desplazamiento, tamanio);
-		desplazamiento += tamanio;
-		list_add(valores, valor);
-	}
-	free(buffer);
-	return valores;
+    recv(socket_cliente, &(paquete->codigo_operacion), sizeof(uint8_t), 0);
+    recv(socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
+    paquete->buffer->stream = malloc(paquete->buffer->size);
+    recv(socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
+
+    return paquete;
 }
 
 // ------------------ FUNCIONES DE FINALIZACION ------------------
@@ -228,4 +293,75 @@ void terminar_programa(int conexion, t_log *logger, t_config *config)
 	log_destroy(logger);
 	config_destroy(config);
 	liberar_conexion(conexion);
+}
+
+// Serialización para TADS
+
+uint32_t espacio_parametros(t_instruccion *instruccion)
+{
+	uint32_t espacio = 0;
+	for (int i = 0; i < instruccion->cant_parametros; i++)
+	{
+		espacio += strlen(instruccion->parametros[i]) + 1;
+	}
+	return espacio;
+}
+
+t_buffer *instruccion_serializar(t_instruccion *instruccion)
+{
+	t_buffer *buffer = malloc(sizeof(t_buffer));
+	buffer->size = sizeof(t_identificador) +
+				   sizeof(uint32_t) +
+				   espacio_parametros(instruccion) +
+				   sizeof(uint32_t) * 5; // Los 5 parámetros
+	buffer->stream = malloc(buffer->size);
+	int offset = 0;
+
+	memccpy(buffer->stream + offset, &instruccion->identificador, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->cant_parametros, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param1_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param2_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param3_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param4_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param5_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	for (int i = 0; i < instruccion->cant_parametros; i++)
+	{
+		memccpy(buffer->stream + offset, instruccion->parametros[i], strlen(instruccion->parametros[i]) + 1);
+		offset += strlen(instruccion->parametros[i]) + 1;
+	}
+	return buffer;
+}
+
+t_instruccion *instruccion_deserializar(t_buffer *buffer)
+{
+	t_instruccion *instruccion = malloc(size_of(t_instruccion));
+
+	void *stream = buffer->stream;
+
+	memccpy(&(instruccion->identificador), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->cant_parametros), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param1_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param2_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param3_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param4_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param5_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	// TODO: LISTA DE PARÁMETROS
+
+	return instruccion;
+	
 }

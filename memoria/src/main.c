@@ -21,9 +21,8 @@ int main(int argc, char *argv[])
         int socket_cliente = esperar_cliente(socket_servidor_memoria, logger_memoria);
         pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
         pthread_detach(thread);
-        
     }
-    
+
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
 
     return 0;
@@ -41,7 +40,7 @@ void iterator(char *value)
     log_info(logger_memoria, "%s", value);
 }
 
-void* atender_cliente(void *socket_cliente)
+void *atender_cliente(void *socket_cliente)
 {
     op_code codigo_operacion = recibir_operacion((int)(long int)socket_cliente);
     switch (codigo_operacion)
@@ -65,3 +64,4 @@ void* atender_cliente(void *socket_cliente)
     }
     return NULL;
 }
+
