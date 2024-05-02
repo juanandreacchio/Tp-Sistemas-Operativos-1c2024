@@ -23,9 +23,12 @@ typedef enum
 
 typedef enum
 {
-	INSTRUCCION,
 	SOLICITUD_INSTRUCCION,
-	MENSAJE,
+	INSTRUCCION,
+	CPU,
+	KERNEL,
+	MEMORIA,
+	ENTRADA_SALIDA
 } op_code;
 
 typedef struct
@@ -50,9 +53,8 @@ typedef enum
 } t_psw;
 typedef struct
 {
-	uint8_t AX, BX, CX, DX;					 // Registro Numérico de propósito general
-	uint32_t EAX, EBX, ECX, EDX, SI, DI, PC; // Registro Numérico de propósito general
-
+	uint8_t AX, BX, CX, DX;					 
+	uint32_t EAX, EBX, ECX, EDX, SI, DI, PC; 
 } t_registros;
 
 typedef struct
@@ -62,6 +64,7 @@ typedef struct
 	u_int32_t quantum;	   // Unidad de tiempo utilizada por el algoritmo de planificación VRR
 	t_registros registros; // Estructura que contendrá los valores de los registros de uso general de la CPU
 	t_list *instrucciones;
+	t_psw psw;
 } t_pcb;
 
 typedef enum
