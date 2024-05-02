@@ -18,7 +18,9 @@ typedef enum
 	KERNEL,
 	CPU,
 	MEMORIA,
-	ENTRADA_SALIDA
+	ENTRADA_SALIDA,
+	PCB,
+	GENERICA
 } op_code;
 
 typedef struct
@@ -69,7 +71,7 @@ int iniciar_servidor(t_log *logger, char *puerto, char *nombre);
 int esperar_cliente(int socket_servidor, t_log *logger);
 void *serializar_paquete(t_paquete *paquete, int bytes);
 void crear_buffer(t_paquete* paquete);
-t_paquete* crear_paquete(void);
+t_paquete* crear_paquete(op_code code);
 void agregar_a_paquete(t_paquete* paquete, void* valor, int tamanio);
 void enviar_paquete(t_paquete* paquete, int socket_cliente);
 void enviar_mensaje(char *mensaje, int socket_cliente, op_code codigo_operaciom, t_log *logger);

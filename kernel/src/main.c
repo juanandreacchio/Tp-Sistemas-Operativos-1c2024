@@ -17,7 +17,7 @@ int main(void)
 {
     iniciar_config();
 
-    // iniciar conexion con Kernel
+    // iniciar conexion con memoria
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_kernel);
     enviar_mensaje("", conexion_memoria, KERNEL, logger_kernel);
 
@@ -33,8 +33,9 @@ int main(void)
     while (1)
     {
         pthread_t thread;
-        int socket_cliente = esperar_cliente(socket_servidor_kernel, logger_kernel);
-        pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
+        int *socket_cliente = malloc(sizeof(int));
+        *socket_cliente = esperar_cliente(socket_servidor_kernel, logger_kernel);
+        pthread_create(&thread, NULL,(void*) atender_cliente,socket_cliente);
         pthread_detach(thread);
     }
 
@@ -56,12 +57,12 @@ void iniciar_config(void)
 
 void *atender_cliente(void *socket_cliente)
 {
-    op_code codigo_operacion = recibir_operacion((int)(long int)socket_cliente);
+    op_code codigo_operacion = recibir_operacion(*(int*)socket_cliente);
     switch (codigo_operacion)
     {
     case ENTRADA_SALIDA:
-        log_info(logger_kernel, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
-        // TODO: implementar
+        char* nombre_entrada_salida = recibir_mensaje_guardar_variable(*(int*)socket_cliente);
+        log_info(logger_kernel, "Se conecto la I/O llamda: %s",nombre_entrada_salida);
         break;
     default:
         log_info(logger_kernel, "Se recibio un mensaje de un modulo desconocido");
@@ -69,3 +70,5 @@ void *atender_cliente(void *socket_cliente)
     }
     return NULL;
 }
+
+// Planificacion
