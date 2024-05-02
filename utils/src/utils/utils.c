@@ -182,7 +182,7 @@ void crear_buffer(t_paquete *paquete)
 }
 
 
-t_paquete *crear_paquete(int codigo_operacion)
+t_paquete *crear_paquete(op_code codigo_operacion)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = codigo_operacion;
