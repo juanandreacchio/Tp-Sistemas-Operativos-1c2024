@@ -60,3 +60,35 @@ void *iniciar_servidor_interrupt(void *arg)
 	}
 	return NULL;
 }
+
+// La primera etapa del ciclo consiste en buscar la próxima instrucción a ejecutar.
+// En este trabajo práctico cada instrucción deberá ser pedida al módulo Memoria utilizando el Program Counter (también llamado Instruction Pointer) que representa el número de instrucción a buscar relativo al proceso en ejecución.
+// Al finalizar el ciclo, este último deberá ser actualizado (sumarle 1) si corresponde.
+
+t_list *fetch_instruccion(u_int32_t pid, u_int32_t pc)
+{
+	// Buscar instruccion en memoria
+	t_paquete *t_paquete = crear_paquete(SOLICITUD_INSTRUCCION);
+	// Le voy a mandar a memoria el paquete con el pid y el pc,
+	// para q busque en la lista de procesos el proceso, y me devuelva la instruccion según el PC
+	agregar_a_paquete(paquete, &pid, sizeof(u_int32_t));
+	agregar_a_paquete(paquete, &pc, sizeof(u_int32_t));
+
+	enviar_paquete(paquete, conexion_memoria);
+
+	op_code codigo_operacion = recibir_operacion(conexion_memoria);
+	if (codigo_operacion != INSTRUCCION)
+	{
+		log_error(logger_cpu, "Se esperaba una instrucción, pero se recibió %s", cod_op_to_string(codigo_operacion));
+		return NULL;
+	}
+
+	t_list *instruccion = recibir_paquete(conexion_memoria);
+
+	pc+=1;
+	
+	eliminar_paquete(paquete);
+	// Devuelve la instrucción y sus parámetros: Ej: [SET, AX, 1]
+	return instruccion;
+
+}

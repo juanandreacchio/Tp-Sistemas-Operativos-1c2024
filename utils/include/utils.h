@@ -18,7 +18,13 @@ typedef enum
 	KERNEL,
 	CPU,
 	MEMORIA,
-	ENTRADA_SALIDA
+	ENTRADA_SALIDA,
+} t_modulo;
+
+typedef enum{
+	INSTRUCCION,
+	SOLICITUD_INSTRUCCION,
+	MENSAJE,
 } op_code;
 
 typedef struct
@@ -44,11 +50,8 @@ typedef enum
 typedef struct
 {
     uint8_t AX,BX,CX,DX; // Registro Numérico de propósito general
-    uint32_t EAX,EBX,ECX,EDX; // Registro Numérico de propósito general
-    /* tengo mis dudas de esto
-	uint32_t SI; // Contiene la dirección lógica de memoria de origen desde donde se va a copiar un string
-    uint32_t DI; // Contiene la dirección lógica de memoria de destino a donde se va a copiar un string
-	*/
+    uint32_t EAX,EBX,ECX,EDX, SI, DI, PC; // Registro Numérico de propósito general
+	
 }t_registros;
 
 typedef struct {
@@ -56,11 +59,40 @@ typedef struct {
     u_int32_t pc; // Program Counter (Número de la próxima instrucción a ejecutar)
     u_int32_t quantum; // Unidad de tiempo utilizada por el algoritmo de planificación VRR
     t_registros registros; //Estructura que contendrá los valores de los registros de uso general de la CPU
-	t_psw psw;
+	t_list* instrucciones;
 }t_pcb;
 
+typedef enum{
+	SET,
+	MOV_IN,
+	MOV_OUT,
+	SUM,
+	SUB,
+	JNZ,
+	RESIZE,
+	COPY_STRING,
+	WAIT,
+	SIGNAL,
+	IO_GEN_SLEEP,
+	IO_STDIN_READ,
+	IO_STDOUT_WRITE,
+	IO_STDOUT_WRITE,
+	IO_FS_DELETE,
+	IO_FS_TRUNCATE,
+	IO_FS_WRITE,
+	IO_FS_READ,
+	EXIT
+} t_identificador;
+
+typedef struct{
+	t_identificador identificador;
+	uint32_t cant_parametros;
+	char** parametros; // Lista de parámetros?
+
+} t_instruccion;
+
 t_registros inicializar_registros();
-t_pcb* crear_pcb(u_int32_t pid, u_int32_t quantum, t_psw psw);
+t_pcb* crear_pcb(u_int32_t pid, u_int32_t quantum);
 void destruir_pcb(t_pcb* pcb);
 t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel);
 int crear_conexion(char *ip, char *puerto, t_log *logger);
