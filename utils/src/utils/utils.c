@@ -1,6 +1,8 @@
 #include <../include/utils.h>
 
+//------------------ FUNCIONES DE PCB ------------------
 t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, t_psw psw)
+
 {
 	t_pcb *pcb = malloc(sizeof(t_pcb));
 	pcb->pid = pid;
@@ -17,9 +19,24 @@ void destruir_pcb(t_pcb *pcb)
 	free(pcb);
 }
 
+void enviar_pcb(t_pcb* pcb, int socket) 
+{
+	t_paquete* paquete = crear_paquete(PCB);
+	agregar_a_paquete(paquete,pcb,sizeof(pcb)+1);
+	enviar_paquete(paquete,socket );
+}
+
+void recibir_pcb(t_pcb* pcb, int socket) 
+{
+	int cod_op = recibir_operacion(socket);
+	pcb = recibir_paquete(socket);//esto esta mal recibir paquete lo da en una lsita es raro eso me tengo que fijar como funciona
+}
+
+
 t_registros inicializar_registros()
 {
 	t_registros registros;
+
 	registros->AX = 0;
 	registros->BX = 0;
 	registros->CX = 0;
@@ -35,6 +52,7 @@ t_registros inicializar_registros()
 }
 
 char *cod_op_to_string(op_code codigo_operacion)
+
 {
 	switch (codigo_operacion)
 	{
@@ -160,10 +178,12 @@ void crear_buffer(t_paquete *paquete)
 	paquete->buffer->stream = NULL;
 }
 
+
 t_paquete *crear_paquete(int codigo_operacion)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = codigo_operacion;
+
 	crear_buffer(paquete);
 	return paquete;
 }
