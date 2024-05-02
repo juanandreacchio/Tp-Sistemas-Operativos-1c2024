@@ -65,13 +65,3 @@ void *atender_cliente(void *socket_cliente)
     return NULL;
 }
 
-void atender_cpu(void *conexion)
-{
-    int una_conexion = (int)conexion;
-    t_paquete *paquete;
-    while (true)
-    {
-        paquete = recibir_paquete(una_conexion);
-    }
-    
-}

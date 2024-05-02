@@ -243,19 +243,6 @@ op_code recibir_operacion(int socket_cliente)
 	}
 }
 
-t_identificador recibir_identificador_instruccion(int socket_cliente)
-{
-	t_identificador identificador;
-	if (recv(socket_cliente, &identificador, sizeof(t_identificador), MSG_WAITALL) > 0)
-	{
-		return identificador;
-	}
-	else
-	{
-		close(socket_cliente);
-		return -1;
-	}
-}
 
 void *recibir_buffer(int *size, int socket_cliente)
 {
@@ -283,26 +270,20 @@ char *recibir_mensaje_guardar_variable(int socket_cliente)
 	free(buffer);
 }
 
-t_list *recibir_paquete(int socket_cliente)
+t_paquete *recibir_paquete(int socket_cliente)
 {
-	int size;
-	int desplazamiento = 0;
-	void *buffer;
-	t_list *valores = list_create();
-	int tamanio;
+    t_paquete *paquete = malloc(sizeof(t_paquete));
+    paquete->buffer = malloc(sizeof(t_buffer));
+    paquete->buffer->stream = NULL;
+    paquete->buffer->size = 0;
+    paquete->codigo_operacion = 0;
 
-	buffer = recibir_buffer(&size, socket_cliente);
-	while (desplazamiento < size)
-	{
-		memcpy(&tamanio, buffer + desplazamiento, sizeof(int));
-		desplazamiento += sizeof(int);
-		char *valor = malloc(tamanio);
-		memcpy(valor, buffer + desplazamiento, tamanio);
-		desplazamiento += tamanio;
-		list_add(valores, valor);
-	}
-	free(buffer);
-	return valores;
+    recv(socket_cliente, &(paquete->codigo_operacion), sizeof(uint8_t), 0);
+    recv(socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
+    paquete->buffer->stream = malloc(paquete->buffer->size);
+    recv(socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
+
+    return paquete;
 }
 
 // ------------------ FUNCIONES DE FINALIZACION ------------------
@@ -312,4 +293,75 @@ void terminar_programa(int conexion, t_log *logger, t_config *config)
 	log_destroy(logger);
 	config_destroy(config);
 	liberar_conexion(conexion);
+}
+
+// Serialización para TADS
+
+uint32_t espacio_parametros(t_instruccion *instruccion)
+{
+	uint32_t espacio = 0;
+	for (int i = 0; i < instruccion->cant_parametros; i++)
+	{
+		espacio += strlen(instruccion->parametros[i]) + 1;
+	}
+	return espacio;
+}
+
+t_buffer *instruccion_serializar(t_instruccion *instruccion)
+{
+	t_buffer *buffer = malloc(sizeof(t_buffer));
+	buffer->size = sizeof(t_identificador) +
+				   sizeof(uint32_t) +
+				   espacio_parametros(instruccion) +
+				   sizeof(uint32_t) * 5; // Los 5 parámetros
+	buffer->stream = malloc(buffer->size);
+	int offset = 0;
+
+	memccpy(buffer->stream + offset, &instruccion->identificador, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->cant_parametros, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param1_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param2_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param3_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param4_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	memccpy(buffer->stream + offset, &instruccion->param5_length, sizeof(uint32_t));
+	offset += sizeof(uint32_t);
+	for (int i = 0; i < instruccion->cant_parametros; i++)
+	{
+		memccpy(buffer->stream + offset, instruccion->parametros[i], strlen(instruccion->parametros[i]) + 1);
+		offset += strlen(instruccion->parametros[i]) + 1;
+	}
+	return buffer;
+}
+
+t_instruccion *instruccion_deserializar(t_buffer *buffer)
+{
+	t_instruccion *instruccion = malloc(size_of(t_instruccion));
+
+	void *stream = buffer->stream;
+
+	memccpy(&(instruccion->identificador), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->cant_parametros), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param1_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param2_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param3_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param4_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+	memccpy(&(instruccion->param5_length), stream, sizeof(uint32_t));
+	stream += sizeof(uint32_t);
+
+	// TODO: LISTA DE PARÁMETROS
+
+	return instruccion;
+	
 }
