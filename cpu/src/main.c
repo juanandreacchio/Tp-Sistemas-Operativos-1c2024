@@ -60,3 +60,32 @@ void *iniciar_servidor_interrupt(void *arg)
 	}
 	return NULL;
 }
+
+t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc)
+{
+	// Buscar instruccion en memoria
+	t_paquete *paquete = crear_paquete(SOLICITUD_INSTRUCCION);
+	// Le voy a mandar a memoria el paquete con el pid y el pc,
+	// para q busque en la lista de procesos el proceso, y me devuelva la instruccion según el PC
+	agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
+	agregar_a_paquete(paquete, &pc, sizeof(uint32_t));
+
+	enviar_paquete(paquete, conexion_memoria);
+
+	t_paquete *respuesta_memoria = recibir_paquete(conexion_memoria);
+	
+	if(respuesta_memoria->codigo_operacion != INSTRUCCION){
+		log_error(logger_cpu, "Error al recibir instruccion de memoria");
+		eliminar_paquete(paquete);
+		eliminar_paquete(respuesta_memoria);
+		return NULL;
+	}
+	t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer);
+
+	pc+=1; // Nosé si está bien así
+
+	eliminar_paquete(paquete);
+	eliminar_paquete(respuesta_memoria);
+	return instruccion;
+
+}
