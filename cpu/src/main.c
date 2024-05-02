@@ -73,6 +73,13 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc)
 	enviar_paquete(paquete, conexion_memoria);
 
 	t_paquete *respuesta_memoria = recibir_paquete(conexion_memoria);
+	
+	if(respuesta_memoria->codigo_operacion != INSTRUCCION){
+		log_error(logger_cpu, "Error al recibir instruccion de memoria");
+		eliminar_paquete(paquete);
+		eliminar_paquete(respuesta_memoria);
+		return NULL;
+	}
 	t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer);
 
 	pc+=1; // Nosé si está bien así
