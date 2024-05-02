@@ -18,14 +18,14 @@ void destruir_pcb(t_pcb* pcb)
 t_registros inicializar_registros()
 {
 	t_registros registros;
-    strcpy(registros.AX,"\0");
-	strcpy(registros.BX,"\0");
-	strcpy(registros.CX,"\0");
-	strcpy(registros.DX,"\0");
-	strcpy(registros.EAX,"\0");
-	strcpy(registros.EBX,"\0");
-	strcpy(registros.ECX,"\0");
-	strcpy(registros.EDX,"\0");
+	registros.AX = 0;
+	registros.BX = 0;
+	registros.CX = 0;
+	registros.DX = 0;
+	registros.EAX = 0;
+	registros.EBX = 0;
+	registros.ECX = 0;
+	registros.EDX = 0;
 	return registros;
 }
 
