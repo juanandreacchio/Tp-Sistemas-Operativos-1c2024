@@ -15,22 +15,13 @@
 
 typedef enum
 {
-	KERNEL,
-	CPU,
-	MEMORIA,
-	ENTRADA_SALIDA,
-
-} t_modulo;
-
-typedef enum
-{
 	SOLICITUD_INSTRUCCION,
 	INSTRUCCION,
 	CPU,
 	KERNEL,
 	MEMORIA,
 	ENTRADA_SALIDA,
-	PCB,
+	PCB
 
 } op_code;
 
@@ -52,7 +43,7 @@ typedef enum
 	READY,
 	EXEC,
 	BLOCKED,
-	EXIT
+	SALIDA //cambie de exit a salida porque esta tambien declarado como isntruccion
 } t_psw;
 typedef struct
 {
@@ -112,7 +103,8 @@ typedef struct
 } t_instruccion;
 
 t_registros inicializar_registros();
-t_pcb *crear_pcb(u_int32_t pid, u_int32_t quantum);
+t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, t_psw psw);
+t_pcb *recibir_pcb( int socket);
 void destruir_pcb(t_pcb *pcb);
 t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel);
 int crear_conexion(char *ip, char *puerto, t_log *logger);
@@ -121,7 +113,7 @@ int iniciar_servidor(t_log *logger, char *puerto, char *nombre);
 int esperar_cliente(int socket_servidor, t_log *logger);
 void *serializar_paquete(t_paquete *paquete, int bytes);
 void crear_buffer(t_paquete *paquete);
-t_paquete *crear_paquete(void);
+t_paquete *crear_paquete(int codigo_operacion);
 void agregar_a_paquete(t_paquete *paquete, void *valor, int tamanio);
 void enviar_paquete(t_paquete *paquete, int socket_cliente);
 

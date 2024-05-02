@@ -26,10 +26,13 @@ void enviar_pcb(t_pcb* pcb, int socket)
 	enviar_paquete(paquete,socket );
 }
 
-void recibir_pcb(t_pcb* pcb, int socket) 
+t_pcb *recibir_pcb( int socket) 
 {
-	int cod_op = recibir_operacion(socket);
-	pcb = recibir_paquete(socket);//esto esta mal recibir paquete lo da en una lsita es raro eso me tengo que fijar como funciona
+	t_paquete *paquete_PCB = recibir_paquete(socket);
+	t_pcb *pcb = paquete_PCB->buffer->stream;
+	eliminar_paquete(paquete_PCB);
+	return pcb;
+
 }
 
 
@@ -37,17 +40,17 @@ t_registros inicializar_registros()
 {
 	t_registros registros;
 
-	registros->AX = 0;
-	registros->BX = 0;
-	registros->CX = 0;
-	registros->DX = 0;
-	registros->EAX = 0;
-	registros->EBX = 0;
-	registros->ECX = 0;
-	registros->EDX = 0;
-	registros->SI = 0;
-	registros->DI = 0;
-	registros->PC = 0;
+	registros.AX = 0;
+	registros.BX = 0;
+	registros.CX = 0;
+	registros.DX = 0;
+	registros.EAX = 0;
+	registros.EBX = 0;
+	registros.ECX = 0;
+	registros.EDX = 0;
+	registros.SI = 0;
+	registros.DI = 0;
+	registros.PC = 0;
 	return registros;
 }
 
@@ -249,7 +252,7 @@ void eliminar_paquete(t_paquete *paquete)
 
 // ------------------ FUNCIONES DE RECIBIR ----------------------
 
-op_code recibir_operacion(int socket_cliente)
+op_code recibir_operacion(int socket_cliente)// de utilziar esta funcion no se podria utilizar la funcion recibir paquete ya que esta ya recibe en codigo de operacion
 {
 	op_code cod_op;
 	if (recv(socket_cliente, &cod_op, sizeof(op_code), MSG_WAITALL) > 0)
@@ -337,23 +340,23 @@ t_buffer *instruccion_serializar(t_instruccion *instruccion)
 	buffer->stream = malloc(buffer->size);
 	int offset = 0;
 
-	memccpy(buffer->stream + offset, &instruccion->identificador, sizeof(uint32_t));
+	memcpy(buffer->stream + offset, &instruccion->identificador, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
-	memccpy(buffer->stream + offset, &instruccion->cant_parametros, sizeof(uint32_t));
+	memcpy(buffer->stream + offset, &instruccion->cant_parametros, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
-	memccpy(buffer->stream + offset, &instruccion->param1_length, sizeof(uint32_t));
+	memcpy(buffer->stream + offset, &instruccion->param1_length, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
-	memccpy(buffer->stream + offset, &instruccion->param2_length, sizeof(uint32_t));
+	memcpy(buffer->stream + offset, &instruccion->param2_length, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
-	memccpy(buffer->stream + offset, &instruccion->param3_length, sizeof(uint32_t));
+	memcpy(buffer->stream + offset, &instruccion->param3_length, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
-	memccpy(buffer->stream + offset, &instruccion->param4_length, sizeof(uint32_t));
+	memcpy(buffer->stream + offset, &instruccion->param4_length, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
-	memccpy(buffer->stream + offset, &instruccion->param5_length, sizeof(uint32_t));
+	memcpy(buffer->stream + offset, &instruccion->param5_length, sizeof(uint32_t));
 	offset += sizeof(uint32_t);
 	for (int i = 0; i < instruccion->cant_parametros; i++)
 	{
-		memccpy(buffer->stream + offset, instruccion->parametros[i], strlen(instruccion->parametros[i]) + 1);
+		memcpy(buffer->stream + offset, instruccion->parametros[i], strlen(instruccion->parametros[i]) + 1);
 		offset += strlen(instruccion->parametros[i]) + 1;
 	}
 	return buffer;
@@ -361,23 +364,23 @@ t_buffer *instruccion_serializar(t_instruccion *instruccion)
 
 t_instruccion *instruccion_deserializar(t_buffer *buffer)
 {
-	t_instruccion *instruccion = malloc(size_of(t_instruccion));
+	t_instruccion *instruccion = malloc(sizeof(t_instruccion));
 
 	void *stream = buffer->stream;
 
-	memccpy(&(instruccion->identificador), stream, sizeof(uint32_t));
+	memcpy(&(instruccion->identificador), stream, sizeof(uint32_t));
 	stream += sizeof(uint32_t);
-	memccpy(&(instruccion->cant_parametros), stream, sizeof(uint32_t));
+	memcpy(&(instruccion->cant_parametros), stream, sizeof(uint32_t));
 	stream += sizeof(uint32_t);
-	memccpy(&(instruccion->param1_length), stream, sizeof(uint32_t));
+	memcpy(&(instruccion->param1_length), stream, sizeof(uint32_t));
 	stream += sizeof(uint32_t);
-	memccpy(&(instruccion->param2_length), stream, sizeof(uint32_t));
+	memcpy(&(instruccion->param2_length), stream, sizeof(uint32_t));
 	stream += sizeof(uint32_t);
-	memccpy(&(instruccion->param3_length), stream, sizeof(uint32_t));
+	memcpy(&(instruccion->param3_length), stream, sizeof(uint32_t));
 	stream += sizeof(uint32_t);
-	memccpy(&(instruccion->param4_length), stream, sizeof(uint32_t));
+	memcpy(&(instruccion->param4_length), stream, sizeof(uint32_t));
 	stream += sizeof(uint32_t);
-	memccpy(&(instruccion->param5_length), stream, sizeof(uint32_t));
+	memcpy(&(instruccion->param5_length), stream, sizeof(uint32_t));
 	stream += sizeof(uint32_t);
 
 	// TODO: LISTA DE PARÁMETROS
