@@ -13,6 +13,8 @@
 #include <pthread.h>
 #include <errno.h>
 
+extern uint32_t size_registros;
+
 typedef enum
 {
 	SOLICITUD_INSTRUCCION,
@@ -27,7 +29,8 @@ typedef enum
 
 typedef struct
 {
-	int size;
+	uint32_t size;
+	  uint32_t offset;
 	void *stream;
 } t_buffer;
 
@@ -43,8 +46,8 @@ typedef enum
 	READY,
 	EXEC,
 	BLOCKED,
-	SALIDA //cambie de exit a salida porque esta tambien declarado como isntruccion
-} t_psw;
+	TERMINATED //cambie de exit a salida porque esta tambien declarado como isntruccion
+} estados;
 typedef struct
 {
 	uint8_t AX, BX, CX, DX;					 
@@ -58,7 +61,7 @@ typedef struct
 	u_int32_t quantum;	   // Unidad de tiempo utilizada por el algoritmo de planificación VRR
 	t_registros registros; // Estructura que contendrá los valores de los registros de uso general de la CPU
 	t_list *instrucciones;
-	t_psw psw;
+	estados estado_actual;
 } t_pcb;
 
 typedef enum
@@ -112,9 +115,7 @@ void liberar_conexion(int socket_cliente);
 int iniciar_servidor(t_log *logger, char *puerto, char *nombre);
 int esperar_cliente(int socket_servidor, t_log *logger);
 void *serializar_paquete(t_paquete *paquete, int bytes);
-void crear_buffer(t_paquete *paquete);
 t_paquete *crear_paquete(int codigo_operacion);
-void agregar_a_paquete(t_paquete *paquete, void *valor, int tamanio);
 void enviar_paquete(t_paquete *paquete, int socket_cliente);
 
 void enviar_mensaje(char *mensaje, int socket_cliente, op_code codigo_operaciom, t_log *logger);
@@ -126,5 +127,9 @@ t_paquete *recibir_paquete(int socket_cliente);
 t_instruccion *instruccion_deserializar(t_buffer *buffer);
 t_buffer *instruccion_serializar(t_instruccion *instruccion);
 uint32_t espacio_parametros(t_instruccion *instruccion);
+void buffer_read(t_buffer *buffer, void *data, uint32_t size);
+void buffer_add(t_buffer *buffer, void *data, uint32_t size);
+t_buffer *crear_buffer(uint32_t size);
+void destruir_buffer(t_buffer *buffer);
 
 #endif /* UTILS_H_ */

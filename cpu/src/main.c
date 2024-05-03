@@ -45,6 +45,14 @@ void *iniciar_servidor_dispatch(void *arg)
 		conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
 		log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Dispatch", cod_op_to_string(recibir_operacion(conexion_kernel_dispatch)));
 		recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
+		t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
+		log_info(logger_cpu,"recibi el pcb");
+		printf("del pid tengo:%u\n",pcb->pid);
+		printf("del quantum tengo:%u\n",pcb->quantum);
+		printf("del psw tengo:%d\n",pcb->psw);
+		printf("del pc tengo:%d\n",pcb->pc);
+	
+		
 	}
 	return NULL;
 }

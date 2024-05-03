@@ -1,15 +1,16 @@
-#include <../include/utils.h>
+#include "utils.h"
+
+uint32_t size_registros = sizeof(uint32_t) * 7 + sizeof(uint8_t) * 4;
 
 //------------------ FUNCIONES DE PCB ------------------
-t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, t_psw psw)
-
+t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, estados estado)
 {
 	t_pcb *pcb = malloc(sizeof(t_pcb));
 	pcb->pid = pid;
 	pcb->instrucciones = lista_instrucciones;
 	pcb->pc = 0;
 	pcb->quantum = quantum;
-	pcb->psw = psw;
+	pcb->estado_actual = estado;
 	pcb->registros = inicializar_registros();
 	return pcb;
 }
@@ -19,22 +20,51 @@ void destruir_pcb(t_pcb *pcb)
 	free(pcb);
 }
 
-void enviar_pcb(t_pcb* pcb, int socket) 
+void enviar_pcb(t_pcb *pcb, int socket)
 {
-	t_paquete* paquete = crear_paquete(PCB);
-	agregar_a_paquete(paquete,pcb,sizeof(pcb)+1);
-	enviar_paquete(paquete,socket );
+	t_buffer *buffer_instrucciones = serializar_lista_instrucciones(pcb->instrucciones);
+	uint32_t tam_pcb = sizeof(uint32_t) * 3 +
+					   sizeof(estados) +
+					   size_registros +
+					   buffer_instrucciones->size;
+	t_paquete *paquete = crear_paquete(PCB,tam_pcb);
+	buffer_add(paquete->buffer,pcb->pid,sizeof(pcb->pid));
+	buffer_add(paquete->buffer,pcb->pc,sizeof(pcb->pc));
+	buffer_add(paquete->buffer,pcb->quantum,sizeof(pcb->quantum));
+	buffer_add(paquete->buffer,pcb->registros,size_registros);
+	buffer_add(paquete->buffer,pcb->instrucciones,buffer_instrucciones->size);
+	buffer_add(paquete->buffer,pcb->estado_actual,sizeof(estados));
+	
+	enviar_paquete(paquete, socket);
+	destruir_buffer(buffer_instrucciones);
+	eliminar_paquete(paquete);
 }
 
-t_pcb *recibir_pcb( int socket) 
+
+t_pcb *recibir_pcb(int socket)
 {
 	t_paquete *paquete_PCB = recibir_paquete(socket);
-	t_pcb *pcb = paquete_PCB->buffer->stream;
-	eliminar_paquete(paquete_PCB);
+	t_buffer *buffer_PCB = paquete_PCB->buffer;
+	t_pcb *pcb = malloc(t_pcb);
+	if(paquete_PCB->codigo_operacion == PCB)
+	{
+		buffer_read(buffer_PCB,pcb->pid,sizeof(pcb->pid));
+		buffer_read(buffer_PCB,pcb->pc,sizeof(pcb->pc));
+		buffer_read(buffer_PCB,pcb->quantum,sizeof(pcb->quantum));
+		buffer_read(buffer_PCB,pcb->registros,size_registros);
+		buffer_read(buffer_PCB,pcb->instrucciones,size_registros);//necesitamos saber el tamanio de las istrucciones para poder extraerlas
+		for (int i = 0; i < tamanio_lista; i++)
+		{
+			t_instruccion *instruccion = list_get(pcb->instrucciones,i);
+			
+		}
+		
+		buffer_read(buffer_PCB,pcb->estado_actual,sizeof(estados));
+	}
+	
+	//TODO: deserializar las instrucciones
 	return pcb;
-
 }
-
 
 t_registros inicializar_registros()
 {
@@ -174,36 +204,18 @@ void *serializar_paquete(t_paquete *paquete, int bytes)
 	return magic;
 }
 
-void crear_buffer(t_paquete *paquete)
-{
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = 0;
-	paquete->buffer->stream = NULL;
-}
-
-
-t_paquete *crear_paquete(int codigo_operacion)
+t_paquete *crear_paquete(int codigo_operacion, u_int32_t size)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = codigo_operacion;
 
-	crear_buffer(paquete);
+	paquete->buffer = crear_buffer(size);
 	return paquete;
-}
-
-void agregar_a_paquete(t_paquete *paquete, void *valor, int tamanio)
-{
-	paquete->buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + tamanio + sizeof(int));
-
-	memcpy(paquete->buffer->stream + paquete->buffer->size, &tamanio, sizeof(int));
-	memcpy(paquete->buffer->stream + paquete->buffer->size + sizeof(int), valor, tamanio);
-
-	paquete->buffer->size += tamanio + sizeof(int);
 }
 
 void enviar_paquete(t_paquete *paquete, int socket_cliente)
 {
-	int bytes = paquete->buffer->size + 2 * sizeof(int);
+	int bytes = paquete->buffer->size + 3 * sizeof(int);
 	void *a_enviar = serializar_paquete(paquete, bytes);
 
 	send(socket_cliente, a_enviar, bytes, 0);
@@ -252,7 +264,7 @@ void eliminar_paquete(t_paquete *paquete)
 
 // ------------------ FUNCIONES DE RECIBIR ----------------------
 
-op_code recibir_operacion(int socket_cliente)// de utilziar esta funcion no se podria utilizar la funcion recibir paquete ya que esta ya recibe en codigo de operacion
+op_code recibir_operacion(int socket_cliente) // de utilziar esta funcion no se podria utilizar la funcion recibir paquete ya que esta ya recibe en codigo de operacion
 {
 	op_code cod_op;
 	if (recv(socket_cliente, &cod_op, sizeof(op_code), MSG_WAITALL) > 0)
@@ -265,7 +277,6 @@ op_code recibir_operacion(int socket_cliente)// de utilziar esta funcion no se p
 		return -1;
 	}
 }
-
 
 void *recibir_buffer(int *size, int socket_cliente)
 {
@@ -292,21 +303,42 @@ char *recibir_mensaje_guardar_variable(int socket_cliente)
 	return buffer;
 	free(buffer);
 }
+/*
+t_paquete *deserializar_paquete(void *datos_serializados) {
+	t_paquete *paquete = malloc(sizeof(t_paquete));
+	int desplazamiento = 0;
 
+	// Copiar el código de operación desde los datos serializados al paquete
+	memcpy(&(paquete->codigo_operacion), datos_serializados + desplazamiento, sizeof(int));
+	desplazamiento += sizeof(int);
+
+	// Copiar el tamaño del buffer desde los datos serializados al paquete
+	memcpy(&(paquete->buffer->size), datos_serializados + desplazamiento, sizeof(int));
+	desplazamiento += sizeof(int);
+
+	// Asignar memoria para el buffer del paquete y copiar los datos
+	paquete->buffer->stream = malloc(paquete->buffer->size);
+	memcpy(paquete->buffer->stream, datos_serializados + desplazamiento, paquete->buffer->size);
+
+	return paquete;
+}
+*/
 t_paquete *recibir_paquete(int socket_cliente)
 {
-    t_paquete *paquete = malloc(sizeof(t_paquete));
-    paquete->buffer = malloc(sizeof(t_buffer));
-    paquete->buffer->stream = NULL;
-    paquete->buffer->size = 0;
-    paquete->codigo_operacion = 0;
+	t_paquete *paquete = malloc(sizeof(t_paquete));
+	paquete->buffer = malloc(sizeof(t_buffer));
+	paquete->buffer->stream = NULL;
+	paquete->buffer->size = 0;
+	paquete->buffer->offset= 0;
+	paquete->codigo_operacion = 0;
 
-    recv(socket_cliente, &(paquete->codigo_operacion), sizeof(uint8_t), 0);
-    recv(socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
-    paquete->buffer->stream = malloc(paquete->buffer->size);
-    recv(socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
 
-    return paquete;
+	recv(socket_cliente, &(paquete->codigo_operacion), sizeof(uint8_t), 0);
+	recv(socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
+	paquete->buffer->stream = malloc(paquete->buffer->size);
+	recv(socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
+
+	return paquete;
 }
 
 // ------------------ FUNCIONES DE FINALIZACION ------------------
@@ -330,7 +362,7 @@ uint32_t espacio_parametros(t_instruccion *instruccion)
 	return espacio;
 }
 
-t_buffer *instruccion_serializar(t_instruccion *instruccion)
+t_buffer *serializar_instruccion(t_instruccion *instruccion)
 {
 	t_buffer *buffer = malloc(sizeof(t_buffer));
 	buffer->size = sizeof(t_identificador) +
@@ -338,26 +370,19 @@ t_buffer *instruccion_serializar(t_instruccion *instruccion)
 				   espacio_parametros(instruccion) +
 				   sizeof(uint32_t) * 5; // Los 5 parámetros
 	buffer->stream = malloc(buffer->size);
-	int offset = 0;
+	buffer->offset = 0;
 
-	memcpy(buffer->stream + offset, &instruccion->identificador, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
-	memcpy(buffer->stream + offset, &instruccion->cant_parametros, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
-	memcpy(buffer->stream + offset, &instruccion->param1_length, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
-	memcpy(buffer->stream + offset, &instruccion->param2_length, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
-	memcpy(buffer->stream + offset, &instruccion->param3_length, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
-	memcpy(buffer->stream + offset, &instruccion->param4_length, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
-	memcpy(buffer->stream + offset, &instruccion->param5_length, sizeof(uint32_t));
-	offset += sizeof(uint32_t);
+	buffer_add(buffer, instruccion->identificador, sizeof(uint32_t));
+	buffer_add(buffer, instruccion->cant_parametros, sizeof(uint32_t));
+	buffer_add(buffer, instruccion->param1_length, sizeof(uint32_t));
+	buffer_add(buffer, instruccion->param2_length, sizeof(uint32_t));
+	buffer_add(buffer, instruccion->param3_length, sizeof(uint32_t));
+	buffer_add(buffer, instruccion->param4_length, sizeof(uint32_t));
+	buffer_add(buffer, instruccion->param4_length, sizeof(uint32_t));
+	buffer_add(buffer, instruccion->param5_length, sizeof(uint32_t));
 	for (int i = 0; i < instruccion->cant_parametros; i++)
 	{
-		memcpy(buffer->stream + offset, instruccion->parametros[i], strlen(instruccion->parametros[i]) + 1);
-		offset += strlen(instruccion->parametros[i]) + 1;
+		buffer_add(buffer, instruccion->parametros[i], strlen(instruccion->parametros[i]) + 1)
 	}
 	return buffer;
 }
@@ -365,26 +390,73 @@ t_buffer *instruccion_serializar(t_instruccion *instruccion)
 t_instruccion *instruccion_deserializar(t_buffer *buffer)
 {
 	t_instruccion *instruccion = malloc(sizeof(t_instruccion));
+	buffer->offset = 0;
 
 	void *stream = buffer->stream;
 
-	memcpy(&(instruccion->identificador), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-	memcpy(&(instruccion->cant_parametros), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-	memcpy(&(instruccion->param1_length), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-	memcpy(&(instruccion->param2_length), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-	memcpy(&(instruccion->param3_length), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-	memcpy(&(instruccion->param4_length), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
-	memcpy(&(instruccion->param5_length), stream, sizeof(uint32_t));
-	stream += sizeof(uint32_t);
+	buffer_read(buffer, instruccion->identificador, sizeof(uint32_t));
+	buffer_read(buffer, instruccion->cant_parametros, sizeof(uint32_t));
+	buffer_read(buffer, instruccion->param1_length, sizeof(uint32_t));
+	buffer_read(buffer, instruccion->param2_length, sizeof(uint32_t));
+	buffer_read(buffer, instruccion->param3_length, sizeof(uint32_t));
+	buffer_read(buffer, instruccion->param4_length, sizeof(uint32_t));
+	buffer_read(buffer, instruccion->param5_length, sizeof(uint32_t));
 
 	// TODO: LISTA DE PARÁMETROS
 
 	return instruccion;
-	
+}
+
+t_buffer *crear_buffer(uint32_t size) // size: la sumatoria de todos los size de la estrucutura
+{
+	t_buffer *buffer;
+	buffer = malloc(size);
+	buffer->offset = 0;
+	return buffer;
+}
+
+void liberar_buffer(t_buffer *buffer)
+{
+	if (buffer != NULL)
+	{
+		if (buffer->stream != NULL)
+		{
+			free(buffer->stream);
+			buffer->stream = NULL;
+		}
+		free(buffer);
+	}
+}
+
+void destruir_buffer(t_buffer *buffer)
+{
+	free(buffer->stream);
+	free(buffer);
+}
+
+void buffer_add(t_buffer *buffer, void *data, uint32_t size)
+{
+	buffer->stream = realloc(paquete->buffer->stream, paquete->buffer->size + sizeof(size));
+	memcpy(buffer->stream + buffer->offset, &data, sizeof(size));
+	buffer->size += sizeof(size);
+	buffer->offset += sizeof(size);
+}
+
+void buffer_read(t_buffer *buffer, void *data, uint32_t size)
+{
+	memcpy(&data, buffer->stream + buffer->offset, size);
+	buffer->offset += size;
+}
+
+// -----------------------
+t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones) 
+{
+    t_buffer *buffer = crear_buffer();
+    for (int i = 0; i < list_size(lista_instrucciones); i++)
+    {
+        t_instruccion *instruccion = list_get(lista_instrucciones, i);
+        t_buffer *buffer_instruccion = serializar_instruccion(instruccion);
+        buffer_add(buffer,instruccion,buffer_instruccion->size);
+        destruir_buffer(buffer_instruccion);
+    }
 }

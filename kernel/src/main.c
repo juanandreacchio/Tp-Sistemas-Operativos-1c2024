@@ -23,9 +23,15 @@ int main(void)
 
     // iniciar conexion con CPU Dispatch e Interrupt
     conexion_dispatch = crear_conexion(ip_cpu, puerto_dispatch, logger_kernel);
-    conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt, logger_kernel);
+    //conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt, logger_kernel);
     enviar_mensaje("", conexion_dispatch, KERNEL, logger_kernel);
-    enviar_mensaje("", conexion_interrupt, KERNEL, logger_kernel);
+    //enviar_mensaje("", conexion_interrupt, KERNEL, logger_kernel);
+    
+    //prueba de envio pcb
+    t_pcb *pcb;
+    t_list *lsita = list_create();
+    pcb = crear_pcb(0,lsita,0,NEW);
+    enviar_pcb(pcb,conexion_dispatch);
 
     // iniciar Servidor
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "KERNEL");
