@@ -50,7 +50,7 @@ t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones)
     {
         t_instruccion *instruccion = list_get(lista_instrucciones, i);
         t_buffer *buffer_instruccion = serializar_instruccion(instruccion);
-        buffer_add(buffer,instruccion,buffer_instruccion->size);
+        buffer_add(buffer,buffer_instruccion->stream,buffer_instruccion->size);
         destruir_buffer(buffer_instruccion);
     }
 }
