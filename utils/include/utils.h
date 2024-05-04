@@ -17,6 +17,7 @@ typedef enum
 {
 	SOLICITUD_INSTRUCCION,
 	INSTRUCCION,
+	CREAR_PROCESO,
 	CPU,
 	KERNEL,
 	MEMORIA,
@@ -101,6 +102,8 @@ typedef struct
 	char **parametros; // Lista de parámetros
 
 } t_instruccion;
+
+t_instruccion string_to_instruccion(char *string);
 
 t_registros inicializar_registros();
 t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, t_psw psw);
