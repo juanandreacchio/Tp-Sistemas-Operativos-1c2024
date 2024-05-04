@@ -50,7 +50,13 @@ void crear_proceso(t_list* lista_procesos, int pid, char* path) {
         exit(1);
     }
     proceso->pid = pid;
-    proceso->path = path;
+    proceso->path = malloc(strlen(PATH_INSTRUCCIONES) + strlen(path) + 1);
+    if (proceso->path == NULL) {
+        printf("Error: no se pudo asignar memoria para el path del proceso con PID %d\n", pid);
+        exit(1);
+    }
+    strcpy(proceso->path, PATH_INSTRUCCIONES);
+    strcat(proceso->path, path);
     proceso->tabla_paginas = inicializar_tabla_paginas();
     list_add(lista_procesos, proceso);
 }

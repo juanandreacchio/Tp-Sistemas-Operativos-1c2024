@@ -11,6 +11,12 @@
 extern t_log *logger_memoria;
 extern t_config *config_memoria;
 
+extern char *PUERTO_MEMORIA;
+extern int TAM_MEMORIA;
+extern int TAM_PAGINA;
+extern char *PATH_INSTRUCCIONES;
+extern int RETARDO_RESPUESTA;
+
 extern char *puerto_memoria;
 extern char *mensaje_recibido;
 extern int socket_servidor_memoria;

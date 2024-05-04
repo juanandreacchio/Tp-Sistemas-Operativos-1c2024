@@ -4,10 +4,16 @@
 #include <commons/log.h>
 
 #include <../src/utils/utils.c>
-#include <mem.h>
+#include <memoria.h>
 
 extern int NUM_PAGINAS;
 extern int TAM_PAGINA;
+
+extern char *PUERTO_MEMORIA;
+extern int TAM_MEMORIA;
+extern int TAM_PAGINA;
+extern char *PATH_INSTRUCCIONES;
+extern int RETARDO_RESPUESTA;
 
 typedef struct {
     void* contenido;
@@ -15,7 +21,7 @@ typedef struct {
 } t_pagina;
 
 typedef struct {
-    t_pagina* tabla_paginas[NUM_PAGINAS];
+    t_pagina* tabla_paginas[TAM_MEMORIA / TAM_PAGINA];
 } t_tabla_paginas;
 
 typedef struct
