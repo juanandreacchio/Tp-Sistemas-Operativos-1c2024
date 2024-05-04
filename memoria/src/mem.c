@@ -79,7 +79,7 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
         printf("Error: no se pudo asignar memoria para la instrucción\n");
         exit(1);
     }
-    
+
     // Leo todas las instrucciones anteriores y las descarto
     for (int i = 0; i < pc; i++) {
         char* buffer = NULL;
@@ -105,28 +105,6 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
     fclose(archivo);
     return instruccion;
 }
-
-FILE* archivo = fopen(path, "r");
-    if (archivo == NULL) {
-        printf("Error: no se pudo abrir el archivo %s\n", path);
-        exit(1);
-    }
-    t_instruccion* instruccion = malloc(sizeof(t_instruccion));
-    if (instruccion == NULL) {
-        printf("Error: no se pudo asignar memoria para la instrucción\n");
-        exit(1);
-    }
-    char* buffer = NULL;
-    size_t buffer_size = 0;
-    ssize_t bytes_leidos = getline(&buffer, &buffer_size, archivo);
-    if (bytes_leidos == -1) {
-        printf("Error: no se pudo leer la instrucción del archivo %s\n", path);
-        exit(1);
-    }
-    *instruccion = string_to_instruccion(buffer);
-    free(buffer);
-    fclose(archivo);
-    return instruccion;
 
 // Funcion que busque una instruccion en un proceso a partir de un PID y un PC
 t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t pc) {
