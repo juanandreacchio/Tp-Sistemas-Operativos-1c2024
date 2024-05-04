@@ -352,15 +352,7 @@ void terminar_programa(int conexion, t_log *logger, t_config *config)
 
 // Serialización para TADS
 
-uint32_t espacio_parametros(t_instruccion *instruccion)
-{
-	uint32_t espacio = 0;
-	for (int i = 0; i < instruccion->cant_parametros; i++)
-	{
-		espacio += strlen(instruccion->parametros[i]) + 1;
-	}
-	return espacio;
-}
+
 
 t_buffer *serializar_instruccion(t_instruccion *instruccion)
 {

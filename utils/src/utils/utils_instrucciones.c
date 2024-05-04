@@ -1,3 +1,15 @@
+#include "utils_instrucciones.h"
+
+uint32_t espacio_parametros(t_instruccion *instruccion)
+{
+	uint32_t espacio = 0;
+	for (int i = 0; i < instruccion->cant_parametros; i++)
+	{
+		espacio += strlen(instruccion->parametros[i]) + 1;
+	}
+	return espacio;
+}
+
 t_buffer *serializar_instruccion(t_instruccion *instruccion)
 {
 	t_buffer *buffer = malloc(sizeof(t_buffer));
@@ -23,10 +35,10 @@ t_buffer *serializar_instruccion(t_instruccion *instruccion)
 	return buffer;
 }
 
-t_instruccion *instruccion_deserializar(t_buffer *buffer)
+t_instruccion *instruccion_deserializar(t_buffer *buffer, uin32_t offset)
 {
 	t_instruccion *instruccion = malloc(sizeof(t_instruccion));
-	buffer->offset = 0;
+	buffer->offset = *offset;
 
 	void *stream = buffer->stream;
 
@@ -38,21 +50,33 @@ t_instruccion *instruccion_deserializar(t_buffer *buffer)
 	buffer_read(buffer, instruccion->param4_length, sizeof(uint32_t));
 	buffer_read(buffer, instruccion->param5_length, sizeof(uint32_t));
 
-	// TODO: LISTA DE PARÁMETROS
-
 	return instruccion;
 }
 
-t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones) 
+t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones)
 {
-    t_buffer *buffer = crear_buffer();
-    for (int i = 0; i < list_size(lista_instrucciones); i++)
-    {
-        t_instruccion *instruccion = list_get(lista_instrucciones, i);
-        t_buffer *buffer_instruccion = serializar_instruccion(instruccion);
-        buffer_add(buffer,buffer_instruccion->stream,buffer_instruccion->size);
-        destruir_buffer(buffer_instruccion);
-    }
+	t_buffer *buffer = crear_buffer();
+	for (int i = 0; i < list_size(lista_instrucciones); i++)
+	{
+		t_instruccion *instruccion = list_get(lista_instrucciones, i);
+		t_buffer *buffer_instruccion = serializar_instruccion(instruccion);
+		buffer_add(buffer, buffer_instruccion->stream, buffer_instruccion->size);
+		destruir_buffer(buffer_instruccion);
+	}
+
+	return buffer;
 }
 
-// TODO DESERIALIZAR LISTA DE INSTRUCCIONES
+t_list *deserializar_lista_instrucciones(t_buffer *buffer)
+{
+	t_list *lista_instrucciones = list_create();
+	buffer->offset = 0;
+	while (buffer->ofset < buffer->size)
+	{
+		t_instruccion *instruccion = instruccion_deserializar(buffer, buffer->offset);
+		list_add(lista_instrucciones, instruccion);
+		buffer->ofset += sizeof(t_instruccion);
+	}
+
+	return lista_instrucciones;
+}
