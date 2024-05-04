@@ -27,7 +27,7 @@ typedef struct {
 typedef struct
 {
 	uint32_t pid;
-	char* path;
+	FILE* archivo;
     t_tabla_paginas* tabla_paginas;
 } t_proceso;
 
