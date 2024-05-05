@@ -1,3 +1,14 @@
+/*
+uint32_t espacio_parametros(t_instruccion *instruccion)
+{
+	uint32_t espacio = 0;
+	for (int i = 0; i < instruccion->cant_parametros; i++)
+	{
+		espacio += strlen(instruccion->parametros[i]) + 1;
+	}
+	return espacio;
+}
+
 t_buffer *serializar_instruccion(t_instruccion *instruccion)
 {
 	t_buffer *buffer = malloc(sizeof(t_buffer));
@@ -56,3 +67,4 @@ t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones)
 }
 
 // TODO DESERIALIZAR LISTA DE INSTRUCCIONES
+*/

@@ -45,14 +45,15 @@ void *iniciar_servidor_dispatch(void *arg)
 		conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
 		log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Dispatch", cod_op_to_string(recibir_operacion(conexion_kernel_dispatch)));
 		recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
+		
 		t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
 		log_info(logger_cpu,"recibi el pcb");
-		printf("del pid tengo:%u\n",pcb->pid);
-		printf("del quantum tengo:%u\n",pcb->quantum);
-		printf("del psw tengo:%d\n",pcb->psw);
-		printf("del pc tengo:%d\n",pcb->pc);
-	
+		log_info(logger_cpu,"del pid tengo:%u",pcb->pid);
+		log_info(logger_cpu,"del quantum tengo:%u",pcb->quantum);
+		log_info(logger_cpu,"del psw tengo:%u",pcb->estado_actual);
+		log_info(logger_cpu,"del pc tengo:%u",pcb->pc);
 		
+
 	}
 	return NULL;
 }
@@ -68,7 +69,7 @@ void *iniciar_servidor_interrupt(void *arg)
 	}
 	return NULL;
 }
-
+/*
 t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc)
 {
 	// Buscar instruccion en memoria
@@ -97,3 +98,4 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc)
 	return instruccion;
 
 }
+*/

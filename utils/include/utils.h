@@ -30,7 +30,7 @@ typedef enum
 typedef struct
 {
 	uint32_t size;
-	  uint32_t offset;
+	uint32_t offset;
 	void *stream;
 } t_buffer;
 
@@ -60,7 +60,7 @@ typedef struct
 	u_int32_t pc;		   // Program Counter (Número de la próxima instrucción a ejecutar)
 	u_int32_t quantum;	   // Unidad de tiempo utilizada por el algoritmo de planificación VRR
 	t_registros registros; // Estructura que contendrá los valores de los registros de uso general de la CPU
-	t_list *instrucciones;
+	//t_list *instrucciones;
 	estados estado_actual;
 } t_pcb;
 
@@ -106,7 +106,7 @@ typedef struct
 } t_instruccion;
 
 t_registros inicializar_registros();
-t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, t_psw psw);
+t_pcb *crear_pcb(u_int32_t pid, /*t_list *lista_instrucciones, */u_int32_t quantum, estados estado);
 t_pcb *recibir_pcb( int socket);
 void destruir_pcb(t_pcb *pcb);
 t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel);
@@ -129,7 +129,7 @@ t_buffer *instruccion_serializar(t_instruccion *instruccion);
 uint32_t espacio_parametros(t_instruccion *instruccion);
 void buffer_read(t_buffer *buffer, void *data, uint32_t size);
 void buffer_add(t_buffer *buffer, void *data, uint32_t size);
-t_buffer *crear_buffer(uint32_t size);
+t_buffer *crear_buffer();
 void destruir_buffer(t_buffer *buffer);
 
 #endif /* UTILS_H_ */

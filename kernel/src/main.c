@@ -29,8 +29,7 @@ int main(void)
     
     //prueba de envio pcb
     t_pcb *pcb;
-    t_list *lsita = list_create();
-    pcb = crear_pcb(0,lsita,0,NEW);
+    pcb = crear_pcb(10,25,READY);
     enviar_pcb(pcb,conexion_dispatch);
 
     // iniciar Servidor
