@@ -310,26 +310,7 @@ char *recibir_mensaje_guardar_variable(int socket_cliente)
 	return buffer;
 	free(buffer);
 }
-/*
-t_paquete *deserializar_paquete(void *datos_serializados) {
-	t_paquete *paquete = malloc(sizeof(t_paquete));
-	int desplazamiento = 0;
 
-	// Copiar el código de operación desde los datos serializados al paquete
-	memcpy(&(paquete->codigo_operacion), datos_serializados + desplazamiento, sizeof(int));
-	desplazamiento += sizeof(int);
-
-	// Copiar el tamaño del buffer desde los datos serializados al paquete
-	memcpy(&(paquete->buffer->size), datos_serializados + desplazamiento, sizeof(int));
-	desplazamiento += sizeof(int);
-
-	// Asignar memoria para el buffer del paquete y copiar los datos
-	paquete->buffer->stream = malloc(paquete->buffer->size);
-	memcpy(paquete->buffer->stream, datos_serializados + desplazamiento, paquete->buffer->size);
-
-	return paquete;
-}
-*/
 t_paquete *recibir_paquete(int socket_cliente)
 {
 	t_paquete *paquete = malloc(sizeof(t_paquete));
@@ -358,16 +339,8 @@ void terminar_programa(int conexion, t_log *logger, t_config *config)
 }
 
 // Serialización para TADS
-/*
-uint32_t espacio_parametros(t_instruccion *instruccion)
-{
-	uint32_t espacio = 0;
-	for (int i = 0; i < instruccion->cant_parametros; i++)
-	{
-		espacio += strlen(instruccion->parametros[i]) + 1;
-	}
-	return espacio;
-}
+
+
 
 t_buffer *serializar_instruccion(t_instruccion *instruccion)
 {
@@ -413,7 +386,7 @@ t_instruccion *instruccion_deserializar(t_buffer *buffer)
 
 	return instruccion;
 }
-*/
+
 t_buffer *crear_buffer() // size: la sumatoria de todos los size de la estrucutura
 {
 	t_buffer *buffer;
@@ -471,12 +444,10 @@ void buffer_read(t_buffer *buffer, void *data, uint32_t size)
     buffer->offset += size;
 }
 
-
 // -----------------------
-/*
 t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones) 
 {
-    t_buffer *buffer = crear_buffer(1);
+    t_buffer *buffer = crear_buffer();
     for (int i = 0; i < list_size(lista_instrucciones); i++)
     {
         t_instruccion *instruccion = list_get(lista_instrucciones, i);
@@ -485,4 +456,3 @@ t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones)
         destruir_buffer(buffer_instruccion);
     }
 }
-*/
