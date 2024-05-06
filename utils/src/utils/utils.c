@@ -45,6 +45,29 @@ char* cod_op_to_string(op_code codigo_operacion)
 		return "CODIGO DE OPERACION INVALIDO";
 	}
 }
+void cargar_string_al_buffer(t_buffer *buffer, char *string) {
+    int len = strlen(string);
+    buffer->stream = malloc(len + 1); 
+    if (buffer->stream == NULL) {
+        printf("Error: no se pudo asignar memoria para el buffer\n");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(buffer->stream, string);
+    buffer->size = len;
+}
+char *extraer_string_del_buffer(t_buffer *buffer) {
+    char *string = malloc(buffer->size + 1);  
+    if (string == NULL) {
+        printf("Error: no se pudo asignar memoria para el string\n");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(string, buffer->stream, buffer->size);
+    string[buffer->size] = '\0';
+    free(buffer->stream);
+    buffer->size = 0;
+    return string;
+}
+
 
 // ------------------ FUNCIONES DE LOGGER ------------------
 
@@ -148,18 +171,19 @@ void* serializar_paquete(t_paquete* paquete, int bytes)
 	return magic;
 }
 
-void crear_buffer(t_paquete* paquete)
+t_buffer* crear_buffer()
 {
-	paquete->buffer = malloc(sizeof(t_buffer));
-	paquete->buffer->size = 0;
-	paquete->buffer->stream = NULL;
+	t_buffer* buffer = malloc(sizeof(t_buffer));
+	buffer->size = 0;
+	buffer->stream = NULL;
+	return buffer;
 }
 
 t_paquete* crear_paquete(void)
 {
 	t_paquete* paquete = malloc(sizeof(t_paquete));
 	paquete->codigo_operacion = PAQUETE;
-	crear_buffer(paquete);
+	paquete->buffer = crear_buffer();
 	return paquete;
 }
 
