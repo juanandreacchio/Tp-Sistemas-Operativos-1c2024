@@ -52,8 +52,11 @@ void *iniciar_servidor_dispatch(void *arg)
 		log_info(logger_cpu,"del quantum tengo:%u",pcb->quantum);
 		log_info(logger_cpu,"del psw tengo:%u",pcb->estado_actual);
 		log_info(logger_cpu,"del pc tengo:%u",pcb->pc);
+		t_instruccion *inst1 = list_get(pcb->instrucciones,0);
+		t_instruccion *inst2 = list_get(pcb->instrucciones,1);
+		imprimir_instruccion(*inst1);
+		imprimir_instruccion(*inst2);
 		
-
 	}
 	return NULL;
 }
@@ -69,16 +72,17 @@ void *iniciar_servidor_interrupt(void *arg)
 	}
 	return NULL;
 }
-/*
+
 t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc)
 {
 	// Buscar instruccion en memoria
 	t_paquete *paquete = crear_paquete(SOLICITUD_INSTRUCCION);
 	// Le voy a mandar a memoria el paquete con el pid y el pc,
 	// para q busque en la lista de procesos el proceso, y me devuelva la instruccion según el PC
-	agregar_a_paquete(paquete, &pid, sizeof(uint32_t));
-	agregar_a_paquete(paquete, &pc, sizeof(uint32_t));
-
+	
+	t_buffer *buffer = paquete->buffer;
+	buffer_add(buffer, &pid, sizeof(uint32_t));
+	buffer_add(buffer, &pc, sizeof(uint32_t));
 	enviar_paquete(paquete, conexion_memoria);
 
 	t_paquete *respuesta_memoria = recibir_paquete(conexion_memoria);
@@ -89,7 +93,7 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc)
 		eliminar_paquete(respuesta_memoria);
 		return NULL;
 	}
-	t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer);
+	t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer, 0);
 
 	pc+=1; // Nosé si está bien así
 
@@ -98,4 +102,51 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc)
 	return instruccion;
 
 }
-*/
+
+void decode_y_execute_instruccion(t_instruccion *instruccion)
+{
+	// TODO MatiD
+	switch (instruccion->identificador)
+	{
+	case SET:
+		break;
+	case MOV_IN:
+		break;
+	case MOV_OUT:
+		break;
+	case SUM:
+		break;
+	case SUB:
+		break;
+	case JNZ:
+		break;
+	case IO_FS_TRUNCATE:
+		break;
+	case IO_STDIN_READ:
+		break;
+	case IO_STDOUT_WRITE:
+		break;
+	case IO_GEN_SLEEP:
+		break;
+	case IO_FS_DELETE:
+		break;
+	case IO_FS_CREATE:
+		break;
+	case IO_FS_WRITE:
+		break;
+	case IO_FS_READ:
+		break;
+	case RESIZE:
+		break;
+	case COPY_STRING:
+		break;
+	case WAIT:
+		break;
+	case SIGNAL:
+		break;
+	case EXIT:
+		break;
+	default:
+		break;
+	}
+}
