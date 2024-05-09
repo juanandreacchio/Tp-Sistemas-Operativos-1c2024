@@ -23,9 +23,54 @@ int main(void)
 
     // iniciar conexion con CPU Dispatch e Interrupt
     conexion_dispatch = crear_conexion(ip_cpu, puerto_dispatch, logger_kernel);
-    conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt, logger_kernel);
+    //conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt, logger_kernel);
     enviar_mensaje("", conexion_dispatch, KERNEL, logger_kernel);
-    enviar_mensaje("", conexion_interrupt, KERNEL, logger_kernel);
+    //enviar_mensaje("", conexion_interrupt, KERNEL, logger_kernel);
+    
+
+
+
+    //------------------------prueba de envio pcb------------------------------
+    t_pcb *pcb;
+    t_list *listaInstrucciones = list_create();
+
+    //istruccion1
+    t_list *parametros = list_create();
+    char *num = "5";
+    list_add(parametros, num);
+    t_instruccion *instruccion1 = crear_instruccion(SUM,parametros);
+    list_add(listaInstrucciones,instruccion1);
+
+    //istruccion2
+    t_list *parametros2 = list_create();
+    char *num2 = "15";
+    list_add(parametros2, num2);
+    t_instruccion *instruccion2 =  crear_instruccion(SET,parametros2);
+    list_add(listaInstrucciones,instruccion2);
+
+    //envio pcb
+    pcb = crear_pcb(10,listaInstrucciones,25,READY);
+    enviar_pcb(pcb,conexion_dispatch);
+
+    //----------------------prueba de las operaciones con registro-------------------------------
+
+    t_registros registros = inicializar_registros();
+    imprimir_registros_por_pantalla(registros);
+    set_registro(&registros,"AX",10);
+    imprimir_registros_por_pantalla(registros);
+    set_registro(&registros,"BX",5);
+    sum_registro(&registros,"AX","BX");
+    imprimir_registros_por_pantalla(registros);
+    set_registro(&registros,"CX",8);
+    sub_registro(&registros,"CX","BX");
+    imprimir_registros_por_pantalla(registros);
+    JNZ_registro(&registros,"AX",15);
+    imprimir_registros_por_pantalla(registros);
+
+
+
+
+
 
     // iniciar Servidor
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "KERNEL");
@@ -72,3 +117,4 @@ void *atender_cliente(void *socket_cliente)
 }
 
 // Planificacion
+
