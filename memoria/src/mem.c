@@ -131,87 +131,38 @@ void liberar_lista_procesos(t_list* lista_procesos) {
     list_destroy(lista_procesos);
 }
 
-void liberar_instruccion(t_instruccion* instruccion) {
-    for (int i = 0; i < instruccion->cant_parametros; i++) {
-        free(instruccion->parametros[i]);
-    }
-    free(instruccion->parametros);
-    free(instruccion);
-}
-
 t_instruccion string_to_instruccion(char *string)
 {
 	t_instruccion instruccion;
 	char** tokens = string_split(string, ' ');
-	char* instruccion = tokens[0];
-	char** parametros = tokens + 1;
-	switch (tokens[0]) {
-		case "IO_FS_WRITE":
-			instruccion = nueva_instruccion(IO_FS_WRITE, parametros, 5);
-		break;
-		case "IO_FS_READ":
-				instruccion = nueva_instruccion(IO_FS_READ, parametros, 5);
-		break;
-		case "IO_FS_TRUNCATE":
-			instruccion = nueva_instruccion(IO_FS_TRUNCATE, parametros, 3);
-		break;
-		case "IO_STDOUT_WRITE":
-			instruccion = nueva_instruccion(IO_STDOUT_WRITE, parametros, 3);
-		break;
-		case "IO_STDIN_READ":
-			instruccion = nueva_instruccion(IO_STDIN_READ, parametros, 3);
-		break;
-		case "SET":
-			instruccion = nueva_instruccion(SET, parametros, 2);
-		break;
-		case "MOV_IN":
-			instruccion = nueva_instruccion(MOV_IN, parametros, 2);
-		break;
-		case "MOV_OUT":
-			instruccion = nueva_instruccion(MOV_OUT, parametros, 2);
-		break;
-		case "SUM":
-			instruccion = nueva_instruccion(SUM, parametros, 2);
-		break;
-		case "SUB":
-			instruccion = nueva_instruccion(SUB, parametros, 2);
-		break;
-		case "JNZ":
-			instruccion = nueva_instruccion(JNZ, parametros, 2);
-		break;
-		case "IO_GEN_SLEEP":
-			instruccion = nueva_instruccion(IO_GEN_SLEEP, parametros, 2);
-		break;
-		case "IO_FS_DELETE":
-			instruccion = nueva_instruccion(IO_FS_DELETE, parametros, 2);
-		break;
-		case "IO_FS_CREATE":
-			instruccion = nueva_instruccion(IO_FS_CREATE, parametros, 2);
-		break;
-		case "RESIZE":
-			instruccion = nueva_instruccion(RESIZE, parametros, 1);
-		break;
-		case "COPY_STRING":
-			instruccion = nueva_instruccion(COPY_STRING, parametros, 1);
-		break;
-		case "WAIT":
-			instruccion = nueva_instruccion(WAIT, parametros, 1);
-		break;
-		case "SIGNAL":
-			instruccion = nueva_instruccion(SIGNAL, parametros, 1);
-		break;
-		case "EXIT":
-			instruccion = nueva_instruccion(EXIT, parametros, 0);
-		break;
-	}
-	return instruccion;
+	t_identificador identificador = string_to_identificador(tokens[0]);
+	t_list *parametros = list_create();
+    for (int i = 1; tokens[i] != NULL; i++) {
+        list_add(parametros, tokens[i]);
+    }
+
+	return crear_instruccion(identificador, parametros);
 }
 
-t_instruccion nueva_instruccion(t_identificador identificador, char** parametros, uint32_t cant_parametros)
+t_identificador string_to_identificador (char *string)
 {
-	t_instruccion instruccion;
-	instruccion.identificador = identificador;
-	instruccion.parametros = parametros;
-	instruccion.cant_parametros = cant_parametros;
-	return instruccion;
+    if (strcmp(string, "IO_FS_WRITE") == 0) return IO_FS_WRITE;
+    if (strcmp(string, "IO_FS_READ") == 0) return IO_FS_READ;
+    if (strcmp(string, "IO_FS_TRUNCATE") == 0) return IO_FS_TRUNCATE;
+    if (strcmp(string, "IO_STDOUT_WRITE") == 0) return IO_STDOUT_WRITE;
+    if (strcmp(string, "IO_STDIN_READ") == 0) return IO_STDIN_READ;
+    if (strcmp(string, "SET") == 0) return SET;
+    if (strcmp(string, "MOV_IN") == 0) return MOV_IN;
+    if (strcmp(string, "MOV_OUT") == 0) return MOV_OUT;
+    if (strcmp(string, "SUM") == 0) return SUM;
+    if (strcmp(string, "SUB") == 0) return SUB;
+    if (strcmp(string, "JNZ") == 0) return JNZ;
+    if (strcmp(string, "IO_GEN_SLEEP") == 0) return IO_GEN_SLEEP;
+    if (strcmp(string, "IO_FS_DELETE") == 0) return IO_FS_DELETE;
+    if (strcmp(string, "IO_FS_CREATE") == 0) return IO_FS_CREATE;
+    if (strcmp(string, "RESIZE") == 0) return RESIZE;
+    if (strcmp(string, "COPY_STRING") == 0) return COPY_STRING;
+    if (strcmp(string, "WAIT") == 0) return WAIT;
+    if (strcmp(string, "SIGNAL") == 0) return SIGNAL;
+    if (strcmp(string, "EXIT") == 0) return EXIT;
 }
