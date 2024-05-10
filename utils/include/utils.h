@@ -113,6 +113,31 @@ typedef struct {
 	char* path;
 } t_solicitudCreacionProcesoEnMemoria;
 
+typedef struct {
+    void* contenido;
+    int pagina;
+} t_pagina;
+
+typedef struct {
+    t_pagina** tabla_paginas;
+} t_tabla_paginas;
+
+
+typedef struct
+{
+	uint32_t pid;
+	// char* path;
+    t_list * lista_instrucciones;
+    t_tabla_paginas* tabla_paginas;
+} t_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t pc;
+} t_solicitudInstruccionEnMemoria;
+
+
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
 
@@ -148,6 +173,7 @@ void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccio
 void destruir_instruccion(t_instruccion *instruccion);
 
 t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros);
-t_buffer* serializar_solicitur_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud);
+t_buffer* serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud);
 t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buffer *buffer);
+void imprimir_proceso(t_proceso* proceso);
 #endif /* UTILS_H_ */

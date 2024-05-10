@@ -16,22 +16,8 @@ extern int TAM_PAGINA;
 extern char *PATH_INSTRUCCIONES;
 extern int RETARDO_RESPUESTA;
 
-typedef struct {
-    void* contenido;
-    int pagina;
-} t_pagina;
 
-typedef struct {
-    t_pagina** tabla_paginas;
-} t_tabla_paginas;
 
-typedef struct
-{
-	uint32_t pid;
-	// char* path;
-    t_list * lista_instrucciones;
-    t_tabla_paginas* tabla_paginas;
-} t_proceso;
 
 extern t_list* procesos;
 extern int NUM_PAGINAS;

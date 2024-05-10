@@ -18,8 +18,10 @@ int socket_servidor_memoria;
 
 t_list *procesos;
 
+
 int main(int argc, char *argv[])
 {
+    procesos= list_create();
     pthread_mutex_init(&mutex, NULL);
     // logger memoria
 
@@ -33,8 +35,11 @@ int main(int argc, char *argv[])
         int socket_cliente = esperar_cliente(socket_servidor_memoria, logger_memoria);
         pthread_mutex_lock(&mutex);
         pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
+        printf("antes\n");
         pthread_detach(thread);
+        printf("despues 1\n");
         pthread_mutex_unlock(&mutex);
+        printf("despues 2\n");
     }
 
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
@@ -71,13 +76,10 @@ void *atender_cliente(void *socket_cliente)
 
     paquete = recibir_paquete(socket_cliente);
 
-    // recv((int)(intptr_t)socket_cliente, &(paquete->codigo_operacion), sizeof(uint8_t), 0);
-    // recv((int)(intptr_t)socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
-    // paquete->buffer->stream = malloc(paquete->buffer->size);
-    // recv((int)(intptr_t)socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
 
     op_code codigo_operacion = paquete->codigo_operacion;
     t_buffer *buffer = paquete->buffer;
+    printf("codigo de operacion: %d\n", codigo_operacion);
     switch (codigo_operacion)
     {
     case KERNEL:
@@ -91,12 +93,15 @@ void *atender_cliente(void *socket_cliente)
         break;
     case SOLICITUD_INSTRUCCION:
         log_info(logger_memoria, "Se recibio una solicitud de instruccion");
-        t_solicitudCreacionProcesoEnMemoria *soli = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-        void *stream = buffer;
+        t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
 
-        memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
-        memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
-
+        buffer_read(buffer,soli->pid, sizeof(uint32_t));
+        buffer_read(buffer,soli->pc, sizeof(uint32_t));
+        
+        // memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
+        // memcpy(pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
+        printf("pid: %d\n", soli->pid);
+        printf("pc: %d\n", soli->pc);
         instruccion = buscar_instruccion(procesos, pid, pc);
         paquete = crear_paquete(INSTRUCCION);
         agregar_instruccion_a_paquete(paquete, instruccion);
@@ -108,29 +113,20 @@ void *atender_cliente(void *socket_cliente)
         break;
     case CREAR_PROCESO:
         char *path;
-        log_info(logger_memoria, "Se recibio un mensaje para crear un proceso");
-        t_buffer *buffer = paquete->buffer;
+
         t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
 
-        void *bufferStream = buffer->stream;
-
-        memcpy(&(solicitud->pid), bufferStream, sizeof(uint32_t));
-        bufferStream += sizeof(uint32_t);
-        memcpy(&(solicitud->path_length), bufferStream, sizeof(uint32_t));
-        bufferStream += sizeof(uint32_t);
-        solicitud->path = malloc(solicitud->path_length);
-        memcpy(solicitud->path, bufferStream, solicitud->path_length);
-        path = solicitud->path;
-        pid=solicitud->pid;
-
-            log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, path);
-        crear_proceso(procesos, pid, path);
+        solicitud = deserializar_solicitud_crear_proceso(buffer);
+        log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
+        crear_proceso(procesos, solicitud->pid, solicitud->path);
         eliminar_paquete(paquete);
+        printf("proceso creado\n");
         break;
     default:
         log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
         // TODO: implementar
         break;
     }
+    printf("aaaaaaaaaaaaaaaaa\n");
     return NULL;
 }

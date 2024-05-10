@@ -1,7 +1,6 @@
 #include <../include/utils.h>
 //uint32_t size_registros = sizeof(uint32_t) * 7 + sizeof(uint8_t) * 4;
 
-
 //----------------- FUNCIONES DE REGISTROS -------------------------------
 
 //TODO testear que todas estas funciones anden
@@ -797,9 +796,8 @@ void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccio
 
 // -----------------------
 
-t_buffer* serializar_solicitur_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud){
+t_buffer* serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud){
 	t_buffer *buffer = crear_buffer();
-	buffer->offset = 0;
 
 	buffer_add(buffer, &solicitud->pid, sizeof(uint32_t));
 	buffer_add(buffer, &solicitud->path_length, sizeof(uint32_t));
@@ -811,9 +809,22 @@ t_buffer* serializar_solicitur_crear_proceso(t_solicitudCreacionProcesoEnMemoria
 t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buffer *buffer){
 	t_solicitudCreacionProcesoEnMemoria* solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
 	buffer->offset = 0;
+
 	buffer_read(buffer, &solicitud->pid, sizeof(uint32_t));
 	buffer_read(buffer, &solicitud->path_length, sizeof(uint32_t));
 	solicitud->path = malloc(solicitud->path_length);
 	buffer_read(buffer, solicitud->path, solicitud->path_length);
 	return solicitud;
+}
+
+void imprimir_proceso(t_proceso* proceso) {
+    printf("PID: %d\n", proceso->pid);
+    // printf("Path del archivo de instrucciones: %s\n", proceso->path);
+    printf("Lista de instrucciones:\n");
+    for (int i = 0; i < list_size(proceso->lista_instrucciones); i++) {
+        t_instruccion* instruccion = list_get(proceso->lista_instrucciones, i);
+        printf("Instrucción %d: ", i + 1);
+        imprimir_instruccion(*instruccion);
+    }
+    // Si quieres imprimir también la tabla de páginas, puedes hacerlo aquí
 }
