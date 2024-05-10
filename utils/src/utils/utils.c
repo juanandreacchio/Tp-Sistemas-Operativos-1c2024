@@ -779,6 +779,13 @@ t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametr
 	return instruccionNueva;
 }
 
+void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion)
+{
+	t_buffer *buffer_instruccion = serializar_instruccion(instruccion);
+	buffer_add(paquete->buffer, buffer_instruccion->stream, buffer_instruccion->size);
+	destruir_buffer(buffer_instruccion);
+}
+
 
 
 

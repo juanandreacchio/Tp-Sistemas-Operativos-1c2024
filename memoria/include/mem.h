@@ -1,13 +1,14 @@
+#ifndef MEM_H_
+#define MEM_H_
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <utils/hello.h>
 #include <commons/log.h>
+#include <commons/string.h>
 
-#include <../src/utils/utils.c>
-#include <memoria.h>
-
-extern int NUM_PAGINAS;
-extern int TAM_PAGINA;
+#include <../include/utils.h> ///home/utnso/Desktop/tp-2024-1c-la-naranja-mec-nica/utils/include/utils.h
+#include <../include/memoria.h>
 
 extern char *PUERTO_MEMORIA;
 extern int TAM_MEMORIA;
@@ -21,7 +22,7 @@ typedef struct {
 } t_pagina;
 
 typedef struct {
-    t_pagina* tabla_paginas[TAM_MEMORIA / TAM_PAGINA];
+    t_pagina** tabla_paginas;
 } t_tabla_paginas;
 
 typedef struct
@@ -32,11 +33,11 @@ typedef struct
 } t_proceso;
 
 extern t_list* procesos;
+extern int NUM_PAGINAS;
 
-t_proceso* crear_proceso(int pid, char* path);
+void crear_proceso(t_list* lista_procesos, int pid, char* path);
 void liberar_proceso(t_proceso* proceso);
-t_instruccion leer_instruccion(char* path);
-t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t pc);
+t_instruccion *leer_instruccion(char* path, uint32_t pc);
 void liberar_lista_procesos(t_list* lista_procesos);
 void liberar_instruccion(t_instruccion* instruccion);
 
@@ -45,4 +46,6 @@ t_tabla_paginas* inicializar_tabla_paginas();
 void liberar_tabla_paginas(t_tabla_paginas* tabla_paginas);
 void* obtener_contenido_pagina(t_proceso* proceso, int numero_pagina);
 void asignar_contenido_pagina(t_proceso* proceso, int numero_pagina, void* contenido);
-
+t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t pc);
+t_instruccion *string_to_instruccion(char *string);
+#endif

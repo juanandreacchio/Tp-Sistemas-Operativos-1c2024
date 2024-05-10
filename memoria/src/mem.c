@@ -6,21 +6,28 @@ void inicializar_pagina(t_pagina* pagina, int numero_pagina) {
     pagina->pagina = numero_pagina;
 }
 
+//Inicializa la tabla de paginas con la cantidad de paginas que entran en la memoria y las inicializa
 t_tabla_paginas* inicializar_tabla_paginas() {
     t_tabla_paginas* tabla_paginas = malloc(sizeof(t_tabla_paginas));
     if (tabla_paginas == NULL) {
         printf("Error: no se pudo asignar memoria para la tabla de páginas\n");
         exit(1);
     }
+
+    tabla_paginas->tabla_paginas = malloc(NUM_PAGINAS * sizeof(t_pagina*));
+    if (tabla_paginas->tabla_paginas == NULL) {
+        printf("Error: no se pudo asignar memoria para la tabla de páginas\n");
+        exit(1);
+    }
     for (int i = 0; i < NUM_PAGINAS; i++) {
-        t_pagina* pagina = malloc(sizeof(t_pagina));
-        if (pagina == NULL) {
+        tabla_paginas->tabla_paginas[i] = malloc(sizeof(t_pagina));
+        if (tabla_paginas->tabla_paginas[i] == NULL) {
             printf("Error: no se pudo asignar memoria para la página %d\n", i);
             exit(1);
         }
-        inicializar_pagina(pagina, i);
-        tabla_paginas->tabla_paginas[i] = pagina;
+        inicializar_pagina(tabla_paginas->tabla_paginas[i], i);
     }
+
     return tabla_paginas;
 }
 
@@ -100,7 +107,7 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
         printf("Error: no se pudo leer la instrucción del archivo %s\n", path);
         exit(1);
     }
-    *instruccion = string_to_instruccion(buffer);
+    instruccion = string_to_instruccion(buffer);
     free(buffer);
     fclose(archivo);
     return instruccion;
@@ -120,7 +127,7 @@ t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t
         printf("Error: no se encontró el proceso con PID %d\n", pid);
         exit(1);
     }
-    return leer_instruccion(proceso->path);
+    return leer_instruccion(proceso->path, pc);
 }
 
 void liberar_lista_procesos(t_list* lista_procesos) {
@@ -129,19 +136,6 @@ void liberar_lista_procesos(t_list* lista_procesos) {
         liberar_proceso(proceso);
     }
     list_destroy(lista_procesos);
-}
-
-t_instruccion string_to_instruccion(char *string)
-{
-	t_instruccion instruccion;
-	char** tokens = string_split(string, ' ');
-	t_identificador identificador = string_to_identificador(tokens[0]);
-	t_list *parametros = list_create();
-    for (int i = 1; tokens[i] != NULL; i++) {
-        list_add(parametros, tokens[i]);
-    }
-
-	return crear_instruccion(identificador, parametros);
 }
 
 t_identificador string_to_identificador (char *string)
@@ -165,4 +159,17 @@ t_identificador string_to_identificador (char *string)
     if (strcmp(string, "WAIT") == 0) return WAIT;
     if (strcmp(string, "SIGNAL") == 0) return SIGNAL;
     if (strcmp(string, "EXIT") == 0) return EXIT;
+    return -1;
+}
+
+t_instruccion *string_to_instruccion(char *string)
+{
+	char** tokens = string_split(string, " ");
+	t_identificador identificador = string_to_identificador(tokens[0]);
+	t_list *parametros = list_create();
+    for (int i = 1; tokens[i] != NULL; i++) {
+        list_add(parametros, tokens[i]);
+    }
+
+	return crear_instruccion(identificador, parametros);
 }

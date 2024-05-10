@@ -6,6 +6,8 @@ int TAM_PAGINA;
 char *PATH_INSTRUCCIONES;
 int RETARDO_RESPUESTA;
 
+int NUM_PAGINAS;
+
 pthread_mutex_t mutex;
 
 t_log *logger_memoria;
@@ -37,7 +39,7 @@ int main(int argc, char *argv[])
 
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
 
-    phtread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&mutex);
     return 0;
 }
 
@@ -51,6 +53,8 @@ void iniciar_config()
     TAM_PAGINA = config_get_int_value(config_memoria, "TAM_PAGINA");
     PATH_INSTRUCCIONES = config_get_string_value(config_memoria, "PATH_INSTRUCCIONES");
     RETARDO_RESPUESTA = config_get_int_value(config_memoria, "RETARDO_RESPUESTA");
+
+    NUM_PAGINAS = TAM_MEMORIA / TAM_PAGINA;
 }
 
 void iterator(char *value)
@@ -61,6 +65,9 @@ void iterator(char *value)
 void *atender_cliente(void *socket_cliente)
 {
     op_code codigo_operacion = recibir_operacion((int)(long int)socket_cliente);
+    t_paquete *paquete;
+    uint32_t pid, pc;
+    t_instruccion *instruccion;
     switch (codigo_operacion)
     {
     case KERNEL:
@@ -74,25 +81,22 @@ void *atender_cliente(void *socket_cliente)
         break;
     case SOLICITUD_INSTRUCCION:
         log_info(logger_memoria, "Se recibio una solicitud de instruccion");
-        t_paquete *paquete = recibir_paquete((int)(long int)socket_cliente);
-        uint32_t pid, pc;
+        paquete = recibir_paquete((int)(long int)socket_cliente);
         memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
         memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
 
-        t_instruccion *instruccion = buscar_instruccion(procesos, pid, pc);
-        t_paquete *paquete_respuesta = crear_paquete(INSTRUCCION);
+        instruccion = buscar_instruccion(procesos, pid, pc);
+        paquete = crear_paquete(INSTRUCCION);
+        agregar_instruccion_a_paquete(paquete, instruccion);
         
-        serializar_instruccion(paquete_respuesta, instruccion);
-        enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
+        enviar_paquete(paquete, (int)(long int)socket_cliente);
         eliminar_paquete(paquete);
-        eliminar_paquete(paquete_respuesta);
 
-        liberar_instruccion(instruccion);
+        destruir_instruccion(instruccion);
     break;
     case CREAR_PROCESO:
         log_info(logger_memoria, "Se recibio un mensaje para crear un proceso");
-        t_paquete *paquete = recibir_paquete((int)(long int)socket_cliente);
-        uint32_t pid;
+        paquete = recibir_paquete((int)(long int)socket_cliente);
         memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
         char *path = malloc(paquete->buffer->size - sizeof(uint32_t));
         memcpy(path, paquete->buffer->stream + sizeof(uint32_t), paquete->buffer->size - sizeof(uint32_t));
@@ -106,4 +110,3 @@ void *atender_cliente(void *socket_cliente)
     }
     return NULL;
 }
-

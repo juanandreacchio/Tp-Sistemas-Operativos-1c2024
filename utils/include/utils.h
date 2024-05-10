@@ -109,6 +109,7 @@ typedef struct
 
 
 
+void terminar_programa(int conexion, t_log *logger, t_config *config);
 
 
 t_registros inicializar_registros();
@@ -139,5 +140,7 @@ t_instruccion *instruccion_deserializar(t_buffer *buffer,u_int32_t offset);
 t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones);
 t_list *deserializar_lista_instrucciones(t_buffer *buffer,u_int32_t offset);
 void imprimir_instruccion(t_instruccion instruccion);
+void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion);
+void destruir_instruccion(t_instruccion *instruccion);
 
 #endif /* UTILS_H_ */

@@ -1,12 +1,13 @@
+#ifndef MEMORIA_H_
+#define MEMORIA_H_
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <utils/hello.h>
 #include <commons/log.h>
 
-#include <../src/utils/utils.c>
-
-#ifndef MEMORIA_H_
-#define MEMORIA_H_
+#include <../include/utils.h>
+#include </home/utnso/Desktop/tp-2024-1c-la-naranja-mec-nica/memoria/include/mem.h>
 
 extern t_log *logger_memoria;
 extern t_config *config_memoria;
