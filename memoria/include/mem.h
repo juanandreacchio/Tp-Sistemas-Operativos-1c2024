@@ -7,7 +7,7 @@
 #include <commons/log.h>
 #include <commons/string.h>
 
-#include <../include/utils.h> ///home/utnso/Desktop/tp-2024-1c-la-naranja-mec-nica/utils/include/utils.h
+#include <../include/utils.h>
 #include <../include/memoria.h>
 
 extern char *PUERTO_MEMORIA;

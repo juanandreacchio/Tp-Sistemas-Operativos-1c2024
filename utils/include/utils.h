@@ -143,4 +143,5 @@ void imprimir_instruccion(t_instruccion instruccion);
 void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion);
 void destruir_instruccion(t_instruccion *instruccion);
 
+t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros);
 #endif /* UTILS_H_ */

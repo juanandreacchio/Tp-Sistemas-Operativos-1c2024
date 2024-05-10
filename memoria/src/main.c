@@ -100,6 +100,7 @@ void *atender_cliente(void *socket_cliente)
         memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
         char *path = malloc(paquete->buffer->size - sizeof(uint32_t));
         memcpy(path, paquete->buffer->stream + sizeof(uint32_t), paquete->buffer->size - sizeof(uint32_t));
+        log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", pid, path);
         crear_proceso(procesos, pid, path);
         eliminar_paquete(paquete);
     break;

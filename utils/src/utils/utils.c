@@ -578,7 +578,13 @@ void destruir_buffer(t_buffer *buffer)
 
 void buffer_add(t_buffer *buffer, void *data, uint32_t size)
 {
-	buffer->stream = realloc(buffer->stream, buffer->size + size);
+	void* new_stream = realloc(buffer->stream, buffer->size + size);
+    if (new_stream == NULL) {
+        // handle error, e.g., by logging it and returning
+        printf("Error al agregar datos al buffer");
+        return;
+    }
+    buffer->stream = new_stream;
 	memcpy(buffer->stream + buffer->offset, data, size);
 	buffer->size += size;
 	buffer->offset += size;
