@@ -64,10 +64,20 @@ void iterator(char *value)
 
 void *atender_cliente(void *socket_cliente)
 {
-    op_code codigo_operacion = recibir_operacion((int)(long int)socket_cliente);
-    t_paquete *paquete;
+    t_paquete *paquete = malloc(sizeof(t_paquete));
+    paquete->buffer = malloc(sizeof(t_buffer));
     uint32_t pid, pc;
     t_instruccion *instruccion;
+
+    paquete = recibir_paquete(socket_cliente);
+
+    // recv((int)(intptr_t)socket_cliente, &(paquete->codigo_operacion), sizeof(uint8_t), 0);
+    // recv((int)(intptr_t)socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
+    // paquete->buffer->stream = malloc(paquete->buffer->size);
+    // recv((int)(intptr_t)socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
+
+    op_code codigo_operacion = paquete->codigo_operacion;
+    t_buffer *buffer = paquete->buffer;
     switch (codigo_operacion)
     {
     case KERNEL:
@@ -81,29 +91,42 @@ void *atender_cliente(void *socket_cliente)
         break;
     case SOLICITUD_INSTRUCCION:
         log_info(logger_memoria, "Se recibio una solicitud de instruccion");
-        paquete = recibir_paquete((int)(long int)socket_cliente);
+        t_solicitudCreacionProcesoEnMemoria *soli = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+        void *stream = buffer;
+
         memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
         memcpy(&pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
 
         instruccion = buscar_instruccion(procesos, pid, pc);
         paquete = crear_paquete(INSTRUCCION);
         agregar_instruccion_a_paquete(paquete, instruccion);
-        
+
         enviar_paquete(paquete, (int)(long int)socket_cliente);
         eliminar_paquete(paquete);
 
         destruir_instruccion(instruccion);
-    break;
+        break;
     case CREAR_PROCESO:
+        char *path;
         log_info(logger_memoria, "Se recibio un mensaje para crear un proceso");
-        paquete = recibir_paquete((int)(long int)socket_cliente);
-        memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
-        char *path = malloc(paquete->buffer->size - sizeof(uint32_t));
-        memcpy(path, paquete->buffer->stream + sizeof(uint32_t), paquete->buffer->size - sizeof(uint32_t));
-        log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", pid, path);
+        t_buffer *buffer = paquete->buffer;
+        t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+
+        void *bufferStream = buffer->stream;
+
+        memcpy(&(solicitud->pid), bufferStream, sizeof(uint32_t));
+        bufferStream += sizeof(uint32_t);
+        memcpy(&(solicitud->path_length), bufferStream, sizeof(uint32_t));
+        bufferStream += sizeof(uint32_t);
+        solicitud->path = malloc(solicitud->path_length);
+        memcpy(solicitud->path, bufferStream, solicitud->path_length);
+        path = solicitud->path;
+        pid=solicitud->pid;
+
+            log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, path);
         crear_proceso(procesos, pid, path);
         eliminar_paquete(paquete);
-    break;
+        break;
     default:
         log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
         // TODO: implementar

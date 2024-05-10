@@ -50,20 +50,77 @@ void asignar_contenido_pagina(t_proceso* proceso, int numero_pagina, void* conte
 
 // --------------------- FUNCIONES DE PROCESO ---------------------
 // Función para crear un proceso y agregarlo a la lista de procesos
+
+t_identificador string_to_identificador (char *string)
+{
+    if (string_equals_ignore_case(string, "IO_FS_WRITE") == 0) return IO_FS_WRITE;
+    if (string_equals_ignore_case(string, "IO_FS_READ") == 0) return IO_FS_READ;
+    if (string_equals_ignore_case(string, "IO_FS_TRUNCATE") == 0) return IO_FS_TRUNCATE;
+    if (string_equals_ignore_case(string, "IO_STDOUT_WRITE") == 0) return IO_STDOUT_WRITE;
+    if (string_equals_ignore_case(string, "IO_STDIN_READ") == 0) return IO_STDIN_READ;
+    if (string_equals_ignore_case(string, "SET") == 0) return SET;
+    if (string_equals_ignore_case(string, "MOV_IN") == 0) return MOV_IN;
+    if (string_equals_ignore_case(string, "MOV_OUT") == 0) return MOV_OUT;
+    if (string_equals_ignore_case(string, "SUM") == 0) return SUM;
+    if (string_equals_ignore_case(string, "SUB") == 0) return SUB;
+    if (string_equals_ignore_case(string, "JNZ") == 0) return JNZ;
+    if (string_equals_ignore_case(string, "IO_GEN_SLEEP") == 0) return IO_GEN_SLEEP;
+    if (string_equals_ignore_case(string, "IO_FS_DELETE") == 0) return IO_FS_DELETE;
+    if (string_equals_ignore_case(string, "IO_FS_CREATE") == 0) return IO_FS_CREATE;
+    if (string_equals_ignore_case(string, "RESIZE") == 0) return RESIZE;
+    if (string_equals_ignore_case(string, "COPY_STRING") == 0) return COPY_STRING;
+    if (string_equals_ignore_case(string, "WAIT") == 0) return WAIT;
+    if (string_equals_ignore_case(string, "SIGNAL") == 0) return SIGNAL;
+    if (string_equals_ignore_case(string, "EXIT") == 0) return EXIT;
+    return -1;
+}
+
+// Función que a partir de un archivo de instrucciones, devuelve la lista de instrucciones
+t_list* parsear_instrucciones(FILE* archivo_instrucciones) {
+    int longitud_de_linea_maxima = 1024;
+    char* line = malloc(sizeof(char) * longitud_de_linea_maxima);
+    size_t len = sizeof(line);  
+    t_list* lista_instrucciones = list_create();
+    while ((getline(&line, &len, archivo_instrucciones)) != -1) {
+        t_list* lista_de_parametros = list_create();
+        char* linea_con_instruccion = strtok(line, "\n"); // Divide todas las líneas del archivo y me devuelve la primera  
+        char** tokens = string_split(linea_con_instruccion, " ");  // Divide la línea en tokens separados x espacio. ["MOV", "AX", "BX"]
+        int i = 1;
+        while(tokens[i] != NULL){
+            list_add(lista_de_parametros, (void*) tokens[i]);
+            i++;
+        }
+        t_identificador identificador = string_to_identificador(tokens[0]); 
+        t_instruccion* instruccion = crear_instruccion(identificador, lista_de_parametros);  
+        list_add(lista_instrucciones, instruccion);     
+       
+        free(tokens);
+        list_destroy(lista_de_parametros); 
+    }
+    free(line);
+    return lista_instrucciones;
+}
+
 void crear_proceso(t_list* lista_procesos, int pid, char* path) {
+    FILE* archivo_instrucciones = fopen(path, "r");
+    if (archivo_instrucciones == NULL) {
+        printf("Error: no se pudo abrir el archivo %s\n", path);
+        exit(1);
+    }
     t_proceso* proceso = malloc(sizeof(t_proceso));
     if (proceso == NULL) {
         printf("Error: no se pudo asignar memoria para el proceso con PID %d\n", pid);
         exit(1);
     }
     proceso->pid = pid;
-    proceso->path = malloc(strlen(PATH_INSTRUCCIONES) + strlen(path) + 1);
-    if (proceso->path == NULL) {
-        printf("Error: no se pudo asignar memoria para el path del proceso con PID %d\n", pid);
-        exit(1);
-    }
-    strcpy(proceso->path, PATH_INSTRUCCIONES);
-    strcat(proceso->path, path);
+    // proceso->path = malloc(strlen(PATH_INSTRUCCIONES) + strlen(path) + 1);
+    // if (proceso->path == NULL) {
+    //     printf("Error: no se pudo asignar memoria para el path del proceso con PID %d\n", pid);
+    //     exit(1);
+    // }
+    proceso->lista_instrucciones = parsear_instrucciones(archivo_instrucciones);
+    // strcpy(proceso->path, PATH_INSTRUCCIONES);
+    // strcat(proceso->path, path);
     proceso->tabla_paginas = inicializar_tabla_paginas();
     list_add(lista_procesos, proceso);
 }
@@ -127,7 +184,7 @@ t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t
         printf("Error: no se encontró el proceso con PID %d\n", pid);
         exit(1);
     }
-    return leer_instruccion(proceso->path, pc);
+    return list_get(proceso->lista_instrucciones, pc);
 }
 
 void liberar_lista_procesos(t_list* lista_procesos) {
@@ -136,30 +193,6 @@ void liberar_lista_procesos(t_list* lista_procesos) {
         liberar_proceso(proceso);
     }
     list_destroy(lista_procesos);
-}
-
-t_identificador string_to_identificador (char *string)
-{
-    if (strcmp(string, "IO_FS_WRITE") == 0) return IO_FS_WRITE;
-    if (strcmp(string, "IO_FS_READ") == 0) return IO_FS_READ;
-    if (strcmp(string, "IO_FS_TRUNCATE") == 0) return IO_FS_TRUNCATE;
-    if (strcmp(string, "IO_STDOUT_WRITE") == 0) return IO_STDOUT_WRITE;
-    if (strcmp(string, "IO_STDIN_READ") == 0) return IO_STDIN_READ;
-    if (strcmp(string, "SET") == 0) return SET;
-    if (strcmp(string, "MOV_IN") == 0) return MOV_IN;
-    if (strcmp(string, "MOV_OUT") == 0) return MOV_OUT;
-    if (strcmp(string, "SUM") == 0) return SUM;
-    if (strcmp(string, "SUB") == 0) return SUB;
-    if (strcmp(string, "JNZ") == 0) return JNZ;
-    if (strcmp(string, "IO_GEN_SLEEP") == 0) return IO_GEN_SLEEP;
-    if (strcmp(string, "IO_FS_DELETE") == 0) return IO_FS_DELETE;
-    if (strcmp(string, "IO_FS_CREATE") == 0) return IO_FS_CREATE;
-    if (strcmp(string, "RESIZE") == 0) return RESIZE;
-    if (strcmp(string, "COPY_STRING") == 0) return COPY_STRING;
-    if (strcmp(string, "WAIT") == 0) return WAIT;
-    if (strcmp(string, "SIGNAL") == 0) return SIGNAL;
-    if (strcmp(string, "EXIT") == 0) return EXIT;
-    return -1;
 }
 
 t_instruccion *string_to_instruccion(char *string)
@@ -173,3 +206,4 @@ t_instruccion *string_to_instruccion(char *string)
 
 	return crear_instruccion(identificador, parametros);
 }
+

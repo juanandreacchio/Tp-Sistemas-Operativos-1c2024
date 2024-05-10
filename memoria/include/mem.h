@@ -28,7 +28,8 @@ typedef struct {
 typedef struct
 {
 	uint32_t pid;
-	char* path;
+	// char* path;
+    t_list * lista_instrucciones;
     t_tabla_paginas* tabla_paginas;
 } t_proceso;
 

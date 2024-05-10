@@ -107,7 +107,11 @@ typedef struct
 
 } t_instruccion;
 
-
+typedef struct {
+	uint32_t pid;
+	uint32_t path_length;
+	char* path;
+} t_solicitudCreacionProcesoEnMemoria;
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
@@ -144,4 +148,6 @@ void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccio
 void destruir_instruccion(t_instruccion *instruccion);
 
 t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros);
+t_buffer* serializar_solicitur_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud);
+t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buffer *buffer);
 #endif /* UTILS_H_ */

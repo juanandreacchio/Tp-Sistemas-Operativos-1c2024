@@ -7,7 +7,7 @@
 #include <commons/log.h>
 
 #include <../include/utils.h>
-#include </home/utnso/Desktop/tp-2024-1c-la-naranja-mec-nica/memoria/include/mem.h>
+#include "mem.h"
 
 extern t_log *logger_memoria;
 extern t_config *config_memoria;

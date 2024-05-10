@@ -162,16 +162,45 @@ int main (void)
     logger = iniciar_logger("config/test.log", "TEST", LOG_LEVEL_INFO);
     conexion = crear_conexion("127.0.0.1", "6004", logger);
 
-    // Pruebas para crear un proceso en memoria
-    // CREAR_PROCESO, se envia el pid del proceso y el path del archivo de instrucciones
-    t_paquete *paquete = crear_paquete(CREAR_PROCESO);
-    t_buffer *buffer = paquete->buffer;
-	uint32_t pid = 5;
-    buffer_add(buffer, &pid, sizeof(uint32_t)); // pid
-	char* path = "test";
-	buffer_add(buffer, path, sizeof(path)); // path
+    char* path = "/home/ubuntu/tp-2024-1c-la-naranja-mec-nica/memoria/test.txt";
+    uint32_t pid = 5;
+    int offset = 0;
+
+    t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+    ptr_solicitud->pid = pid;
+    ptr_solicitud->path_length = strlen(path) + 1;
+    ptr_solicitud->path = path;
+
+    t_buffer *buffer = crear_buffer();
+
+    buffer->size = sizeof(uint32_t) * 2 + strlen(path) + 1;
+    buffer->offset = 0;
+    buffer->stream = malloc(buffer->size);
+
+    memcpy(buffer->stream + offset, &ptr_solicitud->pid, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    memcpy(buffer->stream + offset, &ptr_solicitud->path_length, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    memcpy(buffer->stream + offset, ptr_solicitud->path, ptr_solicitud->path_length);
+
+    t_paquete* paquete = crear_paquete(CREAR_PROCESO);
+    paquete->buffer = buffer;
+
+    void *a_enviar = malloc(sizeof(uint32_t) + buffer->size + sizeof(uint8_t));
+    offset = 0;
+
+    memcpy(a_enviar + offset, &paquete->codigo_operacion, sizeof(uint8_t));
+    offset += sizeof(uint8_t);
+    memcpy(a_enviar + offset, &paquete->buffer->size, sizeof(uint32_t));
+    offset += sizeof(uint32_t);
+    memcpy(a_enviar + offset, paquete->buffer->stream, paquete->buffer->size);
+
     enviar_paquete(paquete, conexion);
+
+    log_info(logger, "Se envia un mensaje para crear un proceso con pid %d, path %s y código %d", ptr_solicitud->pid, ptr_solicitud->path, paquete->codigo_operacion);
+    free(a_enviar);
     eliminar_paquete(paquete);
+    
 
     /*
     // Pruebas para solicitar instrucciones a memoria

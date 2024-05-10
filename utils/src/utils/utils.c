@@ -796,3 +796,24 @@ void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccio
 
 
 // -----------------------
+
+t_buffer* serializar_solicitur_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud){
+	t_buffer *buffer = crear_buffer();
+	buffer->offset = 0;
+
+	buffer_add(buffer, &solicitud->pid, sizeof(uint32_t));
+	buffer_add(buffer, &solicitud->path_length, sizeof(uint32_t));
+	buffer_add(buffer, solicitud->path, solicitud->path_length);
+
+	return buffer;
+}
+
+t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buffer *buffer){
+	t_solicitudCreacionProcesoEnMemoria* solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+	buffer->offset = 0;
+	buffer_read(buffer, &solicitud->pid, sizeof(uint32_t));
+	buffer_read(buffer, &solicitud->path_length, sizeof(uint32_t));
+	solicitud->path = malloc(solicitud->path_length);
+	buffer_read(buffer, solicitud->path, solicitud->path_length);
+	return solicitud;
+}

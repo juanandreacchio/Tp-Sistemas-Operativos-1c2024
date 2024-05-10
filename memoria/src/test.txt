@@ -1,0 +1,2 @@
+MOV AX BX
+SET AX 5
