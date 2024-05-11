@@ -35,11 +35,11 @@ int main(int argc, char *argv[])
         int socket_cliente = esperar_cliente(socket_servidor_memoria, logger_memoria);
         pthread_mutex_lock(&mutex);
         pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
-        printf("antes\n");
         pthread_detach(thread);
-        printf("despues 1\n");
+
+        log_info(logger_memoria, "DESCONECTO AL HILO");
         pthread_mutex_unlock(&mutex);
-        printf("despues 2\n");
+        log_info(logger_memoria, "DESBLOQUEO");
     }
 
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
@@ -71,62 +71,70 @@ void *atender_cliente(void *socket_cliente)
 {
     t_paquete *paquete = malloc(sizeof(t_paquete));
     paquete->buffer = malloc(sizeof(t_buffer));
-    uint32_t pid, pc;
-    t_instruccion *instruccion;
+    
+    while (1){
+        paquete = recibir_paquete((int)(long int)socket_cliente);
 
-    paquete = recibir_paquete(socket_cliente);
-
-
-    op_code codigo_operacion = paquete->codigo_operacion;
-    t_buffer *buffer = paquete->buffer;
-    printf("codigo de operacion: %d\n", codigo_operacion);
-    switch (codigo_operacion)
-    {
-    case KERNEL:
-        log_info(logger_memoria, "Se recibio un mensaje del modulo KERNEL");
-        break;
-    case CPU:
-        log_info(logger_memoria, "Se recibio un mensaje del modulo CPU");
-        break;
-    case ENTRADA_SALIDA:
-        log_info(logger_memoria, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
-        break;
-    case SOLICITUD_INSTRUCCION:
-        log_info(logger_memoria, "Se recibio una solicitud de instruccion");
-        t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
-
-        buffer_read(buffer,soli->pid, sizeof(uint32_t));
-        buffer_read(buffer,soli->pc, sizeof(uint32_t));
+        if (paquete == NULL) {
+            log_info(logger_memoria, "Se desconecto el cliente");
+            break;
+        }
+        uint32_t pid, pc;
+        t_instruccion *instruccion;
         
-        // memcpy(&pid, paquete->buffer->stream, sizeof(uint32_t));
-        // memcpy(pc, paquete->buffer->stream + sizeof(uint32_t), sizeof(uint32_t));
-        printf("pid: %d\n", soli->pid);
-        printf("pc: %d\n", soli->pc);
-        instruccion = buscar_instruccion(procesos, pid, pc);
-        paquete = crear_paquete(INSTRUCCION);
-        agregar_instruccion_a_paquete(paquete, instruccion);
+        op_code codigo_operacion = paquete->codigo_operacion;
+        t_buffer *buffer = paquete->buffer;
+        printf("codigo de operacion: %d\n", codigo_operacion);
+        switch (codigo_operacion){
+            case KERNEL:
+                log_info(logger_memoria, "Se recibio un mensaje del modulo KERNEL");
+                break;
+            case CPU:
+                log_info(logger_memoria, "Se recibio un mensaje del modulo CPU");
+                break;
+            case ENTRADA_SALIDA:
+                log_info(logger_memoria, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
+                break;
+            case SOLICITUD_INSTRUCCION:
+                log_info(logger_memoria, "Se recibio una solicitud de instruccion");
+                t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
 
-        enviar_paquete(paquete, (int)(long int)socket_cliente);
+                buffer_read(buffer, &(soli->pid), sizeof(uint32_t));
+                buffer_read(buffer,&(soli->pc), sizeof(uint32_t));
+                
+                printf("pid: %d\n", soli->pid);
+                printf("pc: %d\n", soli->pc);
+                instruccion = buscar_instruccion(procesos, pid, pc);
+                log_info(logger_memoria, "Se envio la instruccion %c", instruccion->identificador);
+    
+                paquete = crear_paquete(INSTRUCCION);
+                agregar_instruccion_a_paquete(paquete, instruccion);
+
+                //enviar_paquete(paquete, (int)(long int)socket_cliente);
+                // Probar mandar algo al cliente
+                send((int)(long int)socket_cliente, "hola", 5, 0);
+
+                destruir_instruccion(instruccion);
+                break;
+            case CREAR_PROCESO:
+                char *path;
+
+                t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+
+                solicitud = deserializar_solicitud_crear_proceso(buffer);
+                log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
+                crear_proceso(procesos, solicitud->pid, solicitud->path);
+
+                printf("proceso creado\n");
+                break;
+            default:
+                log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
+                // TODO: implementar
+                break;
+        }
         eliminar_paquete(paquete);
-
-        destruir_instruccion(instruccion);
-        break;
-    case CREAR_PROCESO:
-        char *path;
-
-        t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-
-        solicitud = deserializar_solicitud_crear_proceso(buffer);
-        log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
-        crear_proceso(procesos, solicitud->pid, solicitud->path);
-        eliminar_paquete(paquete);
-        printf("proceso creado\n");
-        break;
-    default:
-        log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
-        // TODO: implementar
-        break;
     }
-    printf("aaaaaaaaaaaaaaaaa\n");
+
+    log_info(logger_memoria, "SALE DEL WHILE");
     return NULL;
 }

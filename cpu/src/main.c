@@ -89,10 +89,16 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc)
 
     enviar_paquete(paquete, conexion_memoria);
 
+    log_info(logger_cpu, "Se envio la solicitud de instruccion a memoria con pid: %d y pc: %d", pid, *pc);
+
+    recv(conexion_memoria, "hola", 5, 0);
+
+    log_info(logger_cpu, "Se recibio la instruccion de memoria");
+
+
     t_paquete *respuesta_memoria = recibir_paquete(conexion_memoria);
 
-    if (respuesta_memoria->codigo_operacion != INSTRUCCION)
-    {
+    if (respuesta_memoria->codigo_operacion != INSTRUCCION){
         log_error(logger_cpu, "Error al recibir instruccion de memoria");
         eliminar_paquete(paquete);
         eliminar_paquete(respuesta_memoria);
@@ -169,7 +175,7 @@ int main(void)
     conexion = crear_conexion("127.0.0.1", "6004", logger);
     t_paquete *paquete = crear_paquete(CREAR_PROCESO);
 
-    char *path = "test.txt";
+    char *path = "test";
     uint32_t pid = 5;
     t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
     ptr_solicitud->pid = pid;

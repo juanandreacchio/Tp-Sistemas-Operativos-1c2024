@@ -528,10 +528,34 @@ t_paquete *recibir_paquete(int socket_cliente)
 	paquete->codigo_operacion = 0;
 
 
-	recv(socket_cliente, &(paquete->codigo_operacion), sizeof(op_code), 0);
-	recv(socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
-	paquete->buffer->stream = malloc(paquete->buffer->size);
-	recv(socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
+	int bytes_recibidos;
+
+    bytes_recibidos = recv(socket_cliente, &(paquete->codigo_operacion), sizeof(op_code), 0);
+    if (bytes_recibidos <= 0) {
+        // El cliente se ha desconectado o ha ocurrido un error
+        free(paquete->buffer);
+        free(paquete);
+        return NULL;
+    }
+
+    bytes_recibidos = recv(socket_cliente, &(paquete->buffer->size), sizeof(uint32_t), 0);
+    if (bytes_recibidos <= 0) {
+        // El cliente se ha desconectado o ha ocurrido un error
+        free(paquete->buffer);
+        free(paquete);
+        return NULL;
+    }
+
+    paquete->buffer->stream = malloc(paquete->buffer->size);
+    bytes_recibidos = recv(socket_cliente, paquete->buffer->stream, paquete->buffer->size, 0);
+    if (bytes_recibidos <= 0) {
+        // El cliente se ha desconectado o ha ocurrido un error
+        free(paquete->buffer->stream);
+        free(paquete->buffer);
+        free(paquete);
+        return NULL;
+    }
+
 
 	return paquete;
 }
