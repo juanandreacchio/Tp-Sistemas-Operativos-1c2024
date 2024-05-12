@@ -63,36 +63,37 @@ void ejecutar_comando(char* comando){
     t_buffer* buffer = crear_buffer();
 
     if(strcmp(consola[0], "EJECUTAR_SCRIPT") == 0){
-        cargar_string_al_buffer(buffer, consola[1]);//[path]
-        ejecutar_script(buffer);
+        buffer_add(buffer, consola[1],string_length(consola[1]) +1 );//[path]
+        //ejecutar_script(buffer);
     }
     else if(strcmp(consola[0], "INICIAR_PROCESO") == 0){
-        cargar_string_al_buffer(buffer, consola[1]);//[path]
-        iniciar_proceso(buffer);
+        buffer_add(buffer, consola[1], string_length(consola[1]) +1 );//[path]
+        //iniciar_proceso(buffer);
     }
     else if(strcmp(consola[0], "FINALIZAR_PROCESO") == 0){
-        cargar_string_al_buffer(buffer, consola[1]);//[pid]
-        finalizar_proceso(buffer);
+        buffer_add(buffer, consola[1], string_length(consola[1]) +1 );//[pid]
+        //finalizar_proceso(buffer);
     }
     else if(strcmp(consola[0], "MULTIPROGRAMACION") == 0){
-        cargar_string_al_buffer(buffer, consola[1]);//[valor]
-        multiprogramacion(buffer);
+        buffer_add(buffer, consola[1], string_length(consola[1]) +1 );//[valor]
+        //multiprogramacion(buffer);
     }
-    else if(strcmp(consola[0], "PROCESO_ESTADO") == 0)
-        proceso_estado();
-    else if(strcmp(consola[0], "DETENER_PLANIFICACION") == 0 )
-        detener_planificacion();
-    else if(strcmp(consola[0], "INICIAR_PLANIFICACION") == 0) 
-        iniciar_planificacion();
+    else if(strcmp(consola[0], "PROCESO_ESTADO") == 0){
+
+    }
+        //proceso_estado();
+    else if(strcmp(consola[0], "DETENER_PLANIFICACION") == 0 ){
+
+    }
+        //detener_planificacion();
+    else if(strcmp(consola[0], "INICIAR_PLANIFICACION") == 0) {
+        
+    }
+        //iniciar_planificacion();
    else{
         log_error(logger_kernel,"comando no reconocido, a pesar de que entro al while");
         exit(EXIT_FAILURE);
     }
     string_array_destroy(consola); 
-}
-
-void multiprogramacion(t_buffer* buffer){
-    int nuevoValor = atoi(extraer_string_del_buffer(buffer));
-    grado_multiprogramacion= nuevoValor;
 }
 

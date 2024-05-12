@@ -1,14 +1,15 @@
+
+
+#ifndef KERNEL_H_
+#define KERNEL_H_
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <utils/hello.h>
 #include <commons/log.h>
 #include <commons/string.h>
 #include<readline/readline.h>
-#include <../src/utils/utils.c>
-
-#ifndef KERNEL_H_
-#define KERNEL_H_
-
+#include <../src/utils/utils.h>
 
 
 extern t_config *config_kernel;
@@ -36,12 +37,6 @@ bool validar_comando(char* comando);
 void ejecutar_comando(char* comandoRecibido); 
 void ejecutar_script(t_buffer* buffer);
 int asigno_pid(); 
-void multiprogramacion(t_buffer* buffer);
-void iniciar_proceso(t_buffer* buffer);
-void finalizar_proceso(t_buffer* buffer);
-void proceso_estado();
-void multiprogramacion();
-void iniciar_planificacion();
-void detener_planificacion();
+
 
 #endif
