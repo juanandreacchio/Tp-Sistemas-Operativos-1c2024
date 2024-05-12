@@ -5,6 +5,8 @@
 
 // TODO testear que todas estas funciones anden
 
+sem_t semaforo;
+
 void set_registro(t_registros *registros, char *registro, u_int32_t valor)
 {
 	if (strcasecmp(registro, "AX") == 0)

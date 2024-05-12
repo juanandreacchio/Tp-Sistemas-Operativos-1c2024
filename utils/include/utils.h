@@ -13,9 +13,12 @@
 #include <commons/collections/list.h>
 #include <pthread.h>
 #include <errno.h>
+#include <semaphore.h>
 
 
 #define SIZE_REGISTROS 32
+
+extern sem_t semaforo;
 typedef enum
 {
 	SOLICITUD_INSTRUCCION,
@@ -138,10 +141,18 @@ typedef struct
 } t_solicitudInstruccionEnMemoria;
 
 
+
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
 
 t_registros inicializar_registros();
+void set_registro(t_registros *registros, char *registro, u_int32_t valor);
+u_int8_t get_registro_int8(t_registros *registros, char *registro);
+u_int32_t get_registro_int32(t_registros *registros, char *registro);
+void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
+void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
+void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
+void imprimir_registros_por_pantalla(t_registros registros);
 t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, estados estado);
 t_pcb *recibir_pcb( int socket);
 void destruir_pcb(t_pcb *pcb);

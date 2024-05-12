@@ -1,4 +1,5 @@
 #include <../include/memoria.h>
+#include <../include/utils.h>
 // Definir variables globales
 char *PUERTO_MEMORIA;
 int TAM_MEMORIA;
@@ -21,6 +22,7 @@ t_list *procesos;
 
 int main(int argc, char *argv[])
 {
+    sem_init(&semaforo, 0, 0);
     procesos= list_create();
     pthread_mutex_init(&mutex, NULL);
     // logger memoria
@@ -121,11 +123,9 @@ void *atender_cliente(void *socket_cliente)
                 printf("\nINSTRUCCION DESERIALIZADA:\n");
                 imprimir_instruccion(*inst);
                 
-                send((uint32_t)socket_cliente, "hola", 5, 0);
-                printf("\nSe envía el paquete con código de operacion %d\n", paquete->codigo_operacion);
                 enviar_paquete(paquete, (uint32_t)socket_cliente);
                 // Probar mandar algo al cliente
-
+                // sem_post(&semaforo);
                 destruir_instruccion(instruccion);
                 break;
             case CREAR_PROCESO:

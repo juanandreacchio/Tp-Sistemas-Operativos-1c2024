@@ -5,12 +5,12 @@
 #include <stdio.h>
 #include <utils/hello.h>
 #include <commons/log.h>
-
 #include <../include/utils.h>
 #include "mem.h"
 
 extern t_log *logger_memoria;
 extern t_config *config_memoria;
+
 
 extern char *PUERTO_MEMORIA;
 extern int TAM_MEMORIA;
