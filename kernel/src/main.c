@@ -25,9 +25,54 @@ int main(void)
 
     // iniciar conexion con CPU Dispatch e Interrupt
     conexion_dispatch = crear_conexion(ip_cpu, puerto_dispatch, logger_kernel);
-    conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt, logger_kernel);
+    //conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt, logger_kernel);
     enviar_mensaje("", conexion_dispatch, KERNEL, logger_kernel);
-    enviar_mensaje("", conexion_interrupt, KERNEL, logger_kernel);
+    //enviar_mensaje("", conexion_interrupt, KERNEL, logger_kernel);
+    
+
+
+
+    //------------------------prueba de envio pcb------------------------------
+    t_pcb *pcb;
+    t_list *listaInstrucciones = list_create();
+
+    //istruccion1
+    t_list *parametros = list_create();
+    char *num = "5";
+    list_add(parametros, num);
+    t_instruccion *instruccion1 = crear_instruccion(SUM,parametros);
+    list_add(listaInstrucciones,instruccion1);
+
+    //istruccion2
+    t_list *parametros2 = list_create();
+    char *num2 = "15";
+    list_add(parametros2, num2);
+    t_instruccion *instruccion2 =  crear_instruccion(SET,parametros2);
+    list_add(listaInstrucciones,instruccion2);
+
+    //envio pcb
+    pcb = crear_pcb(10,listaInstrucciones,25,READY);
+    enviar_pcb(pcb,conexion_dispatch);
+
+    //----------------------prueba de las operaciones con registro-------------------------------
+
+    t_registros registros = inicializar_registros();
+    imprimir_registros_por_pantalla(registros);
+    set_registro(&registros,"AX",10);
+    imprimir_registros_por_pantalla(registros);
+    set_registro(&registros,"BX",5);
+    sum_registro(&registros,"AX","BX");
+    imprimir_registros_por_pantalla(registros);
+    set_registro(&registros,"CX",8);
+    sub_registro(&registros,"CX","BX");
+    imprimir_registros_por_pantalla(registros);
+    JNZ_registro(&registros,"AX",15);
+    imprimir_registros_por_pantalla(registros);
+
+
+
+
+
 
     // iniciar Servidor
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "KERNEL");
@@ -35,8 +80,9 @@ int main(void)
     while (1)
     {
         pthread_t thread;
-        int socket_cliente = esperar_cliente(socket_servidor_kernel, logger_kernel);
-        pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
+        int *socket_cliente = malloc(sizeof(int));
+        *socket_cliente = esperar_cliente(socket_servidor_kernel, logger_kernel);
+        pthread_create(&thread, NULL,(void*) atender_cliente,socket_cliente);
         pthread_detach(thread);
     }
 
@@ -58,12 +104,12 @@ void iniciar_config(void)
 
 void *atender_cliente(void *socket_cliente)
 {
-    op_code codigo_operacion = recibir_operacion((int)(long int)socket_cliente);
+    op_code codigo_operacion = recibir_operacion(*(int*)socket_cliente);
     switch (codigo_operacion)
     {
     case ENTRADA_SALIDA:
-        log_info(logger_kernel, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
-        // TODO: implementar
+        char* nombre_entrada_salida = recibir_mensaje_guardar_variable(*(int*)socket_cliente);
+        log_info(logger_kernel, "Se conecto la I/O llamda: %s",nombre_entrada_salida);
         break;
     default:
         log_info(logger_kernel, "Se recibio un mensaje de un modulo desconocido");
@@ -71,3 +117,6 @@ void *atender_cliente(void *socket_cliente)
     }
     return NULL;
 }
+
+// Planificacion
+
