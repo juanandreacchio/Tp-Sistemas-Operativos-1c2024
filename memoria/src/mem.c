@@ -104,9 +104,7 @@ t_list* parsear_instrucciones(FILE* archivo_instrucciones) {
 void crear_proceso(t_list* lista_procesos, int pid, char* path) {
     size_t path_final_size = strlen(PATH_INSTRUCCIONES) + strlen(path) + 1;
     char *path_final = malloc(path_final_size); 
-    path[path_final_size - strlen(PATH_INSTRUCCIONES) - 1] = '\0';
     strcpy(path_final, PATH_INSTRUCCIONES);
-    strcat(path_final, "/");
     strcat(path_final, path);
     FILE* archivo_instrucciones = fopen(path_final, "r");
     if (archivo_instrucciones == NULL) {
@@ -186,10 +184,12 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
 
 // Funcion que busque una instruccion en un proceso a partir de un PID y un PC
 t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t pc) {
-    t_proceso* proceso = NULL;
+    printf("Buscando instrucción con PID %d y PC %d\n", pid, pc);
+    t_proceso* proceso = malloc(sizeof(t_proceso));
+    t_proceso* proceso_actual = malloc(sizeof(t_proceso));
     for (int i = 0; i < list_size(lista_procesos); i++) {
-        t_proceso* proceso_actual = list_get(lista_procesos, i);
-        if (proceso->pid == pid) {
+        proceso_actual = list_get(lista_procesos, i);
+        if (proceso_actual->pid == pid) {
             proceso = proceso_actual;
             break;
         }

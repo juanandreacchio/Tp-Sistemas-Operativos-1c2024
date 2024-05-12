@@ -73,47 +73,6 @@ void iniciar_config()
 // 	return NULL;
 // }
 
-t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc)
-{
-    // Buscar instruccion en memoria
-    t_paquete *paquete = crear_paquete(SOLICITUD_INSTRUCCION);
-    // Le voy a mandar a memoria el paquete con el pid y el pc,
-    // para q busque en la lista de procesos el proceso, y me devuelva la instruccion según el PC
-
-    t_buffer *buffer = crear_buffer();
-    
-    buffer_add(buffer, &pid, sizeof(uint32_t));
-    buffer_add(buffer, pc, sizeof(uint32_t));
-    paquete->buffer = buffer;
-    
-
-    enviar_paquete(paquete, conexion_memoria);
-
-    log_info(logger_cpu, "Se envio la solicitud de instruccion a memoria con pid: %d y pc: %d", pid, *pc);
-
-    recv(conexion_memoria, "hola", 5, 0);
-
-    log_info(logger_cpu, "Se recibio la instruccion de memoria");
-
-
-    t_paquete *respuesta_memoria = recibir_paquete(conexion_memoria);
-
-    if (respuesta_memoria->codigo_operacion != INSTRUCCION){
-        log_error(logger_cpu, "Error al recibir instruccion de memoria");
-        eliminar_paquete(paquete);
-        eliminar_paquete(respuesta_memoria);
-        return NULL;
-    }
-
-    t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer, 0);
-    imprimir_instruccion(*instruccion);
-
-    *pc += 1; // Nosé si está bien así
-
-    eliminar_paquete(paquete);
-    eliminar_paquete(respuesta_memoria);
-    return instruccion;
-}
 
 // void decode_y_execute_instruccion(t_instruccion *instruccion)
 // {
@@ -163,29 +122,82 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc)
 // 	}
 // }
 
+t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionParam)
+{
+    // Buscar instruccion en memoria
+    t_paquete *paquete = crear_paquete(SOLICITUD_INSTRUCCION);
+    // Le voy a mandar a memoria el paquete con el pid y el pc,
+    // para q busque en la lista de procesos el proceso, y me devuelva la instruccion según el PC
+
+    t_buffer *buffer = crear_buffer();
+    
+    buffer_add(buffer, &pid, sizeof(uint32_t));
+    buffer_add(buffer, pc, sizeof(uint32_t));
+    paquete->buffer = buffer;
+    
+
+    enviar_paquete(paquete, conexionParam);
+
+    log_info(logger_cpu, "Se envio la solicitud de instruccion a memoria con pid: %d y pc: %d", pid, *pc);
+
+    recv(conexionParam, "hola", 5, 0);
+
+    log_info(logger_cpu, "Se recibio la instruccion de memoria");
+
+
+    t_paquete *respuesta_memoria = recibir_paquete(conexionParam);
+
+    printf("Codigo de operacion: %d\n", respuesta_memoria->codigo_operacion);
+
+    // if (respuesta_memoria->codigo_operacion != INSTRUCCION){
+    //     log_error(logger_cpu, "Error al recibir instruccion de memoria");
+    //     eliminar_paquete(paquete);
+    //     eliminar_paquete(respuesta_memoria);
+    //     return NULL;
+    // }
+
+    t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer, 0);
+    printf("Instruccion recibida: %s \n", instruccion->parametros[0]);
+    // imprimir_instruccion(*instruccion);
+
+    *pc += 1; // Nosé si está bien así
+
+    eliminar_paquete(paquete);
+    eliminar_paquete(respuesta_memoria);
+    return instruccion;
+}
+
 t_log *logger;
 t_config *config;
+uint32_t conexion;
 
-u_int32_t conexion;
 int main(void)
 {
     iniciar_config();
 
     logger = iniciar_logger("config/test.log", "TEST", LOG_LEVEL_INFO);
-    conexion = crear_conexion("127.0.0.1", "6004", logger);
-    t_paquete *paquete = crear_paquete(CREAR_PROCESO);
+    conexion = crear_conexion(NULL, "6004", logger);
 
-    char *path = "test";
-    uint32_t pid = 5;
-    t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-    ptr_solicitud->pid = pid;
-    ptr_solicitud->path_length = strlen(path) + 1;
-    ptr_solicitud->path = path;
-    t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
-    paquete->buffer = buffer;
-    enviar_paquete(paquete, conexion);
-    printf("Se envio el paquete 1\n");
-    eliminar_paquete(paquete);
+    if (conexion == -1)
+    {
+        log_error(logger, "No se pudo conectar al servidor");
+        terminar_programa(conexion, logger, config);
+        return 1;
+    }
+    
+    // t_paquete *paquete = crear_paquete(CREAR_PROCESO);
+
+    // char *path = "test.txt";
+    // uint32_t pid = 5;
+    // t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+    // ptr_solicitud->pid = pid;
+    // ptr_solicitud->path_length = strlen(path) + 1;
+    // ptr_solicitud->path = path;
+    // t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
+    // paquete->buffer = buffer;
+    // enviar_paquete(paquete, conexion);
+    // printf("Se envio el paquete 1\n");
+    // eliminar_paquete(paquete);
     
     
     
@@ -193,12 +205,14 @@ int main(void)
 
     // SOLICITUD_INSTRUCCION, se envia el pid y el program counter
     uint32_t pcInicial = 0;
-    t_instruccion *instruccionRecibida = fetch_instruccion(5, &pcInicial);
-    imprimir_instruccion(*instruccionRecibida);
+    t_instruccion *instruccionRecibida = malloc(sizeof(t_instruccion));
+    instruccionRecibida = fetch_instruccion(5, &pcInicial, conexion);
     printf("PC: %d\n", pcInicial);
 
     destruir_instruccion(instruccionRecibida);
 
-    terminar_programa(conexion, logger, config);
+    // terminar_programa(conexion, logger, config_cpu);
     return 0;
 }
+
+

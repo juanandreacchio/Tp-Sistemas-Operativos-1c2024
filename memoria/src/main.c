@@ -29,6 +29,10 @@ int main(int argc, char *argv[])
     iniciar_config();
     socket_servidor_memoria = iniciar_servidor(logger_memoria, PUERTO_MEMORIA, "MEMORIA");
 
+    crear_proceso(procesos, 5, "test.txt");
+
+    imprimir_proceso(list_get(procesos, 0));
+
     while (1)
     {
         pthread_t thread;
@@ -80,7 +84,7 @@ void *atender_cliente(void *socket_cliente)
             break;
         }
         uint32_t pid, pc;
-        t_instruccion *instruccion;
+        t_instruccion *instruccion = malloc(sizeof(t_instruccion));
         
         op_code codigo_operacion = paquete->codigo_operacion;
         t_buffer *buffer = paquete->buffer;
@@ -104,15 +108,23 @@ void *atender_cliente(void *socket_cliente)
                 
                 printf("pid: %d\n", soli->pid);
                 printf("pc: %d\n", soli->pc);
-                instruccion = buscar_instruccion(procesos, pid, pc);
-                log_info(logger_memoria, "Se envio la instruccion %c", instruccion->identificador);
+                instruccion = buscar_instruccion(procesos, soli->pid, soli->pc);
+
+                log_info(logger_memoria, "Se envio la instruccion %d", instruccion->identificador);
     
                 paquete = crear_paquete(INSTRUCCION);
                 agregar_instruccion_a_paquete(paquete, instruccion);
 
-                //enviar_paquete(paquete, (int)(long int)socket_cliente);
+                t_buffer *buffer_prueba = paquete->buffer;
+                t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
+                
+                printf("\nINSTRUCCION DESERIALIZADA:\n");
+                imprimir_instruccion(*inst);
+                
+                send((uint32_t)socket_cliente, "hola", 5, 0);
+                printf("\nSe envía el paquete con código de operacion %d\n", paquete->codigo_operacion);
+                enviar_paquete(paquete, (uint32_t)socket_cliente);
                 // Probar mandar algo al cliente
-                send((int)(long int)socket_cliente, "hola", 5, 0);
 
                 destruir_instruccion(instruccion);
                 break;
