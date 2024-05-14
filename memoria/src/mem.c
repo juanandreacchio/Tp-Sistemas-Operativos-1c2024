@@ -131,6 +131,8 @@ void crear_proceso(t_list* lista_procesos, int pid, char* path) {
     proceso->tabla_paginas = inicializar_tabla_paginas();
     // wait semáforo contador (con grado multiprogramación)
     list_add(lista_procesos, proceso);
+    printf("------------------- Proceso creado -------------------\n");
+    imprimir_proceso(proceso);
     // signal semáforo contador (con grado multiprogramación)
 
 }

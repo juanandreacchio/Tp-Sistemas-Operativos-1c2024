@@ -86,7 +86,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *regis
     case MOV_OUT:
         break;
     case SUM:
-        sum_registro(registros_cpu,instruccion->parametros[0], instruccion->parametros[1]);
+        sum_registro(registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
         break;
     case SUB:
         sub_registro(registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
@@ -185,28 +185,44 @@ int main(void)
         return 1;
     }
 
-    // t_paquete *paquete = crear_paquete(CREAR_PROCESO);
+    t_paquete *paquete = crear_paquete(CREAR_PROCESO);
 
-    // char *path = "test.txt";
-    // uint32_t pid = 5;
-    // t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-    // ptr_solicitud->pid = pid;
-    // ptr_solicitud->path_length = strlen(path) + 1;
-    // ptr_solicitud->path = path;
-    // t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
-    // paquete->buffer = buffer;
-    // enviar_paquete(paquete, conexion);
-    // printf("Se envio el paquete 1\n");
-    // eliminar_paquete(paquete);
-    uint32_t pcInicial = 0;
-    t_instruccion *instruccionRecibida = malloc(sizeof(t_instruccion));
-    instruccionRecibida = fetch_instruccion(5, &pcInicial, conexion);
-    printf("PC: %d\n", pcInicial);
-    imprimir_instruccion(*instruccionRecibida);
+    char *path = "test.txt";
+    uint32_t pid = 5;
+    t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+    ptr_solicitud->pid = pid;
+    ptr_solicitud->path_length = strlen(path) + 1;
+    ptr_solicitud->path = path;
+    t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
+    paquete->buffer = buffer;
+    enviar_paquete(paquete, conexion);
+    printf("Se envio el paquete 1 de tamaño %d\n", buffer->size);
 
-    decode_y_execute_instruccion(instruccionRecibida, &registros_cpu);
-    imprimir_registros_por_pantalla(registros_cpu);
-    destruir_instruccion(instruccionRecibida);
+    eliminar_paquete(paquete);
+
+    t_paquete *paquete2 = crear_paquete(CREAR_PROCESO);
+
+    char *path2 = "test2.txt";
+    uint32_t pid2 = 7;
+    t_solicitudCreacionProcesoEnMemoria *ptr_solicitud2 = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+    ptr_solicitud2->pid = pid2;
+    ptr_solicitud2->path_length = strlen(path2) + 1;
+    ptr_solicitud2->path = path2;
+    t_buffer *buffer2 = serializar_solicitud_crear_proceso(ptr_solicitud2);
+    paquete2->buffer = buffer2;
+    enviar_paquete(paquete2, conexion);
+    printf("Se envio el paquete 2 de tamaño %d\n", buffer2->size);
+
+    eliminar_paquete(paquete2);
+    // uint32_t pcInicial = 0;
+    // t_instruccion *instruccionRecibida = malloc(sizeof(t_instruccion));
+    // instruccionRecibida = fetch_instruccion(5, &pcInicial, conexion);
+    // printf("PC: %d\n", pcInicial);
+    // imprimir_instruccion(*instruccionRecibida);
+
+    // decode_y_execute_instruccion(instruccionRecibida, &registros_cpu);
+    // imprimir_registros_por_pantalla(registros_cpu);
+    // destruir_instruccion(instruccionRecibida);
 
     // Pruebas para solicitar instrucciones a memoria
 

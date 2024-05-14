@@ -31,9 +31,9 @@ int main(int argc, char *argv[])
     iniciar_config();
     socket_servidor_memoria = iniciar_servidor(logger_memoria, PUERTO_MEMORIA, "MEMORIA");
 
-    crear_proceso(procesos, 5, "test.txt");
+    // crear_proceso(procesos, 5, "test.txt");
 
-    imprimir_proceso(list_get(procesos, 0));
+    // imprimir_proceso(list_get(procesos, 0));
 
     while (1)
     {
@@ -137,7 +137,7 @@ void *atender_cliente(void *socket_cliente)
                 log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
                 crear_proceso(procesos, solicitud->pid, solicitud->path);
 
-                printf("proceso creado\n");
+                
                 break;
             default:
                 log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
