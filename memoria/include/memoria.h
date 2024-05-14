@@ -1,15 +1,22 @@
+#ifndef MEMORIA_H_
+#define MEMORIA_H_
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <utils/hello.h>
 #include <commons/log.h>
-
-#include <../src/utils/utils.c>
-
-#ifndef MEMORIA_H_
-#define MEMORIA_H_
+#include <../include/utils.h>
+#include "mem.h"
 
 extern t_log *logger_memoria;
 extern t_config *config_memoria;
+
+
+extern char *PUERTO_MEMORIA;
+extern int TAM_MEMORIA;
+extern int TAM_PAGINA;
+extern char *PATH_INSTRUCCIONES;
+extern int RETARDO_RESPUESTA;
 
 extern char *puerto_memoria;
 extern char *mensaje_recibido;

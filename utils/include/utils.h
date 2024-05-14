@@ -1,5 +1,5 @@
 #ifndef UTILS_H_
-#define UTILS_H_r
+#define UTILS_H_
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,13 +10,20 @@
 #include <string.h>
 #include <commons/log.h>
 #include <commons/config.h>
+#include <commons/collections/list.h>
 #include <pthread.h>
 #include <errno.h>
+#include <semaphore.h>
 
+
+#define SIZE_REGISTROS 32
+
+extern sem_t semaforo;
 typedef enum
 {
 	SOLICITUD_INSTRUCCION,
 	INSTRUCCION,
+	CREAR_PROCESO,
 	CPU,
 	KERNEL,
 	MEMORIA,
@@ -27,7 +34,8 @@ typedef enum
 
 typedef struct
 {
-	int size;
+	uint32_t size;
+	uint32_t offset;
 	void *stream;
 } t_buffer;
 
@@ -43,8 +51,8 @@ typedef enum
 	READY,
 	EXEC,
 	BLOCKED,
-	SALIDA //cambie de exit a salida porque esta tambien declarado como isntruccion
-} t_psw;
+	TERMINATED //cambie de exit a salida porque esta tambien declarado como isntruccion
+} estados;
 typedef struct
 {
 	uint8_t AX, BX, CX, DX;					 
@@ -58,7 +66,7 @@ typedef struct
 	u_int32_t quantum;	   // Unidad de tiempo utilizada por el algoritmo de planificación VRR
 	t_registros registros; // Estructura que contendrá los valores de los registros de uso general de la CPU
 	t_list *instrucciones;
-	t_psw psw;
+	estados estado_actual;
 } t_pcb;
 
 typedef enum
@@ -102,8 +110,50 @@ typedef struct
 
 } t_instruccion;
 
+typedef struct {
+	uint32_t pid;
+	uint32_t path_length;
+	char* path;
+} t_solicitudCreacionProcesoEnMemoria;
+
+typedef struct {
+    void* contenido;
+    int pagina;
+} t_pagina;
+
+typedef struct {
+    t_pagina** tabla_paginas;
+} t_tabla_paginas;
+
+
+typedef struct
+{
+	uint32_t pid;
+	// char* path;
+    t_list * lista_instrucciones;
+    t_tabla_paginas* tabla_paginas;
+} t_proceso;
+
+typedef struct
+{
+	uint32_t pid;
+	uint32_t pc;
+} t_solicitudInstruccionEnMemoria;
+
+
+
+void terminar_programa(int conexion, t_log *logger, t_config *config);
+
+
 t_registros inicializar_registros();
-t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, t_psw psw);
+void set_registro(t_registros *registros, char *registro, u_int32_t valor);
+u_int8_t get_registro_int8(t_registros *registros, char *registro);
+u_int32_t get_registro_int32(t_registros *registros, char *registro);
+void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
+void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
+void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
+void imprimir_registros_por_pantalla(t_registros registros);
+t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, estados estado);
 t_pcb *recibir_pcb( int socket);
 void destruir_pcb(t_pcb *pcb);
 t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel);
@@ -112,9 +162,7 @@ void liberar_conexion(int socket_cliente);
 int iniciar_servidor(t_log *logger, char *puerto, char *nombre);
 int esperar_cliente(int socket_servidor, t_log *logger);
 void *serializar_paquete(t_paquete *paquete, int bytes);
-void crear_buffer(t_paquete *paquete);
-t_paquete *crear_paquete(int codigo_operacion);
-void agregar_a_paquete(t_paquete *paquete, void *valor, int tamanio);
+t_paquete *crear_paquete(op_code codigo_operacion);
 void enviar_paquete(t_paquete *paquete, int socket_cliente);
 
 void enviar_mensaje(char *mensaje, int socket_cliente, op_code codigo_operaciom, t_log *logger);
@@ -123,8 +171,20 @@ op_code recibir_operacion(int socket_cliente);
 void *recibir_buffer(int *size, int socket_cliente);
 void recibir_mensaje(int socket_cliente, t_log *logger);
 t_paquete *recibir_paquete(int socket_cliente);
-t_instruccion *instruccion_deserializar(t_buffer *buffer);
-t_buffer *instruccion_serializar(t_instruccion *instruccion);
-uint32_t espacio_parametros(t_instruccion *instruccion);
+void buffer_read(t_buffer *buffer, void *data, uint32_t size);
+void buffer_add(t_buffer *buffer, void *data, uint32_t size);
+t_buffer *crear_buffer();
+void destruir_buffer(t_buffer *buffer);
+t_buffer *serializar_instruccion(t_instruccion *instruccion);
+t_instruccion *instruccion_deserializar(t_buffer *buffer,u_int32_t offset);
+t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones);
+t_list *deserializar_lista_instrucciones(t_buffer *buffer,u_int32_t offset);
+void imprimir_instruccion(t_instruccion instruccion);
+void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion);
+void destruir_instruccion(t_instruccion *instruccion);
 
+t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros);
+t_buffer* serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud);
+t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buffer *buffer);
+void imprimir_proceso(t_proceso* proceso);
 #endif /* UTILS_H_ */
