@@ -76,32 +76,9 @@ t_identificador string_to_identificador (char *string)
 }
 
 // Función que a partir de un archivo de instrucciones, devuelve la lista de instrucciones
-t_list* parsear_instrucciones(FILE* archivo_instrucciones) {
-    int longitud_de_linea_maxima = 1024;
-    char* line = malloc(sizeof(char) * longitud_de_linea_maxima);
-    size_t len = sizeof(line);  
-    t_list* lista_instrucciones = list_create();
-    while ((getline(&line, &len, archivo_instrucciones)) != -1) {
-        t_list* lista_de_parametros = list_create();
-        char* linea_con_instruccion = strtok(line, "\n"); // Divide todas las líneas del archivo y me devuelve la primera  
-        char** tokens = string_split(linea_con_instruccion, " ");  // Divide la línea en tokens separados x espacio. ["MOV", "AX", "BX"]
-        int i = 1;
-        while(tokens[i] != NULL){
-            list_add(lista_de_parametros, (void*) tokens[i]);
-            i++;
-        }
-        t_identificador identificador = string_to_identificador(tokens[0]); 
-        t_instruccion* instruccion = crear_instruccion(identificador, lista_de_parametros);  
-        list_add(lista_instrucciones, instruccion);
-        free(tokens);
-        list_destroy(lista_de_parametros); 
-    }
 
-    free(line);
-    return lista_instrucciones;
-}
 
-void crear_proceso(t_list* lista_procesos, int pid, char* path) {
+t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
     size_t path_final_size = strlen(PATH_INSTRUCCIONES) + strlen(path) + 1;
     char *path_final = malloc(path_final_size); 
     strcpy(path_final, PATH_INSTRUCCIONES);
@@ -134,6 +111,7 @@ void crear_proceso(t_list* lista_procesos, int pid, char* path) {
     printf("------------------- Proceso creado -------------------\n");
     imprimir_proceso(proceso);
     // signal semáforo contador (con grado multiprogramación)
+    return proceso;
 
 }
 

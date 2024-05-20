@@ -945,3 +945,28 @@ void imprimir_proceso(t_proceso *proceso)
 	}
 	// Si quieres imprimir también la tabla de páginas, puedes hacerlo aquí
 }
+
+t_list* parsear_instrucciones(FILE* archivo_instrucciones) {
+    int longitud_de_linea_maxima = 1024;
+    char* line = malloc(sizeof(char) * longitud_de_linea_maxima);
+    size_t len = sizeof(line);  
+    t_list* lista_instrucciones = list_create();
+    while ((getline(&line, &len, archivo_instrucciones)) != -1) {
+        t_list* lista_de_parametros = list_create();
+        char* linea_con_instruccion = strtok(line, "\n"); // Divide todas las líneas del archivo y me devuelve la primera  
+        char** tokens = string_split(linea_con_instruccion, " ");  // Divide la línea en tokens separados x espacio. ["MOV", "AX", "BX"]
+        int i = 1;
+        while(tokens[i] != NULL){
+            list_add(lista_de_parametros, (void*) tokens[i]);
+            i++;
+        }
+        t_identificador identificador = string_to_identificador(tokens[0]); 
+        t_instruccion* instruccion = crear_instruccion(identificador, lista_de_parametros);  
+        list_add(lista_instrucciones, instruccion);
+        free(tokens);
+        list_destroy(lista_de_parametros); 
+    }
+
+    free(line);
+    return lista_instrucciones;
+}

@@ -9,7 +9,7 @@ int RETARDO_RESPUESTA;
 
 int NUM_PAGINAS;
 
-pthread_mutex_t mutex;
+
 
 t_log *logger_memoria;
 t_config *config_memoria;
@@ -22,9 +22,8 @@ t_list *procesos;
 
 int main(int argc, char *argv[])
 {
-    sem_init(&semaforo, 0, 0);
-    procesos= list_create();
-    pthread_mutex_init(&mutex, NULL);
+
+    procesos_en_memoria= list_create();
     // logger memoria
 
     // iniciar servidor
@@ -135,7 +134,7 @@ void *atender_cliente(void *socket_cliente)
 
                 solicitud = deserializar_solicitud_crear_proceso(buffer);
                 log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
-                crear_proceso(procesos, solicitud->pid, solicitud->path);
+                t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
 
                 
                 break;

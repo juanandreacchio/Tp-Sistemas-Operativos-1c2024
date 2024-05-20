@@ -187,4 +187,5 @@ t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametr
 t_buffer* serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud);
 t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buffer *buffer);
 void imprimir_proceso(t_proceso* proceso);
+t_list* parsear_instrucciones(FILE* archivo_instrucciones) ;
 #endif /* UTILS_H_ */

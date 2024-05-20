@@ -18,7 +18,7 @@ extern int RETARDO_RESPUESTA;
 
 
 
-extern t_list* procesos;
+extern t_list* procesos_en_memoria;
 extern int NUM_PAGINAS;
 
 void crear_proceso(t_list* lista_procesos, int pid, char* path);

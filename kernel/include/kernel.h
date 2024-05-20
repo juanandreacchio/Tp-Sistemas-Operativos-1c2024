@@ -9,9 +9,9 @@
 #include <commons/log.h>
 #include <commons/string.h>
 #include<readline/readline.h>
-#include <../src/utils/utils.h>
+#include <../include/utils.h>
 
-
+extern t_list *lista_procesos_ready;
 extern t_config *config_kernel;
 
 extern t_log *logger_kernel;
@@ -29,6 +29,12 @@ extern pthread_mutex_t *mutex_pid;
 extern int contador_pcbs; 
 extern int identificador_pid; 
 extern int grado_multiprogramacion;
+extern uint32_t contador_pid;
+extern int QUANTUM;
+
+pthread_mutex_t mutex_pid;
+pthread_mutex_t mutex_cola_de_readys;
+sem_t contador_grado_multiprogramacion;
 
 void iniciar_config();
 void iniciar_consola_interactiva(); 
