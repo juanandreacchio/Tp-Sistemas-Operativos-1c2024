@@ -312,7 +312,6 @@ t_pcb *recibir_pcb(int socket)
 t_registros inicializar_registros()
 {
 	t_registros registros;
-
 	registros.AX = 0;
 	registros.BX = 0;
 	registros.CX = 0;
@@ -344,6 +343,29 @@ char *cod_op_to_string(op_code codigo_operacion)
 		return "CODIGO DE OPERACION INVALIDO";
 	}
 }
+void cargar_string_al_buffer(t_buffer *buffer, char *string) {
+    int len = strlen(string);
+    buffer->stream = malloc(len + 1); 
+    if (buffer->stream == NULL) {
+        printf("Error: no se pudo asignar memoria para el buffer\n");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(buffer->stream, string);
+    buffer->size = len;
+}
+char *extraer_string_del_buffer(t_buffer *buffer) {
+    char *string = malloc(buffer->size + 1);  
+    if (string == NULL) {
+        printf("Error: no se pudo asignar memoria para el string\n");
+        exit(EXIT_FAILURE);
+    }
+    strncpy(string, buffer->stream, buffer->size);
+    string[buffer->size] = '\0';
+    free(buffer->stream);
+    buffer->size = 0;
+    return string;
+}
+
 
 // ------------------ FUNCIONES DE LOGGER ------------------
 

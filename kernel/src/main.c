@@ -12,12 +12,14 @@ char *puerto_interrupt;
 char *ip;
 u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt;
 int socket_servidor_kernel, socket_cliente_kernel;
+int contador_pcbs, identificador_pid = 1; 
+pthread_mutex_t* mutex_pid;
 
 int main(void)
 {
     iniciar_config();
-
-    // iniciar conexion con memoria
+    iniciar_consola_interactiva();
+    // iniciar conexion con Kernel
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_kernel);
     enviar_mensaje("", conexion_memoria, KERNEL, logger_kernel);
 
