@@ -32,6 +32,9 @@ u_int8_t end_process = 0;
 
  	pthread_join(hilo_dispatch, NULL);
  	pthread_join(hilo_interrupt, NULL);
+
+    liberar_conexion(socket_servidor_interrupt);
+    terminar_programa(socket_servidor_dispatch,logger_cpu, config_cpu);
  }
 
 //------------------------CONFIG------------------------
@@ -46,7 +49,6 @@ void iniciar_config()
     puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
 }
 
-
 //-------------------------------ATENDER_DISPATCH-------------------------------
 void *iniciar_servidor_dispatch(void *arg)
 {
@@ -59,7 +61,7 @@ void *iniciar_servidor_dispatch(void *arg)
 
         t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
         printf("recibi el proceso:%d",pcb->pid);
-        comenzar_proceso(pcb,conexion_kernel_dispatch);
+        comenzar_proceso(pcb,conexion_memoria,conexion_kernel_dispatch);
 
     }
     return NULL;
@@ -162,6 +164,7 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
     buffer_add(buffer, &pid, sizeof(uint32_t));
     buffer_add(buffer, pc, sizeof(uint32_t));
     paquete->buffer = buffer;
+    
 
     enviar_paquete(paquete, conexionParam);
 
@@ -169,9 +172,6 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
 
     t_paquete *respuesta_memoria = recibir_paquete(conexionParam);
 
-    log_info(logger_cpu, "Se recibio la instruccion de memoria");
-
-    printf("Codigo de operacion: %d\n", respuesta_memoria->codigo_operacion);
 
     if (respuesta_memoria->codigo_operacion != INSTRUCCION)
     {
@@ -202,21 +202,20 @@ t_instruccion *siguiente_instruccion(t_pcb *pcb,int socket)
 	return instruccion;
 }
 
-void comenzar_proceso(t_pcb* pcb,int socket){
+void comenzar_proceso(t_pcb* pcb,int socket_Memoria,int socket_Kernel){
     t_instruccion *instruccion = malloc(sizeof(t_instruccion));
     while(interruption_flag != 1 && end_process != 1 /*&& input_ouput != 1 && page_fault != 1 && sigsegv != 1*/){
-        instruccion = siguiente_instruccion(pcb,socket);
-        printf("voy a ejecutar la istruccion: %d",instruccion->identificador);
+        instruccion = siguiente_instruccion(pcb,socket_Memoria);
         decode_y_execute_instruccion(instruccion,&pcb->registros);
     }
-    imprimir_registros_por_pantalla(pcb->registros);
+        imprimir_registros_por_pantalla(pcb->registros);
     if (interruption_flag == 1)
-        accion_interrupt(pcb,socket);
+        accion_interrupt(pcb,socket_Kernel);
     
     if(end_process == 1){
         end_process = 0;
         interruption_flag = 0;
-        enviar_pcb(pcb,socket);
+        enviar_pcb(pcb,socket_Kernel);
     }
         
 }

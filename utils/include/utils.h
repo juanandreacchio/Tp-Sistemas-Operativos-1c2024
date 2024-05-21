@@ -193,4 +193,5 @@ t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buff
 void imprimir_proceso(t_proceso* proceso);
 t_list* parsear_instrucciones(FILE* archivo_instrucciones) ;
 t_identificador string_to_identificador (char *string);
+void imprimir_lista_de_procesos(t_list *lista_procesos);
 #endif /* UTILS_H_ */

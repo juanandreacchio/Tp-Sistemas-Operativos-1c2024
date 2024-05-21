@@ -47,7 +47,6 @@ int main(int argc, char *argv[])
         pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
         pthread_detach(thread);
         pthread_mutex_unlock(&mutex);
-        printf("di una vuetla por el while del main");
     }
 
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
@@ -114,8 +113,6 @@ void *atender_cliente(void *socket_cliente)
                 printf("pid: %d\n", soli->pid);
                 printf("pc: %d\n", soli->pc);
                 instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
-
-                log_info(logger_memoria, "Se envio la instruccion %d", instruccion->identificador);
     
                 paquete = crear_paquete(INSTRUCCION);
                 agregar_instruccion_a_paquete(paquete, instruccion);
@@ -123,8 +120,6 @@ void *atender_cliente(void *socket_cliente)
                 t_buffer *buffer_prueba = paquete->buffer;
                 t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
                 
-                printf("\nINSTRUCCION DESERIALIZADA:\n");
-                imprimir_instruccion(*inst);
                 
                 enviar_paquete(paquete, (int)(long int)socket_cliente);
                 // Probar mandar algo al cliente
@@ -140,7 +135,9 @@ void *atender_cliente(void *socket_cliente)
                 log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
                 t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
 
-                printf("di una vuelta por el while");
+                // imprimir_lista_de_procesos(procesos_en_memoria);
+
+    
                 break;
             default:
                 log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");

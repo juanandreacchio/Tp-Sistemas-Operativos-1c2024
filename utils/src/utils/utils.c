@@ -98,7 +98,7 @@ u_int32_t get_registro_int32(t_registros *registros, char *registro)
 	return -1;
 }
 
-void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino)
+void sum_registro(t_registros *registros,char *registroDestino, char *registroOrigen)
 {
 
 	if (strcasecmp(registroDestino, "AX") == 0)
@@ -318,18 +318,27 @@ t_registros inicializar_registros()
 }
 
 char *cod_op_to_string(op_code codigo_operacion)
-
 {
 	switch (codigo_operacion)
 	{
-	case KERNEL:
-		return "KERNEL";
+	case SOLICITUD_INSTRUCCION:
+		return "SOLICITUD_INSTRUCCION";
+	case INSTRUCCION:
+		return "INSTRUCCION";
+	case CREAR_PROCESO:
+		return "CREAR_PROCESO";
 	case CPU:
 		return "CPU";
+	case KERNEL:
+		return "KERNEL";
 	case MEMORIA:
 		return "MEMORIA";
 	case ENTRADA_SALIDA:
 		return "ENTRADA_SALIDA";
+	case PCB:
+		return "PCB";
+	case INTERRUPTION:
+		return "INTERRUPTION";
 	default:
 		return "CODIGO DE OPERACION INVALIDO";
 	}
@@ -991,3 +1000,12 @@ t_identificador string_to_identificador (char *string)
     return -1;
 }
 
+void imprimir_lista_de_procesos(t_list *lista_procesos)
+{
+	for (int i = 0; i < list_size(lista_procesos); i++)
+	{
+		t_proceso *proceso = list_get(lista_procesos, i);
+		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
+		imprimir_proceso(proceso);
+	}
+}
