@@ -1,13 +1,7 @@
 #ifndef MEM_H_
 #define MEM_H_
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <utils/hello.h>
-#include <commons/log.h>
-#include <commons/string.h>
 #include <../include/utils.h>
-#include <../include/memoria.h>
 
 extern char *PUERTO_MEMORIA;
 extern int TAM_MEMORIA;
@@ -21,11 +15,11 @@ extern int RETARDO_RESPUESTA;
 extern t_list* procesos_en_memoria;
 extern int NUM_PAGINAS;
 
-void crear_proceso(t_list* lista_procesos, int pid, char* path);
+t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path);
 void liberar_proceso(t_proceso* proceso);
 t_instruccion *leer_instruccion(char* path, uint32_t pc);
 void liberar_lista_procesos(t_list* lista_procesos);
-void liberar_instruccion(t_instruccion* instruccion);
+void liberar_instruccion(t_instruccion* instruccion);//no esta en el mem.c
 
 void inicializar_pagina(t_pagina* pagina, int numero_pagina);
 t_tabla_paginas* inicializar_tabla_paginas();

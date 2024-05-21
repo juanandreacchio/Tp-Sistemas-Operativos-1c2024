@@ -247,11 +247,10 @@ void imprimir_registros_por_pantalla(t_registros registros)
 
 //------------------ FUNCIONES DE PCB ------------------
 
-t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, estados estado)
+t_pcb *crear_pcb(u_int32_t pid, u_int32_t quantum, estados estado)
 {
 	t_pcb *pcb = malloc(sizeof(t_pcb));
 	pcb->pid = pid;
-	pcb->instrucciones = lista_instrucciones;
 	pcb->pc = 0;
 	pcb->quantum = quantum;
 	pcb->estado_actual = estado;
@@ -266,8 +265,6 @@ void destruir_pcb(t_pcb *pcb)
 
 void enviar_pcb(t_pcb *pcb, int socket)
 {
-	t_buffer *buffer_instrucciones = crear_buffer();
-	buffer_instrucciones = serializar_lista_instrucciones(pcb->instrucciones);
 	t_paquete *paquete = crear_paquete(PCB);
 	t_buffer *buffer = paquete->buffer;
 	buffer_add(buffer, &(pcb->pid), sizeof(uint32_t));
@@ -275,12 +272,10 @@ void enviar_pcb(t_pcb *pcb, int socket)
 	buffer_add(buffer, &(pcb->quantum), sizeof(uint32_t));
 	buffer_add(buffer, &(pcb->registros), SIZE_REGISTROS);
 	buffer_add(buffer, &(pcb->estado_actual), sizeof(estados));
-	buffer_add(buffer, buffer_instrucciones->stream, buffer_instrucciones->size);
 	buffer->offset = 0;
 
 	enviar_paquete(paquete, socket);
 
-	destruir_buffer(buffer_instrucciones);
 	eliminar_paquete(paquete);
 }
 
@@ -299,13 +294,9 @@ t_pcb *recibir_pcb(int socket)
 		buffer_read(buffer_PCB, &(pcb->registros), SIZE_REGISTROS);
 		buffer_read(buffer_PCB, &(pcb->estado_actual), sizeof(estados));
 
-		pcb->instrucciones = list_create();
-		t_list *lista_instrucciones = deserializar_lista_instrucciones(buffer_PCB, buffer_PCB->offset);
-		list_add_all(pcb->instrucciones, lista_instrucciones);
 	}
 
 	eliminar_paquete(paquete_PCB);
-	// TODO: deserializar las instrucciones
 	return pcb;
 }
 
@@ -486,6 +477,11 @@ t_paquete *crear_paquete(op_code codigo_operacion)
 
 	paquete->buffer = crear_buffer();
 	return paquete;
+}
+
+void enviar_codigo_operacion(op_code code,int socket)
+{
+	send(socket,&code,sizeof(op_code),0);
 }
 
 void enviar_paquete(t_paquete *paquete, int socket_cliente)
@@ -970,3 +966,28 @@ t_list* parsear_instrucciones(FILE* archivo_instrucciones) {
     free(line);
     return lista_instrucciones;
 }
+
+t_identificador string_to_identificador (char *string)
+{
+    if (strcasecmp(string, "IO_FS_WRITE") == 0) return IO_FS_WRITE;
+    if (strcasecmp(string, "IO_FS_READ") == 0) return IO_FS_READ;
+    if (strcasecmp(string, "IO_FS_TRUNCATE") == 0) return IO_FS_TRUNCATE;
+    if (strcasecmp(string, "IO_STDOUT_WRITE") == 0) return IO_STDOUT_WRITE;
+    if (strcasecmp(string, "IO_STDIN_READ") == 0) return IO_STDIN_READ;
+    if (strcasecmp(string, "SET") == 0) return SET;
+    if (strcasecmp(string, "MOV_IN") == 0) return MOV_IN;
+    if (strcasecmp(string, "MOV_OUT") == 0) return MOV_OUT;
+    if (strcasecmp(string, "SUM") == 0) return SUM;
+    if (strcasecmp(string, "SUB") == 0) return SUB;
+    if (strcasecmp(string, "JNZ") == 0) return JNZ;
+    if (strcasecmp(string, "IO_GEN_SLEEP") == 0) return IO_GEN_SLEEP;
+    if (strcasecmp(string, "IO_FS_DELETE") == 0) return IO_FS_DELETE;
+    if (strcasecmp(string, "IO_FS_CREATE") == 0) return IO_FS_CREATE;
+    if (strcasecmp(string, "RESIZE") == 0) return RESIZE;
+    if (strcasecmp(string, "COPY_STRING") == 0) return COPY_STRING;
+    if (strcasecmp(string, "WAIT") == 0) return WAIT;
+    if (strcasecmp(string, "SIGNAL") == 0) return SIGNAL;
+    if (strcasecmp(string, "EXIT") == 0) return EXIT;
+    return -1;
+}
+

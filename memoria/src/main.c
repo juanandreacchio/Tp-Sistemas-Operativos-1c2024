@@ -1,5 +1,6 @@
 #include <../include/memoria.h>
-#include <../include/utils.h>
+#include <../include/mem.h>
+
 // Definir variables globales
 char *PUERTO_MEMORIA;
 int TAM_MEMORIA;
@@ -17,7 +18,11 @@ t_config *config_memoria;
 char *mensaje_recibido;
 int socket_servidor_memoria;
 
-t_list *procesos;
+t_list *procesos_en_memoria;
+pthread_mutex_t mutex;
+
+//---------------------------variables globales-------------------------------------
+
 
 
 int main(int argc, char *argv[])
@@ -41,10 +46,8 @@ int main(int argc, char *argv[])
         pthread_mutex_lock(&mutex);
         pthread_create(&thread, NULL, atender_cliente, (void *)(long int)socket_cliente);
         pthread_detach(thread);
-
-        log_info(logger_memoria, "DESCONECTO AL HILO");
         pthread_mutex_unlock(&mutex);
-        log_info(logger_memoria, "DESBLOQUEO");
+        printf("di una vuetla por el while del main");
     }
 
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
@@ -78,18 +81,19 @@ void *atender_cliente(void *socket_cliente)
     paquete->buffer = malloc(sizeof(t_buffer));
     
     while (1){
+        
         paquete = recibir_paquete((int)(long int)socket_cliente);
 
         if (paquete == NULL) {
             log_info(logger_memoria, "Se desconecto el cliente");
             break;
         }
-        uint32_t pid, pc;
+        //uint32_t pid, pc;
         t_instruccion *instruccion = malloc(sizeof(t_instruccion));
         
         op_code codigo_operacion = paquete->codigo_operacion;
         t_buffer *buffer = paquete->buffer;
-        printf("codigo de operacion: %d\n", codigo_operacion);
+        printf("codigo de operacion: %s\n", cod_op_to_string(codigo_operacion) );
         switch (codigo_operacion){
             case KERNEL:
                 log_info(logger_memoria, "Se recibio un mensaje del modulo KERNEL");
@@ -109,7 +113,7 @@ void *atender_cliente(void *socket_cliente)
                 
                 printf("pid: %d\n", soli->pid);
                 printf("pc: %d\n", soli->pc);
-                instruccion = buscar_instruccion(procesos, soli->pid, soli->pc);
+                instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
 
                 log_info(logger_memoria, "Se envio la instruccion %d", instruccion->identificador);
     
@@ -122,13 +126,13 @@ void *atender_cliente(void *socket_cliente)
                 printf("\nINSTRUCCION DESERIALIZADA:\n");
                 imprimir_instruccion(*inst);
                 
-                enviar_paquete(paquete, (uint32_t)socket_cliente);
+                enviar_paquete(paquete, (int)(long int)socket_cliente);
                 // Probar mandar algo al cliente
                 // sem_post(&semaforo);
                 destruir_instruccion(instruccion);
                 break;
             case CREAR_PROCESO:
-                char *path;
+                //char *path;
 
                 t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
 
@@ -136,7 +140,7 @@ void *atender_cliente(void *socket_cliente)
                 log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
                 t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
 
-                
+                printf("di una vuelta por el while");
                 break;
             default:
                 log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");

@@ -22,5 +22,6 @@ extern pthread_t hilo_dispatch, hilo_interrupt;
 void iniciar_config();
 void *iniciar_servidor_dispatch(void *arg);
 void *iniciar_servidor_interrupt(void *arg);
-t_instruccion *fetch_instruccion(uint32_t pid, uint32_t pc);
+t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionParam);
+void comenzar_proceso(t_pcb* pcb,int socket);
 #endif

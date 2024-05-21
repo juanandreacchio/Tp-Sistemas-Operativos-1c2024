@@ -6,7 +6,7 @@
 #include <utils/hello.h>
 #include <commons/log.h>
 #include <../include/utils.h>
-#include "mem.h"
+
 
 extern t_log *logger_memoria;
 extern t_config *config_memoria;

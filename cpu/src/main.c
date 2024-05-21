@@ -1,4 +1,4 @@
-#include <../include/utils.h>
+#include <../include/cpu.h>
 
 // // inicializacion
 
@@ -13,20 +13,28 @@ int socket_servidor_dispatch, socket_servidor_interrupt;
 pthread_t hilo_dispatch, hilo_interrupt;
 t_registros registros_cpu;
 
-// int main(void)
-// {
-// 	iniciar_config();
+//------------------------variables globales----------------
+u_int8_t interruption_flag = 0;
+u_int8_t end_process = 0; 
 
-// 	conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
-// 	enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
+// ------------------------- MAIN---------------------------
 
-// 	// iniciar servidor Dispatch y Interrupt
-// 	pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
-// 	pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
+ int main(void)
+{
+	iniciar_config();
 
-// 	pthread_join(hilo_dispatch, NULL);
-// 	pthread_join(hilo_interrupt, NULL);
-// }
+ 	conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
+ 	enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
+
+ 	 //iniciar servidor Dispatch y Interrupt
+ 	pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
+ 	pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
+
+ 	pthread_join(hilo_dispatch, NULL);
+ 	pthread_join(hilo_interrupt, NULL);
+ }
+
+//------------------------CONFIG------------------------
 
 void iniciar_config()
 {
@@ -37,7 +45,9 @@ void iniciar_config()
     puerto_memoria = config_get_string_value(config_cpu, "PUERTO_MEMORIA");
     puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
 }
-/*
+
+
+//-------------------------------ATENDER_DISPATCH-------------------------------
 void *iniciar_servidor_dispatch(void *arg)
 {
     socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "DISPATCH");
@@ -48,18 +58,14 @@ void *iniciar_servidor_dispatch(void *arg)
         recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
 
         t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
-        log_info(logger_cpu, "recibi el pcb");
-        log_info(logger_cpu, "del pid tengo:%u", pcb->pid);
-        log_info(logger_cpu, "del quantum tengo:%u", pcb->quantum);
-        log_info(logger_cpu, "del psw tengo:%u", pcb->estado_actual);
-        log_info(logger_cpu, "del pc tengo:%u", pcb->pc);
-        t_instruccion *inst1 = list_get(pcb->instrucciones, 0);
-        t_instruccion *inst2 = list_get(pcb->instrucciones, 1);
-        imprimir_instruccion(*inst1);
-        imprimir_instruccion(*inst2);
+        printf("recibi el proceso:%d",pcb->pid);
+        comenzar_proceso(pcb,conexion_kernel_dispatch);
+
     }
     return NULL;
 }
+
+//-------------------------------ATENDER_INTERRUPTION-------------------------------
 
 void *iniciar_servidor_interrupt(void *arg)
 {
@@ -69,10 +75,28 @@ void *iniciar_servidor_interrupt(void *arg)
         conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
         log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Interrupt", cod_op_to_string(recibir_operacion(conexion_kernel_interrupt)));
         recibir_mensaje(conexion_kernel_interrupt, logger_cpu);
+
+        int cod_op = recibir_operacion(conexion_kernel_interrupt);
+        if(cod_op == INTERRUPTION){
+            log_info(logger_cpu, "Ocurrio una interrupcion");
+            interruption_flag = 1;//le ponemos un mutex? proique me aprece que es concurrente este hilo con el otro y podria esto modificarse jsuto cunado el otro esta ejecutando duduoso igual no lo pense tanto
+        }
+        else {
+            log_info(logger_cpu, "operacion desconocida dentro de interrupciones");
+        }
+
+
     }
     return NULL;
 }
-*/
+
+
+ void accion_interrupt(t_pcb *pcb, int socket){
+    interruption_flag = 0;
+    log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion");
+    enviar_pcb(pcb,socket);
+ }
+
 
 void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *registros_cpu)
 {
@@ -119,6 +143,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *regis
     case SIGNAL:
         break;
     case EXIT:
+        end_process = 1;
         break;
     default:
         break;
@@ -157,71 +182,41 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
     }
 
     t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer, 0);
-
+    
+/*
+    // en la consigna dice "si corresponde" abria que fijarse porque creo que si hay intenrrpucion no c hace
     *pc += 1; // Nosé si está bien así
-
+    no va mas proque el que lo avanza es la funcion de siguiente_isntruccion
+    */
+    
     eliminar_paquete(paquete);
     eliminar_paquete(respuesta_memoria);
     return instruccion;
 }
 
-t_log *logger;
-t_config *config;
-uint32_t conexion;
-
-int main(void)
+t_instruccion *siguiente_instruccion(t_pcb *pcb,int socket)
 {
+	
+	t_instruccion *instruccion = fetch_instruccion(pcb->pid,&pcb->pc,socket);
+	pcb->pc += 1;
+	return instruccion;
+}
 
-    iniciar_config();
-    registros_cpu = inicializar_registros();
-
-    logger = iniciar_logger("config/test.log", "TEST", LOG_LEVEL_INFO);
-    conexion = crear_conexion(NULL, "6004", logger);
-
-    if (conexion == -1)
-    {
-        log_error(logger, "No se pudo conectar al servidor");
-        terminar_programa(conexion, logger, config);
-        return 1;
+void comenzar_proceso(t_pcb* pcb,int socket){
+    t_instruccion *instruccion = malloc(sizeof(t_instruccion));
+    while(interruption_flag != 1 && end_process != 1 /*&& input_ouput != 1 && page_fault != 1 && sigsegv != 1*/){
+        instruccion = siguiente_instruccion(pcb,socket);
+        printf("voy a ejecutar la istruccion: %d",instruccion->identificador);
+        decode_y_execute_instruccion(instruccion,&pcb->registros);
     }
-
-    t_paquete *paquete = crear_paquete(CREAR_PROCESO);
-
-    char *path = "test.txt";
-    uint32_t pid = 5;
-    t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-    ptr_solicitud->pid = pid;
-    ptr_solicitud->path_length = strlen(path) + 1;
-    ptr_solicitud->path = path;
-    t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
-    paquete->buffer = buffer;
-    enviar_paquete(paquete, conexion);
-    printf("Se envio el paquete 1 de tamaño %d\n", buffer->size);
-
-    eliminar_paquete(paquete);
-
-
-
-    // uint32_t pcInicial = 0;
-    // t_instruccion *instruccionRecibida = malloc(sizeof(t_instruccion));
-    // instruccionRecibida = fetch_instruccion(5, &pcInicial, conexion);
-    // printf("PC: %d\n", pcInicial);
-    // imprimir_instruccion(*instruccionRecibida);
-
-    // decode_y_execute_instruccion(instruccionRecibida, &registros_cpu);
-    // imprimir_registros_por_pantalla(registros_cpu);
-    // destruir_instruccion(instruccionRecibida);
-
-    // Pruebas para solicitar instrucciones a memoria
-
-    // pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
-    // pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
-
-    // pthread_join(hilo_dispatch, NULL);
-    // pthread_join(hilo_interrupt, NULL);
-
-    // SOLICITUD_INSTRUCCION, se envia el pid y el program counter
-
-    // terminar_programa(conexion, logger, config_cpu);
-    return 0;
+    imprimir_registros_por_pantalla(pcb->registros);
+    if (interruption_flag == 1)
+        accion_interrupt(pcb,socket);
+    
+    if(end_process == 1){
+        end_process = 0;
+        interruption_flag = 0;
+        enviar_pcb(pcb,socket);
+    }
+        
 }
