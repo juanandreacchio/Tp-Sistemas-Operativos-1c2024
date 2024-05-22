@@ -98,7 +98,7 @@ u_int32_t get_registro_int32(t_registros *registros, char *registro)
 	return -1;
 }
 
-void sum_registro(t_registros *registros,char *registroDestino, char *registroOrigen)
+void sum_registro(t_registros *registros, char *registroDestino, char *registroOrigen)
 {
 
 	if (strcasecmp(registroDestino, "AX") == 0)
@@ -293,7 +293,6 @@ t_pcb *recibir_pcb(int socket)
 		buffer_read(buffer_PCB, &(pcb->quantum), sizeof(pcb->quantum));
 		buffer_read(buffer_PCB, &(pcb->registros), SIZE_REGISTROS);
 		buffer_read(buffer_PCB, &(pcb->estado_actual), sizeof(estados));
-
 	}
 
 	eliminar_paquete(paquete_PCB);
@@ -343,29 +342,32 @@ char *cod_op_to_string(op_code codigo_operacion)
 		return "CODIGO DE OPERACION INVALIDO";
 	}
 }
-void cargar_string_al_buffer(t_buffer *buffer, char *string) {
-    int len = strlen(string);
-    buffer->stream = malloc(len + 1); 
-    if (buffer->stream == NULL) {
-        printf("Error: no se pudo asignar memoria para el buffer\n");
-        exit(EXIT_FAILURE);
-    }
-    strcpy(buffer->stream, string);
-    buffer->size = len;
+void cargar_string_al_buffer(t_buffer *buffer, char *string)
+{
+	int len = strlen(string);
+	buffer->stream = malloc(len + 1);
+	if (buffer->stream == NULL)
+	{
+		printf("Error: no se pudo asignar memoria para el buffer\n");
+		exit(EXIT_FAILURE);
+	}
+	strcpy(buffer->stream, string);
+	buffer->size = len;
 }
-char *extraer_string_del_buffer(t_buffer *buffer) {
-    char *string = malloc(buffer->size + 1);  
-    if (string == NULL) {
-        printf("Error: no se pudo asignar memoria para el string\n");
-        exit(EXIT_FAILURE);
-    }
-    strncpy(string, buffer->stream, buffer->size);
-    string[buffer->size] = '\0';
-    free(buffer->stream);
-    buffer->size = 0;
-    return string;
+char *extraer_string_del_buffer(t_buffer *buffer)
+{
+	char *string = malloc(buffer->size + 1);
+	if (string == NULL)
+	{
+		printf("Error: no se pudo asignar memoria para el string\n");
+		exit(EXIT_FAILURE);
+	}
+	strncpy(string, buffer->stream, buffer->size);
+	string[buffer->size] = '\0';
+	free(buffer->stream);
+	buffer->size = 0;
+	return string;
 }
-
 
 // ------------------ FUNCIONES DE LOGGER ------------------
 
@@ -488,9 +490,9 @@ t_paquete *crear_paquete(op_code codigo_operacion)
 	return paquete;
 }
 
-void enviar_codigo_operacion(op_code code,int socket)
+void enviar_codigo_operacion(op_code code, int socket)
 {
-	send(socket,&code,sizeof(op_code),0);
+	send(socket, &code, sizeof(op_code), 0);
 }
 
 void enviar_paquete(t_paquete *paquete, int socket_cliente)
@@ -951,53 +953,75 @@ void imprimir_proceso(t_proceso *proceso)
 	// Si quieres imprimir también la tabla de páginas, puedes hacerlo aquí
 }
 
-t_list* parsear_instrucciones(FILE* archivo_instrucciones) {
-    int longitud_de_linea_maxima = 1024;
-    char* line = malloc(sizeof(char) * longitud_de_linea_maxima);
-    size_t len = sizeof(line);  
-    t_list* lista_instrucciones = list_create();
-    while ((getline(&line, &len, archivo_instrucciones)) != -1) {
-        t_list* lista_de_parametros = list_create();
-        char* linea_con_instruccion = strtok(line, "\n"); // Divide todas las líneas del archivo y me devuelve la primera  
-        char** tokens = string_split(linea_con_instruccion, " ");  // Divide la línea en tokens separados x espacio. ["MOV", "AX", "BX"]
-        int i = 1;
-        while(tokens[i] != NULL){
-            list_add(lista_de_parametros, (void*) tokens[i]);
-            i++;
-        }
-        t_identificador identificador = string_to_identificador(tokens[0]); 
-        t_instruccion* instruccion = crear_instruccion(identificador, lista_de_parametros);  
-        list_add(lista_instrucciones, instruccion);
-        free(tokens);
-        list_destroy(lista_de_parametros); 
-    }
+t_list *parsear_instrucciones(FILE *archivo_instrucciones)
+{
+	int longitud_de_linea_maxima = 1024;
+	char *line = malloc(sizeof(char) * longitud_de_linea_maxima);
+	size_t len = sizeof(line);
+	t_list *lista_instrucciones = list_create();
+	while ((getline(&line, &len, archivo_instrucciones)) != -1)
+	{
+		t_list *lista_de_parametros = list_create();
+		char *linea_con_instruccion = strtok(line, "\n");		  // Divide todas las líneas del archivo y me devuelve la primera
+		char **tokens = string_split(linea_con_instruccion, " "); // Divide la línea en tokens separados x espacio. ["MOV", "AX", "BX"]
+		int i = 1;
+		while (tokens[i] != NULL)
+		{
+			list_add(lista_de_parametros, (void *)tokens[i]);
+			i++;
+		}
+		t_identificador identificador = string_to_identificador(tokens[0]);
+		t_instruccion *instruccion = crear_instruccion(identificador, lista_de_parametros);
+		list_add(lista_instrucciones, instruccion);
+		free(tokens);
+		list_destroy(lista_de_parametros);
+	}
 
-    free(line);
-    return lista_instrucciones;
+	free(line);
+	return lista_instrucciones;
 }
 
-t_identificador string_to_identificador (char *string)
+t_identificador string_to_identificador(char *string)
 {
-    if (strcasecmp(string, "IO_FS_WRITE") == 0) return IO_FS_WRITE;
-    if (strcasecmp(string, "IO_FS_READ") == 0) return IO_FS_READ;
-    if (strcasecmp(string, "IO_FS_TRUNCATE") == 0) return IO_FS_TRUNCATE;
-    if (strcasecmp(string, "IO_STDOUT_WRITE") == 0) return IO_STDOUT_WRITE;
-    if (strcasecmp(string, "IO_STDIN_READ") == 0) return IO_STDIN_READ;
-    if (strcasecmp(string, "SET") == 0) return SET;
-    if (strcasecmp(string, "MOV_IN") == 0) return MOV_IN;
-    if (strcasecmp(string, "MOV_OUT") == 0) return MOV_OUT;
-    if (strcasecmp(string, "SUM") == 0) return SUM;
-    if (strcasecmp(string, "SUB") == 0) return SUB;
-    if (strcasecmp(string, "JNZ") == 0) return JNZ;
-    if (strcasecmp(string, "IO_GEN_SLEEP") == 0) return IO_GEN_SLEEP;
-    if (strcasecmp(string, "IO_FS_DELETE") == 0) return IO_FS_DELETE;
-    if (strcasecmp(string, "IO_FS_CREATE") == 0) return IO_FS_CREATE;
-    if (strcasecmp(string, "RESIZE") == 0) return RESIZE;
-    if (strcasecmp(string, "COPY_STRING") == 0) return COPY_STRING;
-    if (strcasecmp(string, "WAIT") == 0) return WAIT;
-    if (strcasecmp(string, "SIGNAL") == 0) return SIGNAL;
-    if (strcasecmp(string, "EXIT") == 0) return EXIT;
-    return -1;
+	if (strcasecmp(string, "IO_FS_WRITE") == 0)
+		return IO_FS_WRITE;
+	if (strcasecmp(string, "IO_FS_READ") == 0)
+		return IO_FS_READ;
+	if (strcasecmp(string, "IO_FS_TRUNCATE") == 0)
+		return IO_FS_TRUNCATE;
+	if (strcasecmp(string, "IO_STDOUT_WRITE") == 0)
+		return IO_STDOUT_WRITE;
+	if (strcasecmp(string, "IO_STDIN_READ") == 0)
+		return IO_STDIN_READ;
+	if (strcasecmp(string, "SET") == 0)
+		return SET;
+	if (strcasecmp(string, "MOV_IN") == 0)
+		return MOV_IN;
+	if (strcasecmp(string, "MOV_OUT") == 0)
+		return MOV_OUT;
+	if (strcasecmp(string, "SUM") == 0)
+		return SUM;
+	if (strcasecmp(string, "SUB") == 0)
+		return SUB;
+	if (strcasecmp(string, "JNZ") == 0)
+		return JNZ;
+	if (strcasecmp(string, "IO_GEN_SLEEP") == 0)
+		return IO_GEN_SLEEP;
+	if (strcasecmp(string, "IO_FS_DELETE") == 0)
+		return IO_FS_DELETE;
+	if (strcasecmp(string, "IO_FS_CREATE") == 0)
+		return IO_FS_CREATE;
+	if (strcasecmp(string, "RESIZE") == 0)
+		return RESIZE;
+	if (strcasecmp(string, "COPY_STRING") == 0)
+		return COPY_STRING;
+	if (strcasecmp(string, "WAIT") == 0)
+		return WAIT;
+	if (strcasecmp(string, "SIGNAL") == 0)
+		return SIGNAL;
+	if (strcasecmp(string, "EXIT") == 0)
+		return EXIT;
+	return -1;
 }
 
 void imprimir_lista_de_procesos(t_list *lista_procesos)
@@ -1007,5 +1031,52 @@ void imprimir_lista_de_procesos(t_list *lista_procesos)
 		t_proceso *proceso = list_get(lista_procesos, i);
 		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
 		imprimir_proceso(proceso);
+	}
+}
+
+t_buffer *serializar_interrupcion(t_interrupcion *interrupcion)
+{
+	t_buffer *buffer = crear_buffer();
+	buffer_add(buffer, &interrupcion->pid, sizeof(uint32_t));
+	buffer_add(buffer, &interrupcion->motivo, sizeof(MOTIVO_INTERRUPCION));
+	return buffer;
+}
+
+t_interrupcion *deserializar_interrupcion(t_buffer *buffer)
+{
+	t_interrupcion *interrupcion = malloc(sizeof(t_interrupcion));
+	buffer->offset = 0;
+	buffer_read(buffer, &interrupcion->pid, sizeof(uint32_t));
+	buffer_read(buffer, &interrupcion->motivo, sizeof(MOTIVO_INTERRUPCION));
+	return interrupcion;
+}
+
+void enviar_motivo_desalojo(MOTIVO_DESALOJO motivo, uint32_t socket)
+{
+	send(socket, &motivo, sizeof(MOTIVO_DESALOJO), 0);
+}
+
+MOTIVO_DESALOJO recibir_motivo_desalojo(uint32_t socket_cliente)
+{
+	MOTIVO_DESALOJO motivo;
+	if (recv(socket_cliente, &motivo, sizeof(MOTIVO_DESALOJO), MSG_WAITALL) > 0)
+	{
+		return motivo;
+	}
+	else
+	{
+		close(socket_cliente);
+		return -1;
+	}
+}
+
+MOTIVO_DESALOJO motivo_interrupcion_to_motivo_desalojo(MOTIVO_INTERRUPCION motivo)
+{
+	switch (motivo)
+	{
+	case CLOCK:
+		return INTERRUPCION_CLOCK;
+	default:
+		return -1;
 	}
 }

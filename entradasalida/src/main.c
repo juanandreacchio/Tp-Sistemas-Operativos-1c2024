@@ -116,7 +116,7 @@ void *iniciar_conexion_memoria(void *arg)
 void *atender_cliente(int socket_cliente)
 {
     t_paquete *paquete = recibir_paquete(socket_cliente);  
-    t_instruccion *instruccion = instruccion_deserializar(paquete->buffer); // se deberia pasar el offset tmb
+    t_instruccion *instruccion = instruccion_deserializar(paquete->buffer, 0); // se deberia pasar el offset tmb
 
     if(instruccion == NULL){
         log_info(logger_entradasalida, "Se recibio una instruccion vacia");

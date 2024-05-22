@@ -16,11 +16,14 @@ int contador_pcbs, identificador_pid = 1;
 int grado_multiprogramacion;
 uint32_t contador_pid;
 int quantum;
+t_dictionary *colas_blocked;
 
 pthread_mutex_t mutex_pid;
 pthread_mutex_t mutex_cola_de_readys;
+pthread_mutex_t mutex_proceso_en_ejecucion;
 sem_t contador_grado_multiprogramacion;
 t_list *lista_procesos_ready;
+t_pcb *pcb_en_ejecucion;
 
 //-----------------varaibles globales------------------
 int grado_multiprogramacion = 5;
@@ -29,6 +32,7 @@ int main(void)
 {
     iniciar_config();
     lista_procesos_ready = list_create();
+    colas_blocked = dictionary_create();
     sem_init(&contador_grado_multiprogramacion, 0, grado_multiprogramacion);
     
     // iniciar conexion con Kernel
@@ -85,6 +89,7 @@ void *atender_cliente(void *socket_cliente)
     case ENTRADA_SALIDA:
         char* nombre_entrada_salida = recibir_mensaje_guardar_variable(*(int*)socket_cliente);
         log_info(logger_kernel, "Se conecto la I/O llamda: %s",nombre_entrada_salida);
+        dictionary_put(colas_blocked, nombre_entrada_salida, crear_cola_de_bloqueados_de_interfaz());
         break;
     default:
         log_info(logger_kernel, "Se recibio un mensaje de un modulo desconocido");
@@ -184,9 +189,6 @@ void ejecutar_comando(char *comando)
 
         eliminar_paquete(paquete);
 
-        //de prueba 
-        enviar_pcb(pcb_creado,conexion_dispatch);
-
     }
     else if (strcmp(consola[0], "FINALIZAR_PROCESO") == 0)
     {
@@ -218,6 +220,33 @@ void ejecutar_comando(char *comando)
     string_array_destroy(consola);
 }
 
+void crear_cola_de_bloqueados_de_interfaz()
+{
+    t_cola_bloqueados_io* cola_bloqueados_io = malloc(sizeof(t_cola_bloqueados_io));
+    cola_bloqueados_io->lista_instrucciones = list_create();
+    return cola_bloqueados_io;
+}
+
 
 // Planificacion
 
+void ejecutar_PCB(t_pcb *pcb){
+    setear_pcb_en_ejecucion(pcb);
+    enviar_pcb(pcb, conexion_dispatch);
+    log_info(logger_kernel, "Se envio el PCB con PID %d a CPU Dispatch", pcb->pid);
+    MOTIVO_DESALOJO motivo = recibir_motivo_desalojo(conexion_dispatch);
+    t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
+    destruir_pcb(pcb);
+}
+
+void setear_pcb_en_ejecucion(t_pcb * pcb){
+    pcb->estado_actual = EXEC;
+
+    pthread_mutex_lock(&mutex_proceso_en_ejecucion);
+    pcb_en_ejecucion = pcb;
+    pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
+
+    pthread_mutex_lock(&mutex_cola_de_readys);
+    list_remove_by_condition(lista_procesos_ready, pcb->pid);
+    pthread_mutex_unlock(&mutex_cola_de_readys);
+}

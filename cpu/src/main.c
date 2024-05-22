@@ -12,30 +12,31 @@ u_int32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_interrupt;
 int socket_servidor_dispatch, socket_servidor_interrupt;
 pthread_t hilo_dispatch, hilo_interrupt;
 t_registros registros_cpu;
+t_interrupcion *interrupcion_recibida;
 
 //------------------------variables globales----------------
 u_int8_t interruption_flag = 0;
-u_int8_t end_process = 0; 
+u_int8_t end_process = 0;
 
 // ------------------------- MAIN---------------------------
 
- int main(void)
+int main(void)
 {
-	iniciar_config();
+    iniciar_config();
 
- 	conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
- 	enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
+    conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
+    enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
 
- 	 //iniciar servidor Dispatch y Interrupt
- 	pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
- 	pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
+    // iniciar servidor Dispatch y Interrupt
+    pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
+    pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
 
- 	pthread_join(hilo_dispatch, NULL);
- 	pthread_join(hilo_interrupt, NULL);
+    pthread_join(hilo_dispatch, NULL);
+    pthread_join(hilo_interrupt, NULL);
 
     liberar_conexion(socket_servidor_interrupt);
-    terminar_programa(socket_servidor_dispatch,logger_cpu, config_cpu);
- }
+    terminar_programa(socket_servidor_dispatch, logger_cpu, config_cpu);
+}
 
 //------------------------CONFIG------------------------
 
@@ -60,9 +61,8 @@ void *iniciar_servidor_dispatch(void *arg)
         recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
 
         t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
-        printf("recibi el proceso:%d",pcb->pid);
-        comenzar_proceso(pcb,conexion_memoria,conexion_kernel_dispatch);
-
+        printf("recibi el proceso:%d", pcb->pid);
+        comenzar_proceso(pcb, conexion_memoria, conexion_kernel_dispatch);
     }
     return NULL;
 }
@@ -76,29 +76,30 @@ void *iniciar_servidor_interrupt(void *arg)
     {
         conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
         log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Interrupt", cod_op_to_string(recibir_operacion(conexion_kernel_interrupt)));
-        recibir_mensaje(conexion_kernel_interrupt, logger_cpu);
+        t_paquete *respuesta_kernel = recibir_paquete(conexion_kernel_interrupt);
 
-        int cod_op = recibir_operacion(conexion_kernel_interrupt);
-        if(cod_op == INTERRUPTION){
+        int cod_op = respuesta_kernel->codigo_operacion;
+        if (cod_op == INTERRUPTION)
+        {
             log_info(logger_cpu, "Ocurrio una interrupcion");
-            interruption_flag = 1;//le ponemos un mutex? proique me aprece que es concurrente este hilo con el otro y podria esto modificarse jsuto cunado el otro esta ejecutando duduoso igual no lo pense tanto
+            interrupcion_recibida = deserializar_interrupcion(respuesta_kernel->buffer);
         }
-        else {
+        else
+        {
             log_info(logger_cpu, "operacion desconocida dentro de interrupciones");
         }
-
-
     }
     return NULL;
 }
 
-
- void accion_interrupt(t_pcb *pcb, int socket){
+void accion_interrupt(t_pcb *pcb, MOTIVO_INTERRUPCION motivo, int socket)
+{
     interruption_flag = 0;
     log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion");
-    enviar_pcb(pcb,socket);
- }
-
+    MOTIVO_DESALOJO motivo_desalojo = motivo_interrupcion_to_motivo_desalojo(motivo);
+    enviar_motivo_desalojo(motivo_desalojo, socket);
+    enviar_pcb(pcb, socket);
+}
 
 void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *registros_cpu)
 {
@@ -127,6 +128,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *regis
     case IO_STDOUT_WRITE:
         break;
     case IO_GEN_SLEEP:
+        enviar_mensaje("Che, peticion de IO", conexion_kernel_dispatch, PRUEBA, logger_cpu);
         break;
     case IO_FS_DELETE:
         break;
@@ -164,14 +166,12 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
     buffer_add(buffer, &pid, sizeof(uint32_t));
     buffer_add(buffer, pc, sizeof(uint32_t));
     paquete->buffer = buffer;
-    
 
     enviar_paquete(paquete, conexionParam);
 
     log_info(logger_cpu, "Se envio la solicitud de instruccion a memoria con pid: %d y pc: %d", pid, *pc);
 
     t_paquete *respuesta_memoria = recibir_paquete(conexionParam);
-
 
     if (respuesta_memoria->codigo_operacion != INSTRUCCION)
     {
@@ -182,40 +182,57 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
     }
 
     t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer, 0);
-    
-/*
-    // en la consigna dice "si corresponde" abria que fijarse porque creo que si hay intenrrpucion no c hace
-    *pc += 1; // Nosé si está bien así
-    no va mas proque el que lo avanza es la funcion de siguiente_isntruccion
-    */
-    
+
+    /*
+        // en la consigna dice "si corresponde" abria que fijarse porque creo que si hay intenrrpucion no c hace
+        *pc += 1; // Nosé si está bien así
+        no va mas proque el que lo avanza es la funcion de siguiente_isntruccion
+        */
+
     eliminar_paquete(paquete);
     eliminar_paquete(respuesta_memoria);
     return instruccion;
 }
 
-t_instruccion *siguiente_instruccion(t_pcb *pcb,int socket)
+bool check_interrupt(uint32_t pid)
 {
-	
-	t_instruccion *instruccion = fetch_instruccion(pcb->pid,&pcb->pc,socket);
-	pcb->pc += 1;
-	return instruccion;
+    return interrupcion_recibida->pid == pid;
 }
 
-void comenzar_proceso(t_pcb* pcb,int socket_Memoria,int socket_Kernel){
+t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
+{
+
+    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &pcb->pc, socket);
+    pcb->pc += 1;
+    return instruccion;
+}
+
+void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
+{
     t_instruccion *instruccion = malloc(sizeof(t_instruccion));
-    while(interruption_flag != 1 && end_process != 1 /*&& input_ouput != 1 && page_fault != 1 && sigsegv != 1*/){
-        instruccion = siguiente_instruccion(pcb,socket_Memoria);
-        decode_y_execute_instruccion(instruccion,&pcb->registros);
+    while (interruption_flag != 1 && end_process != 1 /*&& input_ouput != 1 && page_fault != 1 && sigsegv != 1*/)
+    {
+        instruccion = siguiente_instruccion(pcb, socket_Memoria);
+        decode_y_execute_instruccion(instruccion, &pcb->registros);
+        if (check_interrupt(pcb->pid))
+            interruption_flag = 1;
+        else
+        {
+            interrupcion_recibida = NULL;
+        }
     }
-        imprimir_registros_por_pantalla(pcb->registros);
+    imprimir_registros_por_pantalla(pcb->registros);
     if (interruption_flag == 1)
-        accion_interrupt(pcb,socket_Kernel);
-    
-    if(end_process == 1){
+    {
+
+        accion_interrupt(pcb, interrupcion_recibida->motivo, socket_Kernel);
+    }
+
+    if (end_process == 1)
+    {
         end_process = 0;
         interruption_flag = 0;
-        enviar_pcb(pcb,socket_Kernel);
+        enviar_pcb(pcb, socket_Kernel);
     }
-        
 }
+

@@ -30,9 +30,27 @@ typedef enum
 	MEMORIA,
 	ENTRADA_SALIDA,
 	PCB,
-	INTERRUPTION
+	INTERRUPTION,
+	PRUEBA
 
 } op_code;
+
+typedef enum{
+	CLOCK
+} MOTIVO_INTERRUPCION;
+
+typedef struct{
+	uint32_t pid;
+	MOTIVO_INTERRUPCION motivo;
+} t_interrupcion;
+
+
+
+typedef enum{
+	END_PROCESS,
+	INTERRUPCION_CLOCK
+} MOTIVO_DESALOJO;
+
 
 typedef struct
 {
@@ -194,4 +212,9 @@ void imprimir_proceso(t_proceso* proceso);
 t_list* parsear_instrucciones(FILE* archivo_instrucciones) ;
 t_identificador string_to_identificador (char *string);
 void imprimir_lista_de_procesos(t_list *lista_procesos);
+t_interrupcion *deserializar_interrupcion(t_buffer *buffer);
+t_buffer *serializar_interrupcion(t_interrupcion *interrupcion);
+void enviar_motivo_desalojo(MOTIVO_DESALOJO motivo, uint32_t socket);
+MOTIVO_DESALOJO recibir_motivo_desalojo(uint32_t socket_cliente);
+MOTIVO_DESALOJO motivo_interrupcion_to_motivo_desalojo(MOTIVO_INTERRUPCION motivo);
 #endif /* UTILS_H_ */

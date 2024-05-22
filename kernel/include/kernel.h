@@ -12,6 +12,18 @@
 #include <../include/utils.h>
 #include <semaphore.h>
 
+typedef struct 
+{
+    char *nombre_interfaz;
+    t_list *lista_instrucciones;
+} t_cola_bloqueados_io;
+
+typedef struct{
+    uint32_t pid;
+    t_instruccion *instruccion;
+} t_instruccion_bloqueada_en_io;
+
+
 extern t_list *lista_procesos_ready;
 extern t_config *config_kernel;
 
