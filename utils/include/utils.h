@@ -32,7 +32,15 @@ typedef enum
 	ENTRADA_SALIDA,
 	PCB,
 	INTERRUPTION,
-	PRUEBA
+	PRUEBA,
+	INTERFAZ_DIALFS,
+	INTERFAZ_STDIN,
+	INTERFAZ_STDOUT,
+	INTERFAZ_GENERICA,
+	FIN_OPERACION_IO,
+	END_PROCESS,
+	FIN_CLOCK,
+	OPERACION_IO
 
 } op_code;
 
@@ -44,13 +52,6 @@ typedef struct{
 	uint32_t pid;
 	MOTIVO_INTERRUPCION motivo;
 } t_interrupcion;
-
-
-
-typedef enum{
-	END_PROCESS,
-	INTERRUPCION_CLOCK
-} MOTIVO_DESALOJO;
 
 
 typedef struct
@@ -160,6 +161,18 @@ typedef struct
 	uint32_t pc;
 } t_solicitudInstruccionEnMemoria;
 
+typedef struct{
+	uint32_t conexion;
+	cod_interfaz tipo_interfaz;
+} t_interfaz_en_kernel;
+
+typedef enum
+{
+	GENERICA,
+	STDIN,
+	STDOUT,
+	DIALFS
+}cod_interfaz;
 
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);

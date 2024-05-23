@@ -19,7 +19,7 @@ typedef enum
 	GENERICA,
 	STDIN,
 	STDOUT,
-	DialFS
+	DIALFS
 }cod_interfaz;
 
 extern t_log *logger_entradasalida;

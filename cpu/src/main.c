@@ -17,6 +17,7 @@ t_interrupcion *interrupcion_recibida;
 //------------------------variables globales----------------
 u_int8_t interruption_flag = 0;
 u_int8_t end_process = 0;
+u_int8_t input_ouput = 0;
 
 // ------------------------- MAIN---------------------------
 
@@ -101,25 +102,25 @@ void accion_interrupt(t_pcb *pcb, MOTIVO_INTERRUPCION motivo, int socket)
     enviar_pcb(pcb, socket);
 }
 
-void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *registros_cpu)
+void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
 {
     switch (instruccion->identificador)
     {
     case SET:
-        set_registro(registros_cpu, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+        set_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
         break;
     case MOV_IN:
         break;
     case MOV_OUT:
         break;
     case SUM:
-        sum_registro(registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
+        sum_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
         break;
     case SUB:
-        sub_registro(registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
+        sub_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
         break;
     case JNZ:
-        JNZ_registro(registros_cpu, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+        JNZ_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
         break;
     case IO_FS_TRUNCATE:
         break;
@@ -128,7 +129,21 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *regis
     case IO_STDOUT_WRITE:
         break;
     case IO_GEN_SLEEP:
-        enviar_mensaje("Che, peticion de IO", conexion_kernel_dispatch, PRUEBA, logger_cpu);
+        // t_paquete *paquete = crear_paquete(OPERACION_IO);
+        // // enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        // t_buffer *buffer = serializar_interrupcion(instruccion);
+        // enviar_paquete(paquete, conexion_kernel_dispatch);
+        // enviar_pcb(pcb, conexion_kernel_dispatch);
+        enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
+
+        t_paquete *paquete = crear_paquete(OPERACION_IO);
+        paquete->buffer = serializar_instruccion(instruccion);
+        enviar_paquete(paquete, conexion_kernel_dispatch);
+        input_ouput = 1;
+        
+
+        //enviar_mensaje("Che, peticion de IO", conexion_kernel_dispatch, PRUEBA, logger_cpu);
         break;
     case IO_FS_DELETE:
         break;
@@ -210,10 +225,10 @@ t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 {
     t_instruccion *instruccion = malloc(sizeof(t_instruccion));
-    while (interruption_flag != 1 && end_process != 1 /*&& input_ouput != 1 && page_fault != 1 && sigsegv != 1*/)
+    while (interruption_flag != 1 && end_process != 1 && input_ouput != 1  /* && page_fault != 1 && sigsegv != 1*/)
     {
         instruccion = siguiente_instruccion(pcb, socket_Memoria);
-        decode_y_execute_instruccion(instruccion, &pcb->registros);
+        decode_y_execute_instruccion(instruccion, pcb);
         if (check_interrupt(pcb->pid))
             interruption_flag = 1;
         else

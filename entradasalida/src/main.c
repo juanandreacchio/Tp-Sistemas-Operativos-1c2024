@@ -70,7 +70,7 @@ void iniciar_config(char* ruta)
     } else if (strcmp(tipo_interfaz_str, "STDOUT") == 0) {
         tipo_interfaz = STDOUT;
     } else if (strcmp(tipo_interfaz_str, "DialFS") == 0) {
-        tipo_interfaz = DialFS;
+        tipo_interfaz = DIALFS;
     } else {
         printf("Tipo de interfaz desconocido: %s\n", tipo_interfaz_str);
         exit(3);
@@ -93,11 +93,8 @@ void *iniciar_conexion_kernel(void *arg)
     enviar_mensaje(interfaz_creada->nombre , socket_conexion_kernel, ENTRADA_SALIDA, logger_entradasalida);
     while (1)
     {   
-        conexion_kernel = esperar_cliente(socket_conexion_kernel, logger_entradasalida); 
-        log_info(logger_entradasalida, "Servidor en espera");
-        recibir_mensaje(socket_conexion_kernel, logger_entradasalida);
-        atender_cliente(conexion_kernel);
-        enviar_mensaje("", socket_conexion_kernel, ENTRADA_SALIDA, logger_entradasalida); // mensaje avisando que termine
+        atender_cliente(socket_conexion_kernel);
+        enviar_mensaje("", socket_conexion_kernel, FIN_OPERACION_IO, logger_entradasalida); // mensaje avisando que termine
     }
     return NULL;
 }
@@ -122,34 +119,18 @@ void *atender_cliente(int socket_cliente)
         log_info(logger_entradasalida, "Se recibio una instruccion vacia");
         return NULL;
     }
-
-    switch((int)(long int)tipo_interfaz) {
+    
+    switch(tipo_interfaz) {
         case GENERICA:
-            if (instruccion->identificador == IO_GEN_SLEEP){
-                log_info(logger_entradasalida, "Se recibio una instruccion IO_GEN_SLEEP");
                 usleep(atoi(instruccion->parametros[1]) * atoi(tiempo_unidad_trabajo) * 1000);     // *1000 para pasarlo a microsegundos
-            }
-            else {
-                log_info(logger_entradasalida, "No se puede procesar la instruccion");
-            }
             break;
         case STDIN:
-            if (instruccion->identificador == IO_STDIN_READ){
-                log_info(logger_entradasalida, "Se recibio una instruccion IO_STDIN_READ");
-            }
-            else {
-                log_info(logger_entradasalida, "No se puede procesar la instruccion");
-            }
+            
             break;
         case STDOUT:
-            if (instruccion->identificador == IO_STDOUT_WRITE){
-                log_info(logger_entradasalida, "Se recibio una instruccion IO_STDOUT_WRITE");
-            }
-            else {
-                log_info(logger_entradasalida, "No se puede procesar la instruccion");
-            }
+           
             break;
-        case DialFS:
+        case DIALFS:
             switch(instruccion->identificador){
                 case IO_FS_CREATE:
                     log_info(logger_entradasalida, "Se recibio una instruccion IO_FS_CREATE");
@@ -175,3 +156,20 @@ void *atender_cliente(int socket_cliente)
     
     return NULL;
 }
+
+op_code tipo_interfaz_to_cod_op(cod_interfaz tipo){
+    switch (tipo)
+    {
+    case GENERICA:
+        return INTERFAZ_GENERICA;
+    case STDIN:
+        return INTERFAZ_STDIN;
+    case STDOUT:
+        return INTERFAZ_STDOUT;
+    case DIALFS:
+        return INTERFAZ_DIALFS;
+    default:
+        break;
+    }
+}
+
