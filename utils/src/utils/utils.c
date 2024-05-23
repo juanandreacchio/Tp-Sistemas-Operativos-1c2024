@@ -1051,15 +1051,15 @@ t_interrupcion *deserializar_interrupcion(t_buffer *buffer)
 	return interrupcion;
 }
 
-void enviar_motivo_desalojo(MOTIVO_DESALOJO motivo, uint32_t socket)
+void enviar_motivo_desalojo(op_code motivo, uint32_t socket)
 {
-	send(socket, &motivo, sizeof(MOTIVO_DESALOJO), 0);
+	send(socket, &motivo, sizeof(op_code), 0);
 }
 
-MOTIVO_DESALOJO recibir_motivo_desalojo(uint32_t socket_cliente)
+op_code recibir_motivo_desalojo(uint32_t socket_cliente)
 {
-	MOTIVO_DESALOJO motivo;
-	if (recv(socket_cliente, &motivo, sizeof(MOTIVO_DESALOJO), MSG_WAITALL) > 0)
+	op_code motivo;
+	if (recv(socket_cliente, &motivo, sizeof(op_code), MSG_WAITALL) > 0)
 	{
 		return motivo;
 	}
@@ -1070,7 +1070,7 @@ MOTIVO_DESALOJO recibir_motivo_desalojo(uint32_t socket_cliente)
 	}
 }
 
-MOTIVO_DESALOJO motivo_interrupcion_to_motivo_desalojo(MOTIVO_INTERRUPCION motivo)
+op_code motivo_interrupcion_to_motivo_desalojo(MOTIVO_INTERRUPCION motivo)
 {
 	switch (motivo)
 	{

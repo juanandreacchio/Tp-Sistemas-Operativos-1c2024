@@ -97,7 +97,7 @@ void accion_interrupt(t_pcb *pcb, MOTIVO_INTERRUPCION motivo, int socket)
 {
     interruption_flag = 0;
     log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion");
-    MOTIVO_DESALOJO motivo_desalojo = motivo_interrupcion_to_motivo_desalojo(motivo);
+    op_code motivo_desalojo = motivo_interrupcion_to_motivo_desalojo(motivo);
     enviar_motivo_desalojo(motivo_desalojo, socket);
     enviar_pcb(pcb, socket);
 }
@@ -141,7 +141,6 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         paquete->buffer = serializar_instruccion(instruccion);
         enviar_paquete(paquete, conexion_kernel_dispatch);
         input_ouput = 1;
-        
 
         //enviar_mensaje("Che, peticion de IO", conexion_kernel_dispatch, PRUEBA, logger_cpu);
         break;

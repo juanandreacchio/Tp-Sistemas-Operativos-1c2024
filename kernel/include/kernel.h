@@ -12,11 +12,7 @@
 #include <../include/utils.h>
 #include <semaphore.h>
 
-typedef struct 
-{
-    char *nombre_interfaz;
-    t_list *lista_instrucciones;
-} t_cola_bloqueados_io;
+
 
 typedef struct{
     uint32_t pid;
@@ -47,7 +43,8 @@ extern int quantum;
 extern pthread_mutex_t mutex_pid;
 extern pthread_mutex_t mutex_cola_de_readys;
 extern sem_t contador_grado_multiprogramacion;
-extern t_list *lista_procesos_ready;
+extern t_queue *lista_procesos_ready;
+extern t_queue *lista_procesos_new;
 
 void iniciar_config();
 void *iniciar_consola_interactiva(); 

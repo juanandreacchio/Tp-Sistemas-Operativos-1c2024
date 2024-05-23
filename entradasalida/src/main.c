@@ -123,6 +123,7 @@ void *atender_cliente(int socket_cliente)
     switch(tipo_interfaz) {
         case GENERICA:
                 usleep(atoi(instruccion->parametros[1]) * atoi(tiempo_unidad_trabajo) * 1000);     // *1000 para pasarlo a microsegundos
+                enviar_codigo_operacion(IO_SUCCESS,socket_cliente);
             break;
         case STDIN:
             

@@ -17,7 +17,6 @@
 #include <semaphore.h>
 #include <commons/collections/queue.h>
 
-
 #define SIZE_REGISTROS 32
 
 extern sem_t semaforo;
@@ -40,19 +39,22 @@ typedef enum
 	FIN_OPERACION_IO,
 	END_PROCESS,
 	FIN_CLOCK,
-	OPERACION_IO
+	OPERACION_IO,
+	IO_SUCCESS,
+	EJECUTAR_IO
 
 } op_code;
 
-typedef enum{
+typedef enum
+{
 	CLOCK
 } MOTIVO_INTERRUPCION;
 
-typedef struct{
+typedef struct
+{
 	uint32_t pid;
 	MOTIVO_INTERRUPCION motivo;
 } t_interrupcion;
-
 
 typedef struct
 {
@@ -73,12 +75,12 @@ typedef enum
 	READY,
 	EXEC,
 	BLOCKED,
-	TERMINATED //cambie de exit a salida porque esta tambien declarado como isntruccion
+	TERMINATED // cambie de exit a salida porque esta tambien declarado como isntruccion
 } estados;
 typedef struct
 {
-	uint8_t AX, BX, CX, DX;					 
-	uint32_t EAX, EBX, ECX, EDX, SI, DI, PC; 
+	uint8_t AX, BX, CX, DX;
+	uint32_t EAX, EBX, ECX, EDX, SI, DI, PC;
 } t_registros;
 
 typedef struct
@@ -131,28 +133,30 @@ typedef struct
 
 } t_instruccion;
 
-typedef struct {
+typedef struct
+{
 	uint32_t pid;
 	uint32_t path_length;
-	char* path;
+	char *path;
 } t_solicitudCreacionProcesoEnMemoria;
 
-typedef struct {
-    void* contenido;
-    int pagina;
+typedef struct
+{
+	void *contenido;
+	int pagina;
 } t_pagina;
 
-typedef struct {
-    t_pagina** tabla_paginas;
+typedef struct
+{
+	t_pagina **tabla_paginas;
 } t_tabla_paginas;
-
 
 typedef struct
 {
 	uint32_t pid;
 	// char* path;
-    t_list * lista_instrucciones;
-    t_tabla_paginas* tabla_paginas;
+	t_list *lista_instrucciones;
+	t_tabla_paginas *tabla_paginas;
 } t_proceso;
 
 typedef struct
@@ -161,7 +165,8 @@ typedef struct
 	uint32_t pc;
 } t_solicitudInstruccionEnMemoria;
 
-typedef struct{
+typedef struct
+{
 	uint32_t conexion;
 	cod_interfaz tipo_interfaz;
 } t_interfaz_en_kernel;
@@ -172,8 +177,20 @@ typedef enum
 	STDIN,
 	STDOUT,
 	DIALFS
-}cod_interfaz;
+} cod_interfaz;
 
+typedef struct
+{
+	t_instruccion *instruccion_io;
+	uint32_t pid;
+} t_instruccionEnIo;
+
+typedef struct
+{
+	pthread_mutex_t mutex;
+	sem_t instruccion_en_cola;
+	semt_t binario_io_libre;
+} t_semaforosIO;
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
@@ -187,7 +204,7 @@ void sub_registro(t_registros *registros, char *registroOrigen, char *registroDe
 void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
 void imprimir_registros_por_pantalla(t_registros registros);
 t_pcb *crear_pcb(u_int32_t pid, u_int32_t quantum, estados estado);
-t_pcb *recibir_pcb( int socket);
+t_pcb *recibir_pcb(int socket);
 void destruir_pcb(t_pcb *pcb);
 void enviar_pcb(t_pcb *pcb, int socket);
 t_log *iniciar_logger(char *path, char *nombre, t_log_level nivel);
@@ -201,7 +218,7 @@ void enviar_paquete(t_paquete *paquete, int socket_cliente);
 char *recibir_mensaje_guardar_variable(int socket_cliente);
 
 void enviar_mensaje(char *mensaje, int socket_cliente, op_code codigo_operaciom, t_log *logger);
-void enviar_codigo_operacion(op_code code,int socket);
+void enviar_codigo_operacion(op_code code, int socket);
 void eliminar_paquete(t_paquete *paquete);
 op_code recibir_operacion(int socket_cliente);
 void *recibir_buffer(int *size, int socket_cliente);
@@ -212,19 +229,19 @@ void buffer_add(t_buffer *buffer, void *data, uint32_t size);
 t_buffer *crear_buffer();
 void destruir_buffer(t_buffer *buffer);
 t_buffer *serializar_instruccion(t_instruccion *instruccion);
-t_instruccion *instruccion_deserializar(t_buffer *buffer,u_int32_t offset);
+t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset);
 t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones);
-t_list *deserializar_lista_instrucciones(t_buffer *buffer,u_int32_t offset);
+t_list *deserializar_lista_instrucciones(t_buffer *buffer, u_int32_t offset);
 void imprimir_instruccion(t_instruccion instruccion);
 void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion);
 void destruir_instruccion(t_instruccion *instruccion);
 
 t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros);
-t_buffer* serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria* solicitud);
-t_solicitudCreacionProcesoEnMemoria* deserializar_solicitud_crear_proceso(t_buffer *buffer);
-void imprimir_proceso(t_proceso* proceso);
-t_list* parsear_instrucciones(FILE* archivo_instrucciones) ;
-t_identificador string_to_identificador (char *string);
+t_buffer *serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria *solicitud);
+t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buffer *buffer);
+void imprimir_proceso(t_proceso *proceso);
+t_list *parsear_instrucciones(FILE *archivo_instrucciones);
+t_identificador string_to_identificador(char *string);
 void imprimir_lista_de_procesos(t_list *lista_procesos);
 t_interrupcion *deserializar_interrupcion(t_buffer *buffer);
 t_buffer *serializar_interrupcion(t_interrupcion *interrupcion);
