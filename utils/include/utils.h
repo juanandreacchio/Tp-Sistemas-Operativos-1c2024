@@ -15,6 +15,7 @@
 #include <pthread.h>
 #include <errno.h>
 #include <semaphore.h>
+#include <commons/collections/queue.h>
 
 
 #define SIZE_REGISTROS 32
