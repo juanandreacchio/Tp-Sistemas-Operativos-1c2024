@@ -93,12 +93,11 @@ void *iniciar_servidor_interrupt(void *arg)
     return NULL;
 }
 
-void accion_interrupt(t_pcb *pcb, MOTIVO_INTERRUPCION motivo, int socket)
+void accion_interrupt(t_pcb *pcb, op_code motivo, int socket)
 {
     interruption_flag = 0;
     log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion");
-    op_code motivo_desalojo = motivo_interrupcion_to_motivo_desalojo(motivo);
-    enviar_motivo_desalojo(motivo_desalojo, socket);
+    enviar_motivo_desalojo(motivo, socket);
     enviar_pcb(pcb, socket);
 }
 
@@ -238,7 +237,6 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
     imprimir_registros_por_pantalla(pcb->registros);
     if (interruption_flag == 1)
     {
-
         accion_interrupt(pcb, interrupcion_recibida->motivo, socket_Kernel);
     }
 

@@ -1038,7 +1038,7 @@ t_buffer *serializar_interrupcion(t_interrupcion *interrupcion)
 {
 	t_buffer *buffer = crear_buffer();
 	buffer_add(buffer, &interrupcion->pid, sizeof(uint32_t));
-	buffer_add(buffer, &interrupcion->motivo, sizeof(MOTIVO_INTERRUPCION));
+	buffer_add(buffer, &interrupcion->motivo, sizeof(op_code));
 	return buffer;
 }
 
@@ -1047,7 +1047,7 @@ t_interrupcion *deserializar_interrupcion(t_buffer *buffer)
 	t_interrupcion *interrupcion = malloc(sizeof(t_interrupcion));
 	buffer->offset = 0;
 	buffer_read(buffer, &interrupcion->pid, sizeof(uint32_t));
-	buffer_read(buffer, &interrupcion->motivo, sizeof(MOTIVO_INTERRUPCION));
+	buffer_read(buffer, &interrupcion->motivo, sizeof(op_code));
 	return interrupcion;
 }
 
@@ -1070,13 +1070,15 @@ op_code recibir_motivo_desalojo(uint32_t socket_cliente)
 	}
 }
 
-op_code motivo_interrupcion_to_motivo_desalojo(MOTIVO_INTERRUPCION motivo)
+void *enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket)
 {
-	switch (motivo)
-	{
-	case CLOCK:
-		return INTERRUPCION_CLOCK;
-	default:
-		return -1;
-	}
+	t_interrupcion *interrupcion = malloc(sizeof(t_interrupcion));
+	interrupcion->motivo = interrupcion_code;
+	interrupcion->pid = pid;
+
+	t_paquete *paquete = crear_paquete(INTERRUPTION);
+	paquete->buffer = serializar_interrupcion(interrupcion);
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
 }

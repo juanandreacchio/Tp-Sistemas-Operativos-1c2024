@@ -11,7 +11,7 @@ char *puerto_dispatch;
 char *puerto_interrupt;
 char *algoritmo_planificacion;
 char *ip;
-u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt;
+u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt,flag_cpu_libre;;
 int socket_servidor_kernel, socket_cliente_kernel;
 int contador_pcbs, identificador_pid = 1;
 int grado_multiprogramacion;
@@ -30,15 +30,14 @@ pthread_mutex_t mutex_proceso_en_ejecucion;
 pthread_mutex_t mutex_interfaces_conectadas;
 pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de la cola de cada interfaz
 pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
-sem_t contador_grado_multiprogramacion;
-sem_t hay_proceso_a_ready;
-sem_t cpu_libre;
+sem_t contador_grado_multiprogramacion,hay_proceso_a_ready,cpu_libre,arrancar_quantum ;
 t_queue *cola_procesos_ready;
 t_queue *lista_procesos_new;
 t_list *lista_procesos_blocked; // lsita de los prccesos bloqueados
 t_pcb *pcb_en_ejecucion;
 pthread_t planificador_corto;
 pthread_t dispatch;
+pthread_t hilo_quantum;
 
 //-----------------varaibles globales------------------
 int grado_multiprogramacion;
@@ -57,6 +56,7 @@ int main(void)
     sem_init(&contador_grado_multiprogramacion, 0, grado_multiprogramacion);
     sem_init(&hay_proceso_a_ready, 0, 0);
     sem_init(&cpu_libre, 0, 1);
+    sem_init(&arrancar_quantum, 0, 0);
 
     // iniciar conexion con Kernel
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_kernel);
@@ -67,7 +67,6 @@ int main(void)
     conexion_interrupt = crear_conexion(ip_cpu, puerto_interrupt, logger_kernel);
     enviar_mensaje("", conexion_dispatch, KERNEL, logger_kernel);
     enviar_mensaje("", conexion_interrupt, KERNEL, logger_kernel);
-    // enviar_codigo_operacion(INTERRUPTION,conexion_interrupt);
 
     // iniciar Servidor
     socket_servidor_kernel = iniciar_servidor(logger_kernel, puerto_escucha, "KERNEL");
@@ -81,6 +80,13 @@ int main(void)
     pthread_t thread_consola;
     pthread_create(&thread_consola, NULL, (void *)iniciar_consola_interactiva, NULL);
     pthread_detach(thread_consola);
+
+    if(strcmp(algoritmo_planificacion,"RR")== 0)
+    {
+        log_info(logger_kernel,"iniciando quantum");
+        pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum, NULL);
+        pthread_detach(hilo_quantum);
+    }
 
     while (1)
     {
@@ -320,7 +326,7 @@ void planificar_run()
 
             ejecutar_PCB(pcb_a_ejecutar);
 
-            // sem_post(&sem_beggin_quantum);
+            sem_post(&arrancar_quantum);
         }
         else
         {
@@ -366,6 +372,7 @@ void *recibir_dispatch()
         op_code motivo_desalojo = recibir_motivo_desalojo(conexion_dispatch);
         t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
 
+        flag_cpu_libre = 1;//no c si tendir aque ir aca o en cada uno de los casos del motivo de desalojo que lo requieran 
         sem_post(&cpu_libre);
 
         switch (motivo_desalojo)
@@ -415,6 +422,10 @@ void *recibir_dispatch()
             // 3. sino nose
             break;
         case FIN_CLOCK:
+            set_add_pcb_cola(pcb_actualizado,READY,cola_procesos_ready,mutex_cola_de_readys);
+            break;
+        case KILL_PROCESS:
+           //TODO
             break;
         case END_PROCESS:
             sem_post(&contador_grado_multiprogramacion);
@@ -569,4 +580,44 @@ t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
         exit(1);
     }
     return pcb;
+}
+
+
+
+void *verificar_quantum()
+{
+    t_temporal *tiempo_transcurrido;
+    while(1)
+    {
+    sem_wait(&arrancar_quantum);//hay que inicializarlo en la funcioin que esta en TODO
+    
+    pthread_mutex_lock(&mutex_flag_cpu_libre);//hay que inicializarlo en la funcioin que esta en TODO
+    flag_cpu_libre = 0;
+    pthread_mutex_unlock(&mutex_flag_cpu_libre);
+
+    tiempo_transcurrido = temporal_create();
+
+        while(1)//esto tieene espera activa, poderiamso usar un  usleep(500); pero no c si es lo mejor
+                // depues tengop otra opcion usando combinación de semáforos y condicionales.
+        {   
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+           
+            if(temporal_gettime(tiempo_transcurrido)>=quantum)
+            {
+                log_info(logger_kernel, "FIN DE QUANTUM: MANDO INTERRUPCION");
+                enviar_interrupcion(pcb_en_ejecucion->pid,FIN_CLOCK,conexion_interrupt);
+                break;
+            }
+            if(flag_cpu_libre == 1) {
+                    
+                    log_info(logger_kernel, "NO LLEGUE AL FIN DE QUANTUM, APARECIO ALGO ANTES");
+                    temporal_destroy(clock);
+                    break;
+                }
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
+        }
+        temporal_destroy(tiempo_transcurrido);
+    }
+   
+    return NULL;
 }

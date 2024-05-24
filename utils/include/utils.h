@@ -16,6 +16,7 @@
 #include <errno.h>
 #include <semaphore.h>
 #include <commons/collections/queue.h>
+#include <commons/temporal.h>
 
 #define SIZE_REGISTROS 32
 
@@ -39,21 +40,20 @@ typedef enum
 	FIN_OPERACION_IO,
 	END_PROCESS,
 	FIN_CLOCK,
+	KILL_PROCESS,
 	OPERACION_IO,
 	IO_SUCCESS,
-	EJECUTAR_IO
+	EJECUTAR_IO,
+	INTERRUPCION_CLOCK,
+
 
 } op_code;
 
-typedef enum
-{
-	CLOCK
-} MOTIVO_INTERRUPCION;
 
 typedef struct
 {
 	uint32_t pid;
-	MOTIVO_INTERRUPCION motivo;
+	op_code motivo;
 } t_interrupcion;
 
 typedef struct
