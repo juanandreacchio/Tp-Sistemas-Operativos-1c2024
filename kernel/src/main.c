@@ -358,8 +358,9 @@ void *recibir_dispatch()
         op_code motivo_desalojo = recibir_motivo_desalojo(conexion_dispatch);
         t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
 
+        pthread_mutex_lock(&mutex_flag_cpu_libre);
         flag_cpu_libre = 1; // no c si tendir aque ir aca o en cada uno de los casos del motivo de desalojo que lo requieran
-        sem_post(&cpu_libre);
+        pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
         switch (motivo_desalojo)
         {
@@ -478,7 +479,7 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
     sem_init(&semaforos_interfaz->binario_io_libre, 0, 1);
 
     pthread_mutex_lock(&mutex_diccionario_interfaces_de_semaforos);
-    dictionary_put(diccionario_semaforos_io, nombre,semaforos_interfaz);
+    dictionary_put(diccionario_semaforos_io, nombre, semaforos_interfaz);
     pthread_mutex_unlock(&mutex_diccionario_interfaces_de_semaforos);
 }
 
@@ -556,9 +557,9 @@ void *verificar_quantum()
     t_temporal *tiempo_transcurrido;
     while (1)
     {
-        sem_wait(&arrancar_quantum); // hay que inicializarlo en la funcioin que esta en TODO
+        sem_wait(&arrancar_quantum);
 
-        pthread_mutex_lock(&mutex_flag_cpu_libre); // hay que inicializarlo en la funcioin que esta en TODO
+        pthread_mutex_lock(&mutex_flag_cpu_libre);
         flag_cpu_libre = 0;
         pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
@@ -568,23 +569,23 @@ void *verificar_quantum()
                   //  depues tengop otra opcion usando combinación de semáforos y condicionales.
         {
             pthread_mutex_lock(&mutex_flag_cpu_libre);
-
             if (temporal_gettime(tiempo_transcurrido) >= quantum)
             {
                 log_info(logger_kernel, "FIN DE QUANTUM: MANDO INTERRUPCION");
                 enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                break;
+                flag_cpu_libre = 1;
+                temporal_destroy(tiempo_transcurrido);
+                tiempo_transcurrido = NULL;
             }
-            if (flag_cpu_libre == 1)
+            else if (flag_cpu_libre == 1)
             {
-
                 log_info(logger_kernel, "NO LLEGUE AL FIN DE QUANTUM, APARECIO ALGO ANTES");
-                temporal_destroy(clock);
-                break;
+                temporal_destroy(tiempo_transcurrido);
+                tiempo_transcurrido = NULL;
             }
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
+
         }
-        temporal_destroy(tiempo_transcurrido);
     }
 
     return NULL;
