@@ -1,9 +1,6 @@
 #include <../include/utils.h>
-// uint32_t size_registros = sizeof(uint32_t) * 7 + sizeof(uint8_t) * 4;
 
 //----------------- FUNCIONES DE REGISTROS -------------------------------
-
-// TODO testear que todas estas funciones anden
 
 sem_t semaforo;
 
@@ -1081,4 +1078,55 @@ void *enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t sock
 	enviar_paquete(paquete, socket);
 
 	eliminar_paquete(paquete);
+}
+
+op_code tipo_interfaz_to_cod_op(cod_interfaz tipo){
+    switch (tipo)
+    {
+    case GENERICA:
+        return INTERFAZ_GENERICA;
+    case STDIN:
+        return INTERFAZ_STDIN;
+    case STDOUT:
+        return INTERFAZ_STDOUT;
+    case DIALFS:
+        return INTERFAZ_DIALFS;
+    default:
+        return -1;
+    }
+}
+
+cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op){
+	switch (cod_op)
+	{
+	case INTERFAZ_GENERICA:
+		return GENERICA;
+	case INTERFAZ_STDIN:
+		return STDIN;
+	case INTERFAZ_STDOUT:
+		return STDOUT;
+	case INTERFAZ_DIALFS:
+		return DIALFS;
+	default:
+		return -1;
+	}
+}
+
+t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion){
+	t_buffer *buffer = crear_buffer();
+	buffer_add(buffer, &instruccion->pid, sizeof(uint32_t));
+
+	t_buffer *buffer_instruccion = serializar_instruccion(instruccion->instruccion_io);
+	buffer_add(buffer, buffer_instruccion->stream, buffer_instruccion->size);
+	destruir_buffer(buffer_instruccion);
+
+	return buffer;
+}
+
+t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer){
+	t_instruccionEnIo *instruccion = malloc(sizeof(t_instruccionEnIo));
+	buffer->offset = 0;
+	buffer_read(buffer, &instruccion->pid, sizeof(uint32_t));
+	instruccion->instruccion_io = instruccion_deserializar(buffer, buffer->offset);
+	return instruccion;
 }

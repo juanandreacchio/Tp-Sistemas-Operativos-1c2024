@@ -2,19 +2,16 @@
 
 // inicializacion
 t_log *logger_entradasalida;
-uint32_t conexion_kernel;
-int socket_conexion_kernel, socket_conexion_memoria;
-
 t_config *config_entradasalida;
+
 char *ip_kernel;
 char *puerto_kernel;
 char *ip_memoria;
 char *puerto_memoria;
-cod_interfaz tipo_interfaz;
 char *tiempo_unidad_trabajo;
 pthread_t thread_memoria, thread_kernel;
-t_interfaz *interfaz_creada;
-
+cod_interfaz tipo_interfaz;
+int socket_conexion_kernel, socket_conexion_memoria;
 
                                                 //                                  <NOMBRE>          <RUTA>
 int main(int argc, char *argv[])                // se corre haciendo --> make start generica1 config/entradasalida.config
@@ -29,7 +26,7 @@ int main(int argc, char *argv[])                // se corre haciendo --> make st
 
     iniciar_config(ruta);
 
-    interfaz_creada = iniciar_interfaz(nombre, ruta);
+    t_interfaz *interfaz_creada = iniciar_interfaz(nombre, ruta);
             
     pthread_create(&thread_kernel, NULL, iniciar_conexion_kernel, interfaz_creada);
     pthread_join(thread_kernel, NULL);
@@ -41,7 +38,7 @@ int main(int argc, char *argv[])                // se corre haciendo --> make st
     }
 
     log_info(logger_entradasalida, "I/O %s terminada", interfaz_creada->nombre);
-    terminar_programa(conexion_kernel, logger_entradasalida, config_entradasalida);
+    terminar_programa(socket_conexion_kernel, logger_entradasalida, config_entradasalida);
     
     return 0;
 }
@@ -158,19 +155,5 @@ void *atender_cliente(int socket_cliente)
     return NULL;
 }
 
-op_code tipo_interfaz_to_cod_op(cod_interfaz tipo){
-    switch (tipo)
-    {
-    case GENERICA:
-        return INTERFAZ_GENERICA;
-    case STDIN:
-        return INTERFAZ_STDIN;
-    case STDOUT:
-        return INTERFAZ_STDOUT;
-    case DIALFS:
-        return INTERFAZ_DIALFS;
-    default:
-        break;
-    }
-}
+
 

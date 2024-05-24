@@ -14,16 +14,9 @@ typedef struct
     char* ruta_archivo; // archivo de configuracion
 }t_interfaz;
 
-typedef enum
-{
-	GENERICA,
-	STDIN,
-	STDOUT,
-	DIALFS
-}cod_interfaz;
 
 extern t_log *logger_entradasalida;
-extern uint32_t conexion_kernel, conexion_memoria;
+extern uint32_t int socket_conexion_kernel, socket_conexion_memoria;
 
 extern t_config *config_entradasalida;
 extern char *ip_kernel;
@@ -31,10 +24,15 @@ extern char *puerto_kernel;
 extern char *ip_memoria;
 extern char *puerto_memoria;
 extern pthread_t thread_memoria, thread_kernel;
+extern cod_interfaz tipo_interfaz;
 
+
+// ------------------------ FUNCIONES DE INICIO --------------------
 void iniciar_config();
 void *iniciar_conexion_kernel(void *arg);
 void *iniciar_conexion_memoria(void *arg);
 t_interfaz *iniciar_interfaz(char* nombre,char* ruta);
+
+// ------------------------ FUNCIONES DE EJECUCION --------------------
 void *atender_cliente(int socket_cliente);
 #endif

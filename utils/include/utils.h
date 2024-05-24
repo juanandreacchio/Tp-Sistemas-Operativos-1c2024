@@ -49,6 +49,14 @@ typedef enum
 
 } op_code;
 
+typedef enum
+{
+	GENERICA,
+	STDIN,
+	STDOUT,
+	DIALFS
+} cod_interfaz;
+
 
 typedef struct
 {
@@ -171,13 +179,7 @@ typedef struct
 	cod_interfaz tipo_interfaz;
 } t_interfaz_en_kernel;
 
-typedef enum
-{
-	GENERICA,
-	STDIN,
-	STDOUT,
-	DIALFS
-} cod_interfaz;
+
 
 typedef struct
 {
@@ -189,7 +191,7 @@ typedef struct
 {
 	pthread_mutex_t mutex;
 	sem_t instruccion_en_cola;
-	semt_t binario_io_libre;
+	sem_t binario_io_libre;
 } t_semaforosIO;
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
@@ -245,7 +247,10 @@ t_identificador string_to_identificador(char *string);
 void imprimir_lista_de_procesos(t_list *lista_procesos);
 t_interrupcion *deserializar_interrupcion(t_buffer *buffer);
 t_buffer *serializar_interrupcion(t_interrupcion *interrupcion);
-void enviar_motivo_desalojo(MOTIVO_DESALOJO motivo, uint32_t socket);
-MOTIVO_DESALOJO recibir_motivo_desalojo(uint32_t socket_cliente);
-MOTIVO_DESALOJO motivo_interrupcion_to_motivo_desalojo(MOTIVO_INTERRUPCION motivo);
+void enviar_motivo_desalojo(op_code motivo, uint32_t socket);
+op_code recibir_motivo_desalojo(uint32_t socket_cliente);
+void *enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket);
+cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
+t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer);
+t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion);
 #endif /* UTILS_H_ */

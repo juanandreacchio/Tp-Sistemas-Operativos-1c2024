@@ -7,23 +7,28 @@
 #include <commons/log.h>
 #include <../include/utils.h>
 
-
 extern t_log *logger_memoria;
 extern t_config *config_memoria;
-
 
 extern char *PUERTO_MEMORIA;
 extern int TAM_MEMORIA;
 extern int TAM_PAGINA;
 extern char *PATH_INSTRUCCIONES;
 extern int RETARDO_RESPUESTA;
+extern int NUM_PAGINAS;
 
 extern char *puerto_memoria;
-extern char *mensaje_recibido;
 extern int socket_servidor_memoria;
 
-void iterator(char* value);
+extern t_list *procesos_en_memoria;
+extern pthread_mutex_t mutex;
+
+// ---------------------------FUNCIONES DE INICIO-------------------------------------
 void iniciar_config();
-void* atender_cliente(void *socket_cliente);
+void iniciar_semaforos();
+void inciar_listas();
+
+// ---------------------------FUNCIONES DE ATENCION-------------------------------------
+void *atender_cliente(void *socket_cliente);
 
 #endif

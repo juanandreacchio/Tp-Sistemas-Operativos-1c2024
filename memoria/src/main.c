@@ -10,12 +10,9 @@ int RETARDO_RESPUESTA;
 
 int NUM_PAGINAS;
 
-
-
 t_log *logger_memoria;
 t_config *config_memoria;
 
-char *mensaje_recibido;
 int socket_servidor_memoria;
 
 t_list *procesos_en_memoria;
@@ -23,21 +20,14 @@ pthread_mutex_t mutex;
 
 //---------------------------variables globales-------------------------------------
 
-
-
 int main(int argc, char *argv[])
 {
 
-    procesos_en_memoria= list_create();
-    // logger memoria
-
-    // iniciar servidor
     iniciar_config();
+    iniciar_semaforos();
+    inciar_listas();
+
     socket_servidor_memoria = iniciar_servidor(logger_memoria, PUERTO_MEMORIA, "MEMORIA");
-
-    // crear_proceso(procesos, 5, "test.txt");
-
-    // imprimir_proceso(list_get(procesos, 0));
 
     while (1)
     {
@@ -69,80 +59,86 @@ void iniciar_config()
     NUM_PAGINAS = TAM_MEMORIA / TAM_PAGINA;
 }
 
-void iterator(char *value)
+void iniciar_semaforos()
 {
-    log_info(logger_memoria, "%s", value);
+    pthread_mutex_init(&mutex, NULL);
+}
+
+void inciar_listas()
+{
+    procesos_en_memoria = list_create();
 }
 
 void *atender_cliente(void *socket_cliente)
 {
     t_paquete *paquete = malloc(sizeof(t_paquete));
     paquete->buffer = malloc(sizeof(t_buffer));
-    
-    while (1){
-        
+
+    while (1)
+    {
+
         paquete = recibir_paquete((int)(long int)socket_cliente);
 
-        if (paquete == NULL) {
+        if (paquete == NULL)
+        {
             log_info(logger_memoria, "Se desconecto el cliente");
             break;
         }
-        //uint32_t pid, pc;
+        // uint32_t pid, pc;
         t_instruccion *instruccion = malloc(sizeof(t_instruccion));
-        
+
         op_code codigo_operacion = paquete->codigo_operacion;
         t_buffer *buffer = paquete->buffer;
-        printf("codigo de operacion: %s\n", cod_op_to_string(codigo_operacion) );
-        switch (codigo_operacion){
-            case KERNEL:
-                log_info(logger_memoria, "Se recibio un mensaje del modulo KERNEL");
-                break;
-            case CPU:
-                log_info(logger_memoria, "Se recibio un mensaje del modulo CPU");
-                break;
-            case ENTRADA_SALIDA:
-                log_info(logger_memoria, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
-                break;
-            case SOLICITUD_INSTRUCCION:
-                log_info(logger_memoria, "Se recibio una solicitud de instruccion");
-                t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
+        printf("codigo de operacion: %s\n", cod_op_to_string(codigo_operacion));
+        switch (codigo_operacion)
+        {
+        case KERNEL:
+            log_info(logger_memoria, "Se recibio un mensaje del modulo KERNEL");
+            break;
+        case CPU:
+            log_info(logger_memoria, "Se recibio un mensaje del modulo CPU");
+            break;
+        case ENTRADA_SALIDA:
+            log_info(logger_memoria, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
+            break;
+        case SOLICITUD_INSTRUCCION:
+            log_info(logger_memoria, "Se recibio una solicitud de instruccion");
+            t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
 
-                buffer_read(buffer, &(soli->pid), sizeof(uint32_t));
-                buffer_read(buffer,&(soli->pc), sizeof(uint32_t));
-                
-                printf("pid: %d\n", soli->pid);
-                printf("pc: %d\n", soli->pc);
-                instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
-    
-                paquete = crear_paquete(INSTRUCCION);
-                agregar_instruccion_a_paquete(paquete, instruccion);
+            buffer_read(buffer, &(soli->pid), sizeof(uint32_t));
+            buffer_read(buffer, &(soli->pc), sizeof(uint32_t));
 
-                t_buffer *buffer_prueba = paquete->buffer;
-                t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
-                
-                
-                enviar_paquete(paquete, (int)(long int)socket_cliente);
-                // Probar mandar algo al cliente
-                // sem_post(&semaforo);
-                destruir_instruccion(instruccion);
-                break;
-            case CREAR_PROCESO:
-                //char *path;
+            printf("pid: %d\n", soli->pid);
+            printf("pc: %d\n", soli->pc);
+            instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
 
-                t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+            paquete = crear_paquete(INSTRUCCION);
+            agregar_instruccion_a_paquete(paquete, instruccion);
 
-                solicitud = deserializar_solicitud_crear_proceso(buffer);
-                log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
-                t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
+            t_buffer *buffer_prueba = paquete->buffer;
+            t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
 
-                // imprimir_lista_de_procesos(procesos_en_memoria);
+            enviar_paquete(paquete, (int)(long int)socket_cliente);
+            // Probar mandar algo al cliente
+            // sem_post(&semaforo);
+            destruir_instruccion(instruccion);
+            break;
+        case CREAR_PROCESO:
+            // char *path;
 
-    
-                break;
-            default:
-                log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
-                // TODO: implementar
-                break;
+            t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+
+            solicitud = deserializar_solicitud_crear_proceso(buffer);
+            log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
+            t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
+
+            // imprimir_lista_de_procesos(procesos_en_memoria);
+
+            break;
+        default:
+            log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
+            // TODO: implementar
+            break;
         }
         eliminar_paquete(paquete);
     }
