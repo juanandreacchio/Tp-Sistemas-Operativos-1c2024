@@ -108,8 +108,7 @@ void *atender_cliente(void *socket_cliente)
             buffer_read(buffer, &(soli->pid), sizeof(uint32_t));
             buffer_read(buffer, &(soli->pc), sizeof(uint32_t));
 
-            printf("pid: %d\n", soli->pid);
-            printf("pc: %d\n", soli->pc);
+            printf("Busco isntruccion para pid %d y pc %d\n", soli->pid, soli->pc);
             instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
 
             paquete = crear_paquete(INSTRUCCION);
@@ -132,6 +131,8 @@ void *atender_cliente(void *socket_cliente)
             log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
 
+            printf("--------------------------PROCESO CREADO-----------------\n");
+            imprimir_lista_de_procesos(procesos_en_memoria);
             // imprimir_lista_de_procesos(procesos_en_memoria);
 
             break;

@@ -40,7 +40,8 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
     }
 
     log_info(logger_entradasalida, "I/O %s terminada", interfaz_creada->nombre);
-    terminar_programa(socket_conexion_kernel, logger_entradasalida, config_entradasalida);
+    config_destroy(config_entradasalida);
+    log_destroy(logger_entradasalida);
 
     return 0;
 }
@@ -97,7 +98,7 @@ t_interfaz *iniciar_interfaz(char *nombre, char *ruta)
 void *iniciar_conexion_kernel(void *arg)
 {
     socket_conexion_kernel = crear_conexion(ip_kernel, puerto_kernel, logger_entradasalida);
-    enviar_mensaje(interfaz_creada->nombre, socket_conexion_kernel, ENTRADA_SALIDA, logger_entradasalida);
+    enviar_mensaje(interfaz_creada->nombre, socket_conexion_kernel, tipo_interfaz_to_cod_op(tipo_interfaz), logger_entradasalida);
     while (1)
     {
         atender_cliente(socket_conexion_kernel);
@@ -109,7 +110,7 @@ void *iniciar_conexion_kernel(void *arg)
 void *iniciar_conexion_memoria(void *arg)
 {
     socket_conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_entradasalida);
-    enviar_mensaje(interfaz_creada->nombre, socket_conexion_kernel, tipo_interfaz_to_cod_op(tipo_interfaz), logger_entradasalida);
+    enviar_mensaje(interfaz_creada->nombre, socket_conexion_kernel, ENTRADA_SALIDA, logger_entradasalida);
     while (1)
     {
         // TODO: implementar
