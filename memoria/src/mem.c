@@ -51,29 +51,7 @@ void asignar_contenido_pagina(t_proceso* proceso, int numero_pagina, void* conte
 // --------------------- FUNCIONES DE PROCESO ---------------------
 // Función para crear un proceso y agregarlo a la lista de procesos
 
-t_identificador string_to_identificador (char *string)
-{
-    if (strcasecmp(string, "IO_FS_WRITE") == 0) return IO_FS_WRITE;
-    if (strcasecmp(string, "IO_FS_READ") == 0) return IO_FS_READ;
-    if (strcasecmp(string, "IO_FS_TRUNCATE") == 0) return IO_FS_TRUNCATE;
-    if (strcasecmp(string, "IO_STDOUT_WRITE") == 0) return IO_STDOUT_WRITE;
-    if (strcasecmp(string, "IO_STDIN_READ") == 0) return IO_STDIN_READ;
-    if (strcasecmp(string, "SET") == 0) return SET;
-    if (strcasecmp(string, "MOV_IN") == 0) return MOV_IN;
-    if (strcasecmp(string, "MOV_OUT") == 0) return MOV_OUT;
-    if (strcasecmp(string, "SUM") == 0) return SUM;
-    if (strcasecmp(string, "SUB") == 0) return SUB;
-    if (strcasecmp(string, "JNZ") == 0) return JNZ;
-    if (strcasecmp(string, "IO_GEN_SLEEP") == 0) return IO_GEN_SLEEP;
-    if (strcasecmp(string, "IO_FS_DELETE") == 0) return IO_FS_DELETE;
-    if (strcasecmp(string, "IO_FS_CREATE") == 0) return IO_FS_CREATE;
-    if (strcasecmp(string, "RESIZE") == 0) return RESIZE;
-    if (strcasecmp(string, "COPY_STRING") == 0) return COPY_STRING;
-    if (strcasecmp(string, "WAIT") == 0) return WAIT;
-    if (strcasecmp(string, "SIGNAL") == 0) return SIGNAL;
-    if (strcasecmp(string, "EXIT") == 0) return EXIT;
-    return -1;
-}
+
 
 // Función que a partir de un archivo de instrucciones, devuelve la lista de instrucciones
 
@@ -108,8 +86,6 @@ t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
     proceso->tabla_paginas = inicializar_tabla_paginas();
     // wait semáforo contador (con grado multiprogramación)
     list_add(lista_procesos, proceso);
-    printf("------------------- Proceso creado -------------------\n");
-    imprimir_proceso(proceso);
     // signal semáforo contador (con grado multiprogramación)
     return proceso;
 

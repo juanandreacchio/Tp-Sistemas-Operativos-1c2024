@@ -50,7 +50,9 @@ $(sort $(dir $(BIN) $(OBJS))):
 
 .PHONY: start
 start: debug
-	valgrind --tool=none ./$(BIN) $(ARGS)
+	valgrind --tool=none ./$(BIN) $(filter-out $@,$(MAKECMDGOALS))
+$(BIN): $(OBJS) | $(dir $(BIN))
+	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%)
 
 .PHONY: memcheck
 memcheck: debug

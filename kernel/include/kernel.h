@@ -10,39 +10,90 @@
 #include <commons/string.h>
 #include<readline/readline.h>
 #include <../include/utils.h>
+#include <semaphore.h>
 
-extern t_list *lista_procesos_ready;
+
+
+typedef struct{
+    uint32_t pid;
+    t_instruccion *instruccion;
+} t_instruccion_bloqueada_en_io;
+
+
 extern t_config *config_kernel;
 
 extern t_log *logger_kernel;
-extern char *ip_kernel;
-extern char *ip_io;
 extern char *ip_memoria;
 extern char *ip_cpu;
 extern char *puerto_memoria;
-extern char *puerto_io;
 extern char *puerto_escucha;
-extern char *puerto_cpu;
+extern char *puerto_dispatch;
+extern char *puerto_interrupt;
+extern char *algoritmo_planificacion;
 extern char *ip;
-extern u_int32_t conexion_memoria, conexion_io, conexion_cpu;;
-extern pthread_mutex_t *mutex_pid;
-extern int contador_pcbs; 
-extern int identificador_pid; 
-extern int grado_multiprogramacion;
+extern u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt, flag_cpu_libre;
+extern int socket_servidor_kernel;
+extern int contador_pcbs;
 extern uint32_t contador_pid;
-extern int QUANTUM;
+extern int quantum;
 
-pthread_mutex_t mutex_pid;
-pthread_mutex_t mutex_cola_de_readys;
-sem_t contador_grado_multiprogramacion;
+extern t_dictionary *conexiones_io;
+extern t_dictionary *colas_blocks_io; // cola de cada interfaz individual, adentro están las isntrucciones a ejecutar
+extern t_dictionary *diccionario_semaforos_io;
 
+extern pthread_mutex_t mutex_pid;
+extern pthread_mutex_t mutex_cola_de_readys;
+extern pthread_mutex_t mutex_lista_de_blocked;
+extern pthread_mutex_t mutex_cola_de_new;
+extern pthread_mutex_t mutex_proceso_en_ejecucion;
+extern pthread_mutex_t mutex_interfaces_conectadas;
+extern pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de la cola de cada interfaz
+extern pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
+extern pthread_mutex_t mutex_flag_cpu_libre;
+extern sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
+extern t_queue *cola_procesos_ready;
+extern t_queue *cola_procesos_new;
+extern t_list *lista_procesos_blocked; // lsita de los prccesos bloqueados
+extern t_pcb *pcb_en_ejecucion;
+extern pthread_t planificador_corto;
+extern pthread_t dispatch;
+extern pthread_t hilo_quantum;
+
+
+// --------------------- FUNCIONES DE INICIO -------------------------
+void iniciar_semaforos();
+void iniciar_diccionarios();
+void iniciar_listas();
+void iniciar_colas_de_estados_procesos();
 void iniciar_config();
-void iniciar_consola_interactiva(); 
+
 void* atender_cliente(void *socket_cliente);
+
+// --------------------- FUNCIONES DE CONSOLA INTERACTIVA -------------------------
+void *iniciar_consola_interactiva(); 
 bool validar_comando(char* comando); 
 void ejecutar_comando(char* comandoRecibido); 
-void ejecutar_script(t_buffer* buffer);
-int asigno_pid(); 
+// void ejecutar_script(t_buffer* buffer);
+
+
+// --------------------- FUNCIONES DE PCB -------------------------
+void ejecutar_PCB(t_pcb *pcb);
+void setear_pcb_en_ejecucion(t_pcb *pcb);
+void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t mutex);
+t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista);
+
+// --------------------- FUNCIONES DE PLANIFICACION -------------------------
+void iniciar_planificador_corto_plazo();
+void *recibir_dispatch();
+void *verificar_quantum();
+
+// --------------------- FUNCIONES DE INTERFACES ENTRADA/SALIDA -------------------------
+bool interfaz_conectada(char *nombre_interfaz);
+bool esOperacionValida(t_identificador identificador, cod_interfaz tipo);
+void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion);
+void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO);
+void atender_interfaz(char *nombre_interfaz);
+
 
 
 #endif

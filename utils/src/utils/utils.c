@@ -1,9 +1,6 @@
 #include <../include/utils.h>
-// uint32_t size_registros = sizeof(uint32_t) * 7 + sizeof(uint8_t) * 4;
 
 //----------------- FUNCIONES DE REGISTROS -------------------------------
-
-// TODO testear que todas estas funciones anden
 
 sem_t semaforo;
 
@@ -98,7 +95,7 @@ u_int32_t get_registro_int32(t_registros *registros, char *registro)
 	return -1;
 }
 
-void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino)
+void sum_registro(t_registros *registros, char *registroDestino, char *registroOrigen)
 {
 
 	if (strcasecmp(registroDestino, "AX") == 0)
@@ -247,11 +244,10 @@ void imprimir_registros_por_pantalla(t_registros registros)
 
 //------------------ FUNCIONES DE PCB ------------------
 
-t_pcb *crear_pcb(u_int32_t pid, t_list *lista_instrucciones, u_int32_t quantum, estados estado)
+t_pcb *crear_pcb(u_int32_t pid, u_int32_t quantum, estados estado)
 {
 	t_pcb *pcb = malloc(sizeof(t_pcb));
 	pcb->pid = pid;
-	pcb->instrucciones = lista_instrucciones;
 	pcb->pc = 0;
 	pcb->quantum = quantum;
 	pcb->estado_actual = estado;
@@ -266,8 +262,6 @@ void destruir_pcb(t_pcb *pcb)
 
 void enviar_pcb(t_pcb *pcb, int socket)
 {
-	t_buffer *buffer_instrucciones = crear_buffer();
-	buffer_instrucciones = serializar_lista_instrucciones(pcb->instrucciones);
 	t_paquete *paquete = crear_paquete(PCB);
 	t_buffer *buffer = paquete->buffer;
 	buffer_add(buffer, &(pcb->pid), sizeof(uint32_t));
@@ -275,12 +269,10 @@ void enviar_pcb(t_pcb *pcb, int socket)
 	buffer_add(buffer, &(pcb->quantum), sizeof(uint32_t));
 	buffer_add(buffer, &(pcb->registros), SIZE_REGISTROS);
 	buffer_add(buffer, &(pcb->estado_actual), sizeof(estados));
-	buffer_add(buffer, buffer_instrucciones->stream, buffer_instrucciones->size);
 	buffer->offset = 0;
 
 	enviar_paquete(paquete, socket);
 
-	destruir_buffer(buffer_instrucciones);
 	eliminar_paquete(paquete);
 }
 
@@ -298,14 +290,9 @@ t_pcb *recibir_pcb(int socket)
 		buffer_read(buffer_PCB, &(pcb->quantum), sizeof(pcb->quantum));
 		buffer_read(buffer_PCB, &(pcb->registros), SIZE_REGISTROS);
 		buffer_read(buffer_PCB, &(pcb->estado_actual), sizeof(estados));
-
-		pcb->instrucciones = list_create();
-		t_list *lista_instrucciones = deserializar_lista_instrucciones(buffer_PCB, buffer_PCB->offset);
-		list_add_all(pcb->instrucciones, lista_instrucciones);
 	}
 
 	eliminar_paquete(paquete_PCB);
-	// TODO: deserializar las instrucciones
 	return pcb;
 }
 
@@ -327,45 +314,57 @@ t_registros inicializar_registros()
 }
 
 char *cod_op_to_string(op_code codigo_operacion)
-
 {
 	switch (codigo_operacion)
 	{
-	case KERNEL:
-		return "KERNEL";
+	case SOLICITUD_INSTRUCCION:
+		return "SOLICITUD_INSTRUCCION";
+	case INSTRUCCION:
+		return "INSTRUCCION";
+	case CREAR_PROCESO:
+		return "CREAR_PROCESO";
 	case CPU:
 		return "CPU";
+	case KERNEL:
+		return "KERNEL";
 	case MEMORIA:
 		return "MEMORIA";
 	case ENTRADA_SALIDA:
 		return "ENTRADA_SALIDA";
+	case PCB:
+		return "PCB";
+	case INTERRUPTION:
+		return "INTERRUPTION";
 	default:
 		return "CODIGO DE OPERACION INVALIDO";
 	}
 }
-void cargar_string_al_buffer(t_buffer *buffer, char *string) {
-    int len = strlen(string);
-    buffer->stream = malloc(len + 1); 
-    if (buffer->stream == NULL) {
-        printf("Error: no se pudo asignar memoria para el buffer\n");
-        exit(EXIT_FAILURE);
-    }
-    strcpy(buffer->stream, string);
-    buffer->size = len;
+void cargar_string_al_buffer(t_buffer *buffer, char *string)
+{
+	int len = strlen(string);
+	buffer->stream = malloc(len + 1);
+	if (buffer->stream == NULL)
+	{
+		printf("Error: no se pudo asignar memoria para el buffer\n");
+		exit(EXIT_FAILURE);
+	}
+	strcpy(buffer->stream, string);
+	buffer->size = len;
 }
-char *extraer_string_del_buffer(t_buffer *buffer) {
-    char *string = malloc(buffer->size + 1);  
-    if (string == NULL) {
-        printf("Error: no se pudo asignar memoria para el string\n");
-        exit(EXIT_FAILURE);
-    }
-    strncpy(string, buffer->stream, buffer->size);
-    string[buffer->size] = '\0';
-    free(buffer->stream);
-    buffer->size = 0;
-    return string;
+char *extraer_string_del_buffer(t_buffer *buffer)
+{
+	char *string = malloc(buffer->size + 1);
+	if (string == NULL)
+	{
+		printf("Error: no se pudo asignar memoria para el string\n");
+		exit(EXIT_FAILURE);
+	}
+	strncpy(string, buffer->stream, buffer->size);
+	string[buffer->size] = '\0';
+	free(buffer->stream);
+	buffer->size = 0;
+	return string;
 }
-
 
 // ------------------ FUNCIONES DE LOGGER ------------------
 
@@ -486,6 +485,11 @@ t_paquete *crear_paquete(op_code codigo_operacion)
 
 	paquete->buffer = crear_buffer();
 	return paquete;
+}
+
+void enviar_codigo_operacion(op_code code, int socket)
+{
+	send(socket, &code, sizeof(op_code), 0);
 }
 
 void enviar_paquete(t_paquete *paquete, int socket_cliente)
@@ -946,27 +950,183 @@ void imprimir_proceso(t_proceso *proceso)
 	// Si quieres imprimir también la tabla de páginas, puedes hacerlo aquí
 }
 
-t_list* parsear_instrucciones(FILE* archivo_instrucciones) {
-    int longitud_de_linea_maxima = 1024;
-    char* line = malloc(sizeof(char) * longitud_de_linea_maxima);
-    size_t len = sizeof(line);  
-    t_list* lista_instrucciones = list_create();
-    while ((getline(&line, &len, archivo_instrucciones)) != -1) {
-        t_list* lista_de_parametros = list_create();
-        char* linea_con_instruccion = strtok(line, "\n"); // Divide todas las líneas del archivo y me devuelve la primera  
-        char** tokens = string_split(linea_con_instruccion, " ");  // Divide la línea en tokens separados x espacio. ["MOV", "AX", "BX"]
-        int i = 1;
-        while(tokens[i] != NULL){
-            list_add(lista_de_parametros, (void*) tokens[i]);
-            i++;
-        }
-        t_identificador identificador = string_to_identificador(tokens[0]); 
-        t_instruccion* instruccion = crear_instruccion(identificador, lista_de_parametros);  
-        list_add(lista_instrucciones, instruccion);
-        free(tokens);
-        list_destroy(lista_de_parametros); 
-    }
+t_list *parsear_instrucciones(FILE *archivo_instrucciones)
+{
+	int longitud_de_linea_maxima = 1024;
+	char *line = malloc(sizeof(char) * longitud_de_linea_maxima);
+	size_t len = sizeof(line);
+	t_list *lista_instrucciones = list_create();
+	while ((getline(&line, &len, archivo_instrucciones)) != -1)
+	{
+		t_list *lista_de_parametros = list_create();
+		char *linea_con_instruccion = strtok(line, "\n");		  // Divide todas las líneas del archivo y me devuelve la primera
+		char **tokens = string_split(linea_con_instruccion, " "); // Divide la línea en tokens separados x espacio. ["MOV", "AX", "BX"]
+		int i = 1;
+		while (tokens[i] != NULL)
+		{
+			list_add(lista_de_parametros, (void *)tokens[i]);
+			i++;
+		}
+		t_identificador identificador = string_to_identificador(tokens[0]);
+		t_instruccion *instruccion = crear_instruccion(identificador, lista_de_parametros);
+		list_add(lista_instrucciones, instruccion);
+		free(tokens);
+		list_destroy(lista_de_parametros);
+	}
 
-    free(line);
-    return lista_instrucciones;
+	free(line);
+	return lista_instrucciones;
+}
+
+t_identificador string_to_identificador(char *string)
+{
+	if (strcasecmp(string, "IO_FS_WRITE") == 0)
+		return IO_FS_WRITE;
+	if (strcasecmp(string, "IO_FS_READ") == 0)
+		return IO_FS_READ;
+	if (strcasecmp(string, "IO_FS_TRUNCATE") == 0)
+		return IO_FS_TRUNCATE;
+	if (strcasecmp(string, "IO_STDOUT_WRITE") == 0)
+		return IO_STDOUT_WRITE;
+	if (strcasecmp(string, "IO_STDIN_READ") == 0)
+		return IO_STDIN_READ;
+	if (strcasecmp(string, "SET") == 0)
+		return SET;
+	if (strcasecmp(string, "MOV_IN") == 0)
+		return MOV_IN;
+	if (strcasecmp(string, "MOV_OUT") == 0)
+		return MOV_OUT;
+	if (strcasecmp(string, "SUM") == 0)
+		return SUM;
+	if (strcasecmp(string, "SUB") == 0)
+		return SUB;
+	if (strcasecmp(string, "JNZ") == 0)
+		return JNZ;
+	if (strcasecmp(string, "IO_GEN_SLEEP") == 0)
+		return IO_GEN_SLEEP;
+	if (strcasecmp(string, "IO_FS_DELETE") == 0)
+		return IO_FS_DELETE;
+	if (strcasecmp(string, "IO_FS_CREATE") == 0)
+		return IO_FS_CREATE;
+	if (strcasecmp(string, "RESIZE") == 0)
+		return RESIZE;
+	if (strcasecmp(string, "COPY_STRING") == 0)
+		return COPY_STRING;
+	if (strcasecmp(string, "WAIT") == 0)
+		return WAIT;
+	if (strcasecmp(string, "SIGNAL") == 0)
+		return SIGNAL;
+	if (strcasecmp(string, "EXIT") == 0)
+		return EXIT;
+	return -1;
+}
+
+void imprimir_lista_de_procesos(t_list *lista_procesos)
+{
+	for (int i = 0; i < list_size(lista_procesos); i++)
+	{
+		t_proceso *proceso = list_get(lista_procesos, i);
+		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
+		imprimir_proceso(proceso);
+	}
+}
+
+t_buffer *serializar_interrupcion(t_interrupcion *interrupcion)
+{
+	t_buffer *buffer = crear_buffer();
+	buffer_add(buffer, &interrupcion->pid, sizeof(uint32_t));
+	buffer_add(buffer, &interrupcion->motivo, sizeof(op_code));
+	return buffer;
+}
+
+t_interrupcion *deserializar_interrupcion(t_buffer *buffer)
+{
+	t_interrupcion *interrupcion = malloc(sizeof(t_interrupcion));
+	buffer->offset = 0;
+	buffer_read(buffer, &interrupcion->pid, sizeof(uint32_t));
+	buffer_read(buffer, &interrupcion->motivo, sizeof(op_code));
+	return interrupcion;
+}
+
+void enviar_motivo_desalojo(op_code motivo, uint32_t socket)
+{
+	send(socket, &motivo, sizeof(op_code), 0);
+}
+
+op_code recibir_motivo_desalojo(uint32_t socket_cliente)
+{
+	op_code motivo;
+	if (recv(socket_cliente, &motivo, sizeof(op_code), MSG_WAITALL) > 0)
+	{
+		return motivo;
+	}
+	else
+	{
+		close(socket_cliente);
+		return -1;
+	}
+}
+
+void *enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket)
+{
+	t_interrupcion *interrupcion = malloc(sizeof(t_interrupcion));
+	interrupcion->motivo = interrupcion_code;
+	interrupcion->pid = pid;
+
+	t_paquete *paquete = crear_paquete(INTERRUPTION);
+	paquete->buffer = serializar_interrupcion(interrupcion);
+	enviar_paquete(paquete, socket);
+
+	eliminar_paquete(paquete);
+}
+
+op_code tipo_interfaz_to_cod_op(cod_interfaz tipo){
+    switch (tipo)
+    {
+    case GENERICA:
+        return INTERFAZ_GENERICA;
+    case STDIN:
+        return INTERFAZ_STDIN;
+    case STDOUT:
+        return INTERFAZ_STDOUT;
+    case DIALFS:
+        return INTERFAZ_DIALFS;
+    default:
+        return -1;
+    }
+}
+
+cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op){
+	switch (cod_op)
+	{
+	case INTERFAZ_GENERICA:
+		return GENERICA;
+	case INTERFAZ_STDIN:
+		return STDIN;
+	case INTERFAZ_STDOUT:
+		return STDOUT;
+	case INTERFAZ_DIALFS:
+		return DIALFS;
+	default:
+		return -1;
+	}
+}
+
+t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion){
+	t_buffer *buffer = crear_buffer();
+	buffer_add(buffer, &instruccion->pid, sizeof(uint32_t));
+
+	t_buffer *buffer_instruccion = serializar_instruccion(instruccion->instruccion_io);
+	buffer_add(buffer, buffer_instruccion->stream, buffer_instruccion->size);
+	destruir_buffer(buffer_instruccion);
+
+	return buffer;
+}
+
+t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer){
+	t_instruccionEnIo *instruccion = malloc(sizeof(t_instruccionEnIo));
+	buffer->offset = 0;
+	buffer_read(buffer, &instruccion->pid, sizeof(uint32_t));
+	instruccion->instruccion_io = instruccion_deserializar(buffer, buffer->offset);
+	return instruccion;
 }

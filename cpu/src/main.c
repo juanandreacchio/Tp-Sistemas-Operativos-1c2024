@@ -1,4 +1,4 @@
-#include <../include/utils.h>
+#include <../include/cpu.h>
 
 // // inicializacion
 
@@ -12,21 +12,35 @@ u_int32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_interrupt;
 int socket_servidor_dispatch, socket_servidor_interrupt;
 pthread_t hilo_dispatch, hilo_interrupt;
 t_registros registros_cpu;
+t_interrupcion *interrupcion_recibida;
 
-// int main(void)
-// {
-// 	iniciar_config();
+//------------------------variables globales----------------
+u_int8_t interruption_flag;
+u_int8_t end_process_flag;
+u_int8_t input_ouput_flag;
 
-// 	conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
-// 	enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
+// ------------------------- MAIN---------------------------
 
-// 	// iniciar servidor Dispatch y Interrupt
-// 	pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
-// 	pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
+int main(void)
+{
+    iniciar_config();
+    inicializar_flags();
 
-// 	pthread_join(hilo_dispatch, NULL);
-// 	pthread_join(hilo_interrupt, NULL);
-// }
+    conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
+    enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
+
+    // iniciar servidor Dispatch y Interrupt
+    pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
+    pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
+
+    pthread_join(hilo_dispatch, NULL);
+    pthread_join(hilo_interrupt, NULL);
+
+    liberar_conexion(socket_servidor_interrupt);
+    terminar_programa(socket_servidor_dispatch, logger_cpu, config_cpu);
+}
+
+//------------------------FUNCIONES DE INICIO------------------------
 
 void iniciar_config()
 {
@@ -37,7 +51,15 @@ void iniciar_config()
     puerto_memoria = config_get_string_value(config_cpu, "PUERTO_MEMORIA");
     puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
 }
-/*
+
+void inicializar_flags()
+{
+    interruption_flag = 0;
+    end_process_flag = 0;
+    input_ouput_flag = 0;
+}
+
+//-------------------------------ATENDER_DISPATCH-------------------------------
 void *iniciar_servidor_dispatch(void *arg)
 {
     socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "DISPATCH");
@@ -48,18 +70,13 @@ void *iniciar_servidor_dispatch(void *arg)
         recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
 
         t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
-        log_info(logger_cpu, "recibi el pcb");
-        log_info(logger_cpu, "del pid tengo:%u", pcb->pid);
-        log_info(logger_cpu, "del quantum tengo:%u", pcb->quantum);
-        log_info(logger_cpu, "del psw tengo:%u", pcb->estado_actual);
-        log_info(logger_cpu, "del pc tengo:%u", pcb->pc);
-        t_instruccion *inst1 = list_get(pcb->instrucciones, 0);
-        t_instruccion *inst2 = list_get(pcb->instrucciones, 1);
-        imprimir_instruccion(*inst1);
-        imprimir_instruccion(*inst2);
+        printf("recibi el proceso:%d", pcb->pid);
+        comenzar_proceso(pcb, conexion_memoria, conexion_kernel_dispatch);
     }
     return NULL;
 }
+
+//-------------------------------ATENDER_INTERRUPTION-------------------------------
 
 void *iniciar_servidor_interrupt(void *arg)
 {
@@ -68,62 +85,31 @@ void *iniciar_servidor_interrupt(void *arg)
     {
         conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
         log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Interrupt", cod_op_to_string(recibir_operacion(conexion_kernel_interrupt)));
-        recibir_mensaje(conexion_kernel_interrupt, logger_cpu);
+        t_paquete *respuesta_kernel = recibir_paquete(conexion_kernel_interrupt);
+
+        int cod_op = respuesta_kernel->codigo_operacion;
+        if (cod_op == INTERRUPTION)
+        {
+            log_info(logger_cpu, "Ocurrio una interrupcion");
+            interrupcion_recibida = deserializar_interrupcion(respuesta_kernel->buffer);
+        }
+        else
+        {
+            log_info(logger_cpu, "operacion desconocida dentro de interrupciones");
+        }
     }
     return NULL;
 }
-*/
 
-void decode_y_execute_instruccion(t_instruccion *instruccion, t_registros *registros_cpu)
+void accion_interrupt(t_pcb *pcb, op_code motivo, int socket)
 {
-    switch (instruccion->identificador)
-    {
-    case SET:
-        set_registro(registros_cpu, instruccion->parametros[0], atoi(instruccion->parametros[1]));
-        break;
-    case MOV_IN:
-        break;
-    case MOV_OUT:
-        break;
-    case SUM:
-        sum_registro(registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
-        break;
-    case SUB:
-        sub_registro(registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
-        break;
-    case JNZ:
-        JNZ_registro(registros_cpu, instruccion->parametros[0], atoi(instruccion->parametros[1]));
-        break;
-    case IO_FS_TRUNCATE:
-        break;
-    case IO_STDIN_READ:
-        break;
-    case IO_STDOUT_WRITE:
-        break;
-    case IO_GEN_SLEEP:
-        break;
-    case IO_FS_DELETE:
-        break;
-    case IO_FS_CREATE:
-        break;
-    case IO_FS_WRITE:
-        break;
-    case IO_FS_READ:
-        break;
-    case RESIZE:
-        break;
-    case COPY_STRING:
-        break;
-    case WAIT:
-        break;
-    case SIGNAL:
-        break;
-    case EXIT:
-        break;
-    default:
-        break;
-    }
+    interruption_flag = 0;
+    log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion");
+    enviar_motivo_desalojo(motivo, socket);
+    enviar_pcb(pcb, socket);
 }
+
+// ------------------------ CICLO BASICO DE INSTRUCCION ------------------------
 
 t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionParam)
 {
@@ -144,10 +130,6 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
 
     t_paquete *respuesta_memoria = recibir_paquete(conexionParam);
 
-    log_info(logger_cpu, "Se recibio la instruccion de memoria");
-
-    printf("Codigo de operacion: %d\n", respuesta_memoria->codigo_operacion);
-
     if (respuesta_memoria->codigo_operacion != INSTRUCCION)
     {
         log_error(logger_cpu, "Error al recibir instruccion de memoria");
@@ -158,70 +140,117 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
 
     t_instruccion *instruccion = instruccion_deserializar(respuesta_memoria->buffer, 0);
 
-    *pc += 1; // Nosé si está bien así
-
     eliminar_paquete(paquete);
     eliminar_paquete(respuesta_memoria);
     return instruccion;
 }
 
-t_log *logger;
-t_config *config;
-uint32_t conexion;
+void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
+{
+    switch (instruccion->identificador)
+    {
+    case SET:
+        set_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+        break;
+    case MOV_IN:
+        break;
+    case MOV_OUT:
+        break;
+    case SUM:
+        sum_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
+        break;
+    case SUB:
+        sub_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
+        break;
+    case JNZ:
+        JNZ_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+        break;
+    case IO_FS_TRUNCATE:
+        break;
+    case IO_STDIN_READ:
+        break;
+    case IO_STDOUT_WRITE:
+        break;
+    case IO_GEN_SLEEP:
+        enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
 
-int main(void)
+        t_paquete *paquete = crear_paquete(OPERACION_IO);
+        paquete->buffer = serializar_instruccion(instruccion);
+        enviar_paquete(paquete, conexion_kernel_dispatch);
+        input_ouput_flag = 1;
+
+        break;
+    case IO_FS_DELETE:
+        break;
+    case IO_FS_CREATE:
+        break;
+    case IO_FS_WRITE:
+        break;
+    case IO_FS_READ:
+        break;
+    case RESIZE:
+        break;
+    case COPY_STRING:
+        break;
+    case WAIT:
+        break;
+    case SIGNAL:
+        break;
+    case EXIT:
+        end_process_flag = 1;
+        break;
+    default:
+        break;
+    }
+    printf("------------------ INSTRUCCION EJECUTADA: --------------------\n");
+    imprimir_instruccion(*instruccion);
+}
+
+bool check_interrupt(uint32_t pid)
+{
+    if (interrupcion_recibida != NULL)
+    {
+        return interrupcion_recibida->pid == pid;
+    }
+    return false;
+}
+
+// ------------------------ FUNCIONES PARA EJECUTAR PCBS ------------------------
+
+t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 {
 
-    iniciar_config();
-    registros_cpu = inicializar_registros();
+    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &pcb->pc, socket);
+    pcb->pc += 1;
+    return instruccion;
+}
 
-    logger = iniciar_logger("config/test.log", "TEST", LOG_LEVEL_INFO);
-    conexion = crear_conexion(NULL, "6004", logger);
-
-    if (conexion == -1)
+void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
+{
+    t_instruccion *instruccion = malloc(sizeof(t_instruccion));
+    while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1 /* && page_fault != 1 && sigsegv != 1*/)
     {
-        log_error(logger, "No se pudo conectar al servidor");
-        terminar_programa(conexion, logger, config);
-        return 1;
+        instruccion = siguiente_instruccion(pcb, socket_Memoria);
+        decode_y_execute_instruccion(instruccion, pcb);
+        if (check_interrupt(pcb->pid))
+            interruption_flag = 1;
+        else
+        {
+            interrupcion_recibida = NULL;
+        }
+    }
+    imprimir_registros_por_pantalla(pcb->registros);
+    if (interruption_flag == 1)
+    {
+        accion_interrupt(pcb, interrupcion_recibida->motivo, socket_Kernel);
     }
 
-    t_paquete *paquete = crear_paquete(CREAR_PROCESO);
-
-    char *path = "test.txt";
-    uint32_t pid = 5;
-    t_solicitudCreacionProcesoEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-    ptr_solicitud->pid = pid;
-    ptr_solicitud->path_length = strlen(path) + 1;
-    ptr_solicitud->path = path;
-    t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
-    paquete->buffer = buffer;
-    enviar_paquete(paquete, conexion);
-    printf("Se envio el paquete 1 de tamaño %d\n", buffer->size);
-
-    eliminar_paquete(paquete);
-
-
-
-    // uint32_t pcInicial = 0;
-    // t_instruccion *instruccionRecibida = malloc(sizeof(t_instruccion));
-    // instruccionRecibida = fetch_instruccion(5, &pcInicial, conexion);
-    // printf("PC: %d\n", pcInicial);
-    // imprimir_instruccion(*instruccionRecibida);
-
-    // decode_y_execute_instruccion(instruccionRecibida, &registros_cpu);
-    // imprimir_registros_por_pantalla(registros_cpu);
-    // destruir_instruccion(instruccionRecibida);
-
-    // Pruebas para solicitar instrucciones a memoria
-
-    // pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
-    // pthread_create(&hilo_interrupt, NULL, iniciar_servidor_interrupt, NULL);
-
-    // pthread_join(hilo_dispatch, NULL);
-    // pthread_join(hilo_interrupt, NULL);
-
-    // SOLICITUD_INSTRUCCION, se envia el pid y el program counter
-
-    // terminar_programa(conexion, logger, config_cpu);
-    return 0;
+    if (end_process_flag == 1)
+    {
+        end_process_flag = 0;
+        interruption_flag = 0;
+        enviar_pcb(pcb, socket_Kernel);
+    }
+    input_ouput_flag = 0;
 }
