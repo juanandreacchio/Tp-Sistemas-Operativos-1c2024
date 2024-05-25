@@ -52,12 +52,12 @@ void iniciar_config()
     puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
 }
 
-void inicializar_flags(){
+void inicializar_flags()
+{
     interruption_flag = 0;
     end_process_flag = 0;
     input_ouput_flag = 0;
 }
-
 
 //-------------------------------ATENDER_DISPATCH-------------------------------
 void *iniciar_servidor_dispatch(void *arg)
@@ -203,11 +203,17 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     default:
         break;
     }
+    printf("------------------ INSTRUCCION EJECUTADA: --------------------\n");
+    imprimir_instruccion(*instruccion);
 }
 
 bool check_interrupt(uint32_t pid)
 {
-    return interrupcion_recibida->pid == pid;
+    if (interrupcion_recibida != NULL)
+    {
+        return interrupcion_recibida->pid == pid;
+    }
+    return false;
 }
 
 // ------------------------ FUNCIONES PARA EJECUTAR PCBS ------------------------
@@ -248,4 +254,3 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
     }
     input_ouput_flag = 0;
 }
-

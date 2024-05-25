@@ -48,8 +48,8 @@ int main(void)
     iniciar_config();
     iniciar_listas();
     iniciar_colas_de_estados_procesos();
-
-    iniciar_semaforos(); // TODO
+    iniciar_diccionarios();
+    iniciar_semaforos();
 
     // iniciar conexion con Kernel
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_kernel);
@@ -67,7 +67,7 @@ int main(void)
     pthread_create(&dispatch, NULL, (void *)recibir_dispatch, NULL);
     pthread_detach(dispatch);
 
-    pthread_create(&planificador_corto, NULL, (void *)planificar_run, NULL);
+    pthread_create(&planificador_corto, NULL, (void *)iniciar_planificador_corto_plazo, NULL);
     pthread_detach(planificador_corto);
 
     pthread_t thread_consola;
@@ -285,7 +285,7 @@ void ejecutar_comando(char *comando)
 
 // Planificacion
 
-void planificar_run()
+void iniciar_planificador_corto_plazo()
 {
     while (1)
     {
@@ -568,6 +568,7 @@ void *verificar_quantum()
         while (1) // esto tieene espera activa, poderiamso usar un  usleep(500); pero no c si es lo mejor
                   //  depues tengop otra opcion usando combinación de semáforos y condicionales.
         {
+            usleep(1000);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             if (temporal_gettime(tiempo_transcurrido) >= quantum)
             {
@@ -576,15 +577,19 @@ void *verificar_quantum()
                 flag_cpu_libre = 1;
                 temporal_destroy(tiempo_transcurrido);
                 tiempo_transcurrido = NULL;
+                pthread_mutex_unlock(&mutex_flag_cpu_libre);
+
+                break;
             }
             else if (flag_cpu_libre == 1)
             {
                 log_info(logger_kernel, "NO LLEGUE AL FIN DE QUANTUM, APARECIO ALGO ANTES");
                 temporal_destroy(tiempo_transcurrido);
                 tiempo_transcurrido = NULL;
+                pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                
+                break;
             }
-            pthread_mutex_unlock(&mutex_flag_cpu_libre);
-
         }
     }
 

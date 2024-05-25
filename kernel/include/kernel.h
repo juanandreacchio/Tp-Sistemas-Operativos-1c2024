@@ -83,7 +83,7 @@ void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista);
 
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------
-void planificar_run();
+void iniciar_planificador_corto_plazo();
 void *recibir_dispatch();
 void *verificar_quantum();
 

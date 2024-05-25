@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <utils/hello.h>
-#include <../src/utils/utils.c>
+#include <../include/utils.h>
 
 
 #ifndef CPU_H_

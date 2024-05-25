@@ -3,7 +3,7 @@
 #include <utils/hello.h>
 #include <commons/log.h>
 
-#include <../src/utils/utils.c>
+#include <../include/utils.h>
 
 #ifndef ENTRADASALIDA_H_
 #define ENTRADASALIDA_H_
@@ -16,7 +16,7 @@ typedef struct
 
 
 extern t_log *logger_entradasalida;
-extern uint32_t int socket_conexion_kernel, socket_conexion_memoria;
+extern uint32_t socket_conexion_kernel, socket_conexion_memoria;
 
 extern t_config *config_entradasalida;
 extern char *ip_kernel;
@@ -25,6 +25,8 @@ extern char *ip_memoria;
 extern char *puerto_memoria;
 extern pthread_t thread_memoria, thread_kernel;
 extern cod_interfaz tipo_interfaz;
+
+extern t_interfaz *interfaz_creada;
 
 
 // ------------------------ FUNCIONES DE INICIO --------------------
