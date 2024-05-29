@@ -38,6 +38,7 @@ void *iniciar_servidor_interrupt(void *arg);
 t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionParam);
 void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb);
 bool check_interrupt(uint32_t pid);
+void accion_interrupt(t_pcb *pcb, op_code motivo, int socket);
 
 // ------------------------ FUNCIONES DE PCB ------------------------
 t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket);

@@ -76,7 +76,7 @@ int main(void)
 
     if (strcmp(algoritmo_planificacion, "RR") == 0)
     {
-        log_info(logger_kernel, "iniciando quantum");
+        log_info(logger_kernel, "iniciando contador de quantum");
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum, NULL);
         pthread_detach(hilo_quantum);
     }
@@ -114,8 +114,6 @@ void *atender_cliente(void *socket_cliente_ptr)
     int socket_cliente = *(int *)socket_cliente_ptr;
     free(socket_cliente_ptr); // Liberamos el puntero ya que no lo necesitamos más
 
-    while (1)
-    {
         op_code codigo_operacion = recibir_operacion(socket_cliente);
 
         switch (codigo_operacion)
@@ -152,9 +150,9 @@ void *atender_cliente(void *socket_cliente_ptr)
             log_info(logger_kernel, "Se recibió un mensaje de un módulo desconocido");
             break;
         }
-    }
+    
 
-    close(socket_cliente); // Cerramos el socket una vez que salimos del loop
+    
     return NULL;
 }
 
@@ -248,6 +246,7 @@ void ejecutar_comando(char *comando)
             pthread_mutex_unlock(&mutex_cola_de_new);
 
             set_add_pcb_cola(pcb_ready, READY, cola_procesos_ready, mutex_cola_de_readys);
+            log_info(logger_kernel,"puse el pcb en ready y lo meti dentro de la cola de ready");
         }
         sem_post(&hay_proceso_a_ready);
 
@@ -326,12 +325,7 @@ void ejecutar_PCB(t_pcb *pcb)
     setear_pcb_en_ejecucion(pcb);
     enviar_pcb(pcb, conexion_dispatch);
     log_info(logger_kernel, "Se envio el PCB con PID %d a CPU Dispatch", pcb->pid);
-    /* lo ahcemos desde el hilo de dispatch
-    MOTIVO_DESALOJO motivo = recibir_motivo_desalojo(conexion_dispatch);
-    t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
-    */
 
-    destruir_pcb(pcb);
 }
 
 void setear_pcb_en_ejecucion(t_pcb *pcb)
@@ -341,6 +335,7 @@ void setear_pcb_en_ejecucion(t_pcb *pcb)
     pthread_mutex_lock(&mutex_proceso_en_ejecucion);
     pcb_en_ejecucion = pcb;
     pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
+    
 }
 void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t mutex)
 {
@@ -358,6 +353,7 @@ void *recibir_dispatch()
         op_code motivo_desalojo = recibir_motivo_desalojo(conexion_dispatch);
         t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
 
+        sem_post(&cpu_libre);
         pthread_mutex_lock(&mutex_flag_cpu_libre);
         flag_cpu_libre = 1; // no c si tendir aque ir aca o en cada uno de los casos del motivo de desalojo que lo requieran
         pthread_mutex_unlock(&mutex_flag_cpu_libre);
@@ -399,7 +395,7 @@ void *recibir_dispatch()
             instruccion_en_io->instruccion_io = utlima_instruccion;
             instruccion_en_io->pid = pcb_actualizado->pid;
 
-            pthread_mutex_lock(&mutex_lista_de_blocked);
+            pthread_mutex_lock(&mutex_lista_de_blocked);//estopy casi seguro que este mutex esta mal porque es el mismo que esta arriba y son listas distintas
             queue_push((t_queue *)dictionary_get(colas_blocks_io, nombre_io), instruccion_en_io);
             pthread_mutex_unlock(&mutex_lista_de_blocked);
 
@@ -409,14 +405,20 @@ void *recibir_dispatch()
             // 3. sino nose
             break;
         case FIN_CLOCK:
+            log_info(logger_kernel,"entre al fin de clock por dispatcher");
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
+            sem_post(&hay_proceso_a_ready);
+
             break;
         case KILL_PROCESS:
             // TODO
             break;
         case END_PROCESS:
             sem_post(&contador_grado_multiprogramacion);
-            destruir_pcb(pcb_actualizado);
+        
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            flag_cpu_libre = 1;
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
 
         default:
@@ -481,34 +483,19 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
     pthread_mutex_lock(&mutex_diccionario_interfaces_de_semaforos);
     dictionary_put(diccionario_semaforos_io, nombre, semaforos_interfaz);
     pthread_mutex_unlock(&mutex_diccionario_interfaces_de_semaforos);
+
+    pthread_t hilo_IO;
+    char * nombre2 = strdup(nombre);
+    pthread_create(&hilo_IO, NULL, (void*) atender_interfaz,nombre2);     
+    pthread_detach(hilo_IO);
 }
 
-void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO)
+void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO,t_interfaz_en_kernel *conexion_io)
 {
-    uint32_t conexion_io = *(uint32_t *)dictionary_get(conexiones_io, nombre_interfaz);
-
     t_paquete *paquete = crear_paquete(EJECUTAR_IO);
-    paquete->buffer = serializar_instruccion_en_io(instruccionEnIO);
-    enviar_paquete(paquete, conexion_io);
+    paquete->buffer = serializar_instruccion(instruccionEnIO->instruccion_io);
+    enviar_paquete(paquete, conexion_io->conexion);
 
-    op_code resultado_operacion = recibir_operacion(conexion_io);
-    if (resultado_operacion == IO_SUCCESS)
-    {
-        t_pcb *pcb = buscar_pcb_por_pid(instruccionEnIO->pid, lista_procesos_blocked);
-
-        pthread_mutex_lock(&mutex_lista_de_blocked);
-        list_remove_element(lista_procesos_blocked, pcb);
-        pthread_mutex_unlock(&mutex_lista_de_blocked);
-
-        if (pcb != NULL)
-        {
-            sem_wait(&contador_grado_multiprogramacion);
-            set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
-        }
-    }
-
-    t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_interfaz);
-    sem_post(&semaforos_interfaz->binario_io_libre);
 }
 
 void atender_interfaz(char *nombre_interfaz)
@@ -517,16 +504,46 @@ void atender_interfaz(char *nombre_interfaz)
     {
         t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_interfaz);
 
-        sem_wait(&semaforos_interfaz->instruccion_en_cola);
-        sem_wait(&semaforos_interfaz->binario_io_libre);
-        pthread_mutex_lock(&semaforos_interfaz->mutex);
+        sem_wait(&(semaforos_interfaz->instruccion_en_cola));
+        sem_wait(&(semaforos_interfaz->binario_io_libre));
+        pthread_mutex_lock(&(semaforos_interfaz->mutex));
 
         t_queue *cola = dictionary_get(colas_blocks_io, nombre_interfaz);
         t_instruccionEnIo *instruccion = queue_pop(cola);
 
-        pthread_mutex_unlock(&semaforos_interfaz->mutex);
+        pthread_mutex_unlock(&(semaforos_interfaz->mutex));
 
-        ejecutar_instruccion_io(nombre_interfaz, instruccion);
+        t_interfaz_en_kernel *conexion_io = dictionary_get(conexiones_io, nombre_interfaz);
+        ejecutar_instruccion_io(nombre_interfaz, instruccion,conexion_io);
+
+        op_code resultado_operacion = recibir_operacion(conexion_io->conexion);
+        switch (resultado_operacion)
+        {
+        case IO_SUCCESS:
+        log_info(logger_kernel,"llegue a IO_SUCCESS");
+            t_pcb *pcb = buscar_pcb_por_pid(instruccion->pid, lista_procesos_blocked);
+
+            pthread_mutex_lock(&mutex_lista_de_blocked);
+            list_remove_element(lista_procesos_blocked, pcb);
+            pthread_mutex_unlock(&mutex_lista_de_blocked);
+
+            if (pcb != NULL)
+            {
+                sem_wait(&contador_grado_multiprogramacion);
+                set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
+                sem_post(&hay_proceso_a_ready);
+            }
+
+            
+            sem_post(&(semaforos_interfaz->binario_io_libre));
+            break;
+        case CERRAR_IO:
+            close(conexion_io->conexion); // Cerramos el socket una vez que salimos del loop
+            break;
+        
+        default:
+            break;
+        }
     }
 }
 
@@ -558,43 +575,40 @@ void *verificar_quantum()
     while (1)
     {
         sem_wait(&arrancar_quantum);
-
+        log_info(logger_kernel, "proceso: %d", pcb_en_ejecucion->pid);
         pthread_mutex_lock(&mutex_flag_cpu_libre);
         flag_cpu_libre = 0;
         pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
         tiempo_transcurrido = temporal_create();
 
-        while (1) // esto tieene espera activa, poderiamso usar un  usleep(500); pero no c si es lo mejor
-                  //  depues tengop otra opcion usando combinación de semáforos y condicionales.
+        while (1)
         {
             usleep(1000);
-            pthread_mutex_lock(&mutex_flag_cpu_libre);
-            if (temporal_gettime(tiempo_transcurrido) >= quantum)
-            {
-                log_info(logger_kernel, "FIN DE QUANTUM: MANDO INTERRUPCION");
-                enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                flag_cpu_libre = 1;
-                temporal_destroy(tiempo_transcurrido);
-                tiempo_transcurrido = NULL;
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
-
-                break;
-            }
-            else if (flag_cpu_libre == 1)
+            log_info(logger_kernel, "flag_cpu_libre: %d", flag_cpu_libre);
+            if (flag_cpu_libre == 1)
             {
                 log_info(logger_kernel, "NO LLEGUE AL FIN DE QUANTUM, APARECIO ALGO ANTES");
-                temporal_destroy(tiempo_transcurrido);
-                tiempo_transcurrido = NULL;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 
                 break;
             }
-        }
-    }
+            else if (temporal_gettime(tiempo_transcurrido) >= quantum)
+            {
+                log_info(logger_kernel, "FIN DE QUANTUM: MANDO INTERRUPCION");
+                enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
+                flag_cpu_libre = 1;
+                pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
+                break;
+            }
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
+        }
+        temporal_destroy(tiempo_transcurrido);
+    }
     return NULL;
 }
+
 
 void iniciar_colas_de_estados_procesos()
 {

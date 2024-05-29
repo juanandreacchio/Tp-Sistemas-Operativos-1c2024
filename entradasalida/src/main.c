@@ -102,7 +102,7 @@ void *iniciar_conexion_kernel(void *arg)
     while (1)
     {
         atender_cliente(socket_conexion_kernel);
-        enviar_mensaje("", socket_conexion_kernel, FIN_OPERACION_IO, logger_entradasalida); // mensaje avisando que termine
+        //enviar_mensaje("", socket_conexion_kernel, FIN_OPERACION_IO, logger_entradasalida); // mensaje avisando que termine
     }
     return NULL;
 }
@@ -122,6 +122,7 @@ void *atender_cliente(int socket_cliente)
 {
     t_paquete *paquete = recibir_paquete(socket_cliente);
     t_instruccion *instruccion = instruccion_deserializar(paquete->buffer, 0); // se deberia pasar el offset tmb
+    imprimir_instruccion(*instruccion);
 
     if (instruccion == NULL)
     {
@@ -132,7 +133,9 @@ void *atender_cliente(int socket_cliente)
     switch (tipo_interfaz)
     {
     case GENERICA:
+        log_info(logger_entradasalida,"arranco a dormir x tiempo");
         usleep(atoi(instruccion->parametros[1]) * atoi(tiempo_unidad_trabajo) * 1000); // *1000 para pasarlo a microsegundos
+        log_info(logger_entradasalida,"termine de dormirme x tiempo");
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
         break;
     case STDIN:

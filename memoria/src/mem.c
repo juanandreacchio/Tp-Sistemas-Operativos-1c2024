@@ -57,6 +57,7 @@ void asignar_contenido_pagina(t_proceso* proceso, int numero_pagina, void* conte
 
 
 t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
+    printf("ENTRE A CREAR PROCESO PAAAA");
     size_t path_final_size = strlen(PATH_INSTRUCCIONES) + strlen(path) + 1;
     char *path_final = malloc(path_final_size); 
     strcpy(path_final, PATH_INSTRUCCIONES);
@@ -153,6 +154,9 @@ t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t
     if (proceso == NULL) {
         printf("Error: no se encontró el proceso con PID %d\n", pid);
         exit(1);
+    }
+    if(pc >= list_size(proceso->lista_instrucciones)){
+        return NULL;
     }
     return list_get(proceso->lista_instrucciones, pc);
 }

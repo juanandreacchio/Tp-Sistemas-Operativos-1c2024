@@ -433,6 +433,9 @@ int iniciar_servidor(t_log *logger, char *puerto, char *nombre)
 
 	socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 
+	if (setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) 
+    error("setsockopt(SO_REUSEADDR) failed");
+
 	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
 
 	listen(socket_servidor, SOMAXCONN);
@@ -1067,7 +1070,7 @@ op_code recibir_motivo_desalojo(uint32_t socket_cliente)
 	}
 }
 
-void *enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket)
+void enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket)
 {
 	t_interrupcion *interrupcion = malloc(sizeof(t_interrupcion));
 	interrupcion->motivo = interrupcion_code;

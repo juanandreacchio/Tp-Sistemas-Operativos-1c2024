@@ -132,7 +132,7 @@ void *atender_cliente(void *socket_cliente)
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
 
             printf("--------------------------PROCESO CREADO-----------------\n");
-            imprimir_lista_de_procesos(procesos_en_memoria);
+            imprimir_proceso(proceso_creado);
             // imprimir_lista_de_procesos(procesos_en_memoria);
 
             break;

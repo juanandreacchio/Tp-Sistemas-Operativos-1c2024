@@ -45,6 +45,7 @@ typedef enum
 	IO_SUCCESS,
 	EJECUTAR_IO,
 	INTERRUPCION_CLOCK,
+	CERRAR_IO
 
 
 } op_code;
@@ -249,7 +250,7 @@ t_interrupcion *deserializar_interrupcion(t_buffer *buffer);
 t_buffer *serializar_interrupcion(t_interrupcion *interrupcion);
 void enviar_motivo_desalojo(op_code motivo, uint32_t socket);
 op_code recibir_motivo_desalojo(uint32_t socket_cliente);
-void *enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket);
+void enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket);
 cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
 t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer);
 t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion);
