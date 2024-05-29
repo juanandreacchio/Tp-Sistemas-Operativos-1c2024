@@ -31,6 +31,7 @@ pthread_mutex_t mutex_interfaces_conectadas;
 pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de la cola de cada interfaz
 pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 pthread_mutex_t mutex_flag_cpu_libre;
+pthread_mutex_t mutex_motivo_ultimo_desalojo;
 sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 t_queue *cola_procesos_ready;
 t_queue *cola_procesos_new;
@@ -39,6 +40,7 @@ t_pcb *pcb_en_ejecucion;
 pthread_t planificador_corto;
 pthread_t dispatch;
 pthread_t hilo_quantum;
+op_code motivo_ultimo_desalojo;
 
 //-----------------varaibles globales------------------
 int grado_multiprogramacion;
@@ -114,45 +116,43 @@ void *atender_cliente(void *socket_cliente_ptr)
     int socket_cliente = *(int *)socket_cliente_ptr;
     free(socket_cliente_ptr); // Liberamos el puntero ya que no lo necesitamos más
 
-        op_code codigo_operacion = recibir_operacion(socket_cliente);
+    op_code codigo_operacion = recibir_operacion(socket_cliente);
 
-        switch (codigo_operacion)
-        {
-        case INTERFAZ_GENERICA:
-            nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
+    switch (codigo_operacion)
+    {
+    case INTERFAZ_GENERICA:
+        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
 
-            crear_interfaz(INTERFAZ_GENERICA, nombre_entrada_salida_conectada, socket_cliente);
+        crear_interfaz(INTERFAZ_GENERICA, nombre_entrada_salida_conectada, socket_cliente);
 
-            free(nombre_entrada_salida_conectada);
-            break;
-        case INTERFAZ_STDIN:
-            nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
+        free(nombre_entrada_salida_conectada);
+        break;
+    case INTERFAZ_STDIN:
+        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
 
-            crear_interfaz(INTERFAZ_STDIN, nombre_entrada_salida_conectada, socket_cliente);
+        crear_interfaz(INTERFAZ_STDIN, nombre_entrada_salida_conectada, socket_cliente);
 
-            free(nombre_entrada_salida_conectada);
-            break;
-        case INTERFAZ_STDOUT:
-            nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
+        free(nombre_entrada_salida_conectada);
+        break;
+    case INTERFAZ_STDOUT:
+        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
 
-            crear_interfaz(INTERFAZ_STDOUT, nombre_entrada_salida_conectada, socket_cliente);
+        crear_interfaz(INTERFAZ_STDOUT, nombre_entrada_salida_conectada, socket_cliente);
 
-            free(nombre_entrada_salida_conectada);
-            break;
-        case INTERFAZ_DIALFS:
-            nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
+        free(nombre_entrada_salida_conectada);
+        break;
+    case INTERFAZ_DIALFS:
+        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
 
-            crear_interfaz(INTERFAZ_DIALFS, nombre_entrada_salida_conectada, socket_cliente);
+        crear_interfaz(INTERFAZ_DIALFS, nombre_entrada_salida_conectada, socket_cliente);
 
-            free(nombre_entrada_salida_conectada);
-            break;
-        default:
-            log_info(logger_kernel, "Se recibió un mensaje de un módulo desconocido");
-            break;
-        }
-    
+        free(nombre_entrada_salida_conectada);
+        break;
+    default:
+        log_info(logger_kernel, "Se recibió un mensaje de un módulo desconocido");
+        break;
+    }
 
-    
     return NULL;
 }
 
@@ -246,7 +246,7 @@ void ejecutar_comando(char *comando)
             pthread_mutex_unlock(&mutex_cola_de_new);
 
             set_add_pcb_cola(pcb_ready, READY, cola_procesos_ready, mutex_cola_de_readys);
-            log_info(logger_kernel,"puse el pcb en ready y lo meti dentro de la cola de ready");
+            log_info(logger_kernel, "puse el pcb en ready y lo meti dentro de la cola de ready");
         }
         sem_post(&hay_proceso_a_ready);
 
@@ -325,7 +325,6 @@ void ejecutar_PCB(t_pcb *pcb)
     setear_pcb_en_ejecucion(pcb);
     enviar_pcb(pcb, conexion_dispatch);
     log_info(logger_kernel, "Se envio el PCB con PID %d a CPU Dispatch", pcb->pid);
-
 }
 
 void setear_pcb_en_ejecucion(t_pcb *pcb)
@@ -335,7 +334,6 @@ void setear_pcb_en_ejecucion(t_pcb *pcb)
     pthread_mutex_lock(&mutex_proceso_en_ejecucion);
     pcb_en_ejecucion = pcb;
     pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
-    
 }
 void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t mutex)
 {
@@ -353,10 +351,9 @@ void *recibir_dispatch()
         op_code motivo_desalojo = recibir_motivo_desalojo(conexion_dispatch);
         t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
 
-        sem_post(&cpu_libre);
-        pthread_mutex_lock(&mutex_flag_cpu_libre);
-        flag_cpu_libre = 1; // no c si tendir aque ir aca o en cada uno de los casos del motivo de desalojo que lo requieran
-        pthread_mutex_unlock(&mutex_flag_cpu_libre);
+        pthread_mutex_lock(&mutex_motivo_ultimo_desalojo);
+        motivo_ultimo_desalojo = motivo_desalojo;
+        pthread_mutex_unlock(&mutex_motivo_ultimo_desalojo);
 
         switch (motivo_desalojo)
         {
@@ -376,11 +373,10 @@ void *recibir_dispatch()
                 log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", utlima_instruccion->identificador, nombre_io);
                 exit(EXIT_FAILURE);
             }
-            /* creo que esto no es necesario
+
             pthread_mutex_lock(&mutex_proceso_en_ejecucion);
             pcb_en_ejecucion = NULL;
             pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
-            */
 
             pcb_actualizado->estado_actual = BLOCKED;
 
@@ -395,32 +391,41 @@ void *recibir_dispatch()
             instruccion_en_io->instruccion_io = utlima_instruccion;
             instruccion_en_io->pid = pcb_actualizado->pid;
 
-            pthread_mutex_lock(&mutex_lista_de_blocked);//estopy casi seguro que este mutex esta mal porque es el mismo que esta arriba y son listas distintas
+            pthread_mutex_lock(&mutex_cola_interfaces); // estopy casi seguro que este mutex esta mal porque es el mismo que esta arriba y son listas distintas
             queue_push((t_queue *)dictionary_get(colas_blocks_io, nombre_io), instruccion_en_io);
-            pthread_mutex_unlock(&mutex_lista_de_blocked);
+            pthread_mutex_unlock(&mutex_cola_interfaces);
 
             t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_io);
             sem_post(&semaforos_interfaz->instruccion_en_cola);
 
-            // 3. sino nose
+            sem_post(&cpu_libre);
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            flag_cpu_libre = 1;
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
+
             break;
         case FIN_CLOCK:
-            log_info(logger_kernel,"entre al fin de clock por dispatcher");
+            log_info(logger_kernel, "entre al fin de clock por dispatcher");
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             sem_post(&hay_proceso_a_ready);
 
+            sem_post(&cpu_libre);
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            flag_cpu_libre = 1;
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
         case KILL_PROCESS:
             // TODO
             break;
         case END_PROCESS:
+            log_info(logger_kernel, "entre al end process por dispatcher");
             sem_post(&contador_grado_multiprogramacion);
-        
+
+            sem_post(&cpu_libre);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
-
         default:
             break;
         }
@@ -485,17 +490,16 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
     pthread_mutex_unlock(&mutex_diccionario_interfaces_de_semaforos);
 
     pthread_t hilo_IO;
-    char * nombre2 = strdup(nombre);
-    pthread_create(&hilo_IO, NULL, (void*) atender_interfaz,nombre2);     
+    char *nombre2 = strdup(nombre);
+    pthread_create(&hilo_IO, NULL, (void *)atender_interfaz, nombre2);
     pthread_detach(hilo_IO);
 }
 
-void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO,t_interfaz_en_kernel *conexion_io)
+void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO, t_interfaz_en_kernel *conexion_io)
 {
     t_paquete *paquete = crear_paquete(EJECUTAR_IO);
     paquete->buffer = serializar_instruccion(instruccionEnIO->instruccion_io);
     enviar_paquete(paquete, conexion_io->conexion);
-
 }
 
 void atender_interfaz(char *nombre_interfaz)
@@ -514,13 +518,13 @@ void atender_interfaz(char *nombre_interfaz)
         pthread_mutex_unlock(&(semaforos_interfaz->mutex));
 
         t_interfaz_en_kernel *conexion_io = dictionary_get(conexiones_io, nombre_interfaz);
-        ejecutar_instruccion_io(nombre_interfaz, instruccion,conexion_io);
+        ejecutar_instruccion_io(nombre_interfaz, instruccion, conexion_io);
 
         op_code resultado_operacion = recibir_operacion(conexion_io->conexion);
         switch (resultado_operacion)
         {
         case IO_SUCCESS:
-        log_info(logger_kernel,"llegue a IO_SUCCESS");
+            log_info(logger_kernel, "llegue a IO_SUCCESS");
             t_pcb *pcb = buscar_pcb_por_pid(instruccion->pid, lista_procesos_blocked);
 
             pthread_mutex_lock(&mutex_lista_de_blocked);
@@ -534,13 +538,13 @@ void atender_interfaz(char *nombre_interfaz)
                 sem_post(&hay_proceso_a_ready);
             }
 
-            
             sem_post(&(semaforos_interfaz->binario_io_libre));
+
             break;
         case CERRAR_IO:
             close(conexion_io->conexion); // Cerramos el socket una vez que salimos del loop
             break;
-        
+
         default:
             break;
         }
@@ -572,10 +576,14 @@ t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
 void *verificar_quantum()
 {
     t_temporal *tiempo_transcurrido;
+
     while (1)
     {
         sem_wait(&arrancar_quantum);
-        log_info(logger_kernel, "proceso: %d", pcb_en_ejecucion->pid);
+
+        pthread_mutex_lock(&mutex_proceso_en_ejecucion);
+        pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
+
         pthread_mutex_lock(&mutex_flag_cpu_libre);
         flag_cpu_libre = 0;
         pthread_mutex_unlock(&mutex_flag_cpu_libre);
@@ -585,30 +593,49 @@ void *verificar_quantum()
         while (1)
         {
             usleep(1000);
-            log_info(logger_kernel, "flag_cpu_libre: %d", flag_cpu_libre);
-            if (flag_cpu_libre == 1)
-            {
-                log_info(logger_kernel, "NO LLEGUE AL FIN DE QUANTUM, APARECIO ALGO ANTES");
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
-                
-                break;
-            }
-            else if (temporal_gettime(tiempo_transcurrido) >= quantum)
+
+            if (temporal_gettime(tiempo_transcurrido) >= quantum)
             {
                 log_info(logger_kernel, "FIN DE QUANTUM: MANDO INTERRUPCION");
+
+                pthread_mutex_lock(&mutex_flag_cpu_libre);
                 enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                break;
+            }
 
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            if (flag_cpu_libre == 1)
+            {
+                switch (motivo_ultimo_desalojo)
+                {
+                case FIN_CLOCK:
+                    log_info(logger_kernel, "LLEGUE AL FIN DE QUANTUM");
+                    break;
+                case OPERACION_IO:
+                    log_info(logger_kernel, "DESALOJÉ POR IO");
+                    break;
+                case KILL_PROCESS:
+                    log_info(logger_kernel, "DESALOJÉ POR KILL");
+                    break;
+                case END_PROCESS:
+                    log_info(logger_kernel, "DESALOJÉ POR END");
+                    break;
+                default:
+                    break;
+                }
+                pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 break;
             }
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
+
         temporal_destroy(tiempo_transcurrido);
     }
+
     return NULL;
 }
-
 
 void iniciar_colas_de_estados_procesos()
 {
@@ -643,4 +670,5 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_cola_interfaces, NULL);
     pthread_mutex_init(&mutex_diccionario_interfaces_de_semaforos, NULL);
     pthread_mutex_init(&mutex_flag_cpu_libre, NULL);
+    pthread_mutex_init(&mutex_motivo_ultimo_desalojo, NULL);
 }

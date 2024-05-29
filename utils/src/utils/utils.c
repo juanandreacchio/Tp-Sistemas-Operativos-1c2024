@@ -948,7 +948,7 @@ void imprimir_proceso(t_proceso *proceso)
 	{
 		t_instruccion *instruccion = list_get(proceso->lista_instrucciones, i);
 		printf("Instrucción %d: ", i + 1);
-		imprimir_instruccion(*instruccion);
+		// imprimir_instruccion(*instruccion);
 	}
 	// Si quieres imprimir también la tabla de páginas, puedes hacerlo aquí
 }
@@ -1030,7 +1030,7 @@ void imprimir_lista_de_procesos(t_list *lista_procesos)
 	{
 		t_proceso *proceso = list_get(lista_procesos, i);
 		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
-		imprimir_proceso(proceso);
+		// imprimir_proceso(proceso);
 	}
 }
 

@@ -90,7 +90,8 @@ void *iniciar_servidor_interrupt(void *arg)
         if (respuesta_kernel->codigo_operacion == INTERRUPTION)
         {
             log_info(logger_cpu, "Ocurrio una interrupcion");
-            if (interrupcion_recibida != NULL) {
+            if (interrupcion_recibida != NULL)
+            {
                 free(interrupcion_recibida);
             }
             interrupcion_recibida = deserializar_interrupcion(respuesta_kernel->buffer);
@@ -105,11 +106,12 @@ void *iniciar_servidor_interrupt(void *arg)
 
 void accion_interrupt(t_pcb *pcb, op_code motivo, int socket)
 {
-    if (interrupcion_recibida == NULL) {
+    if (interrupcion_recibida == NULL)
+    {
         log_error(logger_cpu, "No hay interrupcion recibida");
         return;
     }
-    
+
     interruption_flag = 0;
     log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion");
     enviar_motivo_desalojo(motivo, socket);
@@ -129,7 +131,7 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
 
     enviar_paquete(paquete, conexionParam);
 
-    log_info(logger_cpu, "Se envio la solicitud de instruccion a memoria con pid: %d y pc: %d", pid, *pc);
+    log_info(logger_cpu, "PID: %d - FETCH - Program Counter pc: %d", pid, *pc);
 
     t_paquete *respuesta_memoria = recibir_paquete(conexionParam);
 
@@ -213,7 +215,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     default:
         break;
     }
-    printf("------------------ INSTRUCCION EJECUTADA: --------------------\n");
+    log_info(logger_cpu, "PID: %d - EJECUTANDO ", pcb->pid);
     imprimir_instruccion(*instruccion);
 }
 
@@ -231,7 +233,8 @@ bool check_interrupt(uint32_t pid)
 t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 {
     t_instruccion *instruccion = fetch_instruccion(pcb->pid, &pcb->pc, socket);
-    if (instruccion != NULL) {
+    if (instruccion != NULL)
+    {
         pcb->pc += 1;
     }
     return instruccion;
@@ -240,6 +243,7 @@ t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 {
     t_instruccion *instruccion = NULL;
+    input_ouput_flag = 0;
     while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1)
     {
         if (instruccion != NULL)
@@ -253,7 +257,6 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             break;
         }
         decode_y_execute_instruccion(instruccion, pcb);
-        usleep(1000000);
         if (check_interrupt(pcb->pid))
             interruption_flag = 1;
     }
@@ -269,12 +272,12 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
         interruption_flag = 0;
         enviar_motivo_desalojo(END_PROCESS, socket_Kernel);
         enviar_pcb(pcb, socket_Kernel);
+        log_info(logger_cpu, "Se envio el pcb al kernel con motivo de desalojo END_PROCESS");
     }
-
-        if (interruption_flag == 1)
+    if (interruption_flag == 1)
     {
         accion_interrupt(pcb, interrupcion_recibida->motivo, socket_Kernel);
+        interruption_flag = 0;
     }
-    input_ouput_flag = 0;
+    // input_ouput_flag = 0;
 }
-
