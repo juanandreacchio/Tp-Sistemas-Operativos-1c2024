@@ -21,6 +21,9 @@ char *nombre_entrada_salida_conectada;
 t_dictionary *conexiones_io;
 t_dictionary *colas_blocks_io; // cola de cada interfaz individual, adentro están las isntrucciones a ejecutar
 t_dictionary *diccionario_semaforos_io;
+t_dictionary *recursos_disponibles;
+t_dictionary *cola_de_bloqueados_por_recurso;
+t_dictionary *recursos_asignados_por_proceso;
 
 pthread_mutex_t mutex_pid;
 pthread_mutex_t mutex_cola_de_readys;
@@ -35,12 +38,15 @@ pthread_mutex_t mutex_motivo_ultimo_desalojo;
 sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 t_queue *cola_procesos_ready;
 t_queue *cola_procesos_new;
+t_queue *cola_procesos_exit;
 t_list *lista_procesos_blocked; // lsita de los prccesos bloqueados
 t_pcb *pcb_en_ejecucion;
 pthread_t planificador_corto;
 pthread_t dispatch;
 pthread_t hilo_quantum;
 op_code motivo_ultimo_desalojo;
+char **recursos;
+char **instancias_recursos;
 
 //-----------------varaibles globales------------------
 int grado_multiprogramacion;
@@ -52,6 +58,7 @@ int main(void)
     iniciar_colas_de_estados_procesos();
     iniciar_diccionarios();
     iniciar_semaforos();
+    iniciar_recursos();
 
     // iniciar conexion con Kernel
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_kernel);
@@ -109,6 +116,14 @@ void iniciar_config(void)
     quantum = config_get_int_value(config_kernel, "QUANTUM");
     algoritmo_planificacion = config_get_string_value(config_kernel, "ALGORITMO_PLANIFICACION");
     grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MULTIPROGRAMACION");
+    recursos = config_get_array_value(config_kernel, "RECURSOS");
+    instancias_recursos = config_get_array_value(config_kernel, "INSTANCIAS_RECURSOS");
+
+    if (string_array_size(recursos) != string_array_size(instancias_recursos))
+    {
+        log_error(logger_kernel, "La cantidad de recursos y de instancias de recursos no coincide");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void *atender_cliente(void *socket_cliente_ptr)
@@ -226,6 +241,9 @@ void ejecutar_comando(char *comando)
         ptr_solicitud->pid = contador_pid;
         ptr_solicitud->path_length = strlen(path) + 1;
         ptr_solicitud->path = path;
+
+        dictionary_put(recursos_asignados_por_proceso, string_itoa(contador_pid), dictionary_create());
+
         t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
         paquete->buffer = buffer;
 
@@ -426,6 +444,45 @@ void *recibir_dispatch()
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
+        case WAIT_SOLICITADO:
+            t_paquete *respuesta = recibir_paquete(conexion_dispatch);
+            t_instruccion *utlima = instruccion_deserializar(respuesta->buffer, 0);
+            char *recurso_solicitado = utlima->parametros[0];
+
+            if (!existe_recurso(recurso_solicitado))
+            {
+                finalizar_proceso(pcb_actualizado);
+                break;
+            }
+            int32_t instancias_restantes = restar_instancia_a_recurso(recurso_solicitado);
+            retener_instancia_de_recurso(recurso_solicitado, pcb_actualizado->pid);
+            if (instancias_restantes < 0)
+            {
+                agregar_pcb_a_cola_bloqueados_de_recurso(pcb_actualizado, recurso_solicitado);
+
+                pcb_actualizado->estado_actual = BLOCKED;
+                sem_post(&cpu_libre);
+                pthread_mutex_lock(&mutex_flag_cpu_libre);
+                flag_cpu_libre = 1;
+                pthread_mutex_unlock(&mutex_flag_cpu_libre);
+            }
+            else
+            {
+                setear_pcb_en_ejecucion(pcb_actualizado);
+            }
+            break;
+        case SIGNAL_SOLICITADO:
+            t_paquete *respuesta_signal = recibir_paquete(conexion_dispatch);
+            t_instruccion *instruccion_signal = instruccion_deserializar(respuesta_signal->buffer, 0);
+            char *recurso_signal = instruccion_signal->parametros[0];
+
+            if (!existe_recurso(recurso_signal))
+            {
+                finalizar_proceso(pcb_actualizado);
+                break;
+            }
+            sumar_instancia_a_recurso(recurso_solicitado);
+            setear_pcb_en_ejecucion(pcb_actualizado);
         default:
             break;
         }
@@ -641,6 +698,7 @@ void iniciar_colas_de_estados_procesos()
 {
     cola_procesos_ready = queue_create();
     cola_procesos_new = queue_create();
+    cola_procesos_exit = queue_create();
 }
 
 void iniciar_listas()
@@ -653,6 +711,9 @@ void iniciar_diccionarios()
     conexiones_io = dictionary_create();
     colas_blocks_io = dictionary_create();
     diccionario_semaforos_io = dictionary_create();
+    recursos_disponibles = dictionary_create();
+    cola_de_bloqueados_por_recurso = dictionary_create();
+    recursos_asignados_por_proceso = dictionary_create();
 }
 
 void iniciar_semaforos()
@@ -671,4 +732,100 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_diccionario_interfaces_de_semaforos, NULL);
     pthread_mutex_init(&mutex_flag_cpu_libre, NULL);
     pthread_mutex_init(&mutex_motivo_ultimo_desalojo, NULL);
+}
+
+void iniciar_recurso(char *nombre, char *instancias)
+{
+    t_recurso_en_kernel *recurso = malloc(sizeof(t_recurso_en_kernel));
+
+    recurso->instancias = atoi(instancias);
+    pthread_mutex_init(&recurso->mutex_cola_recurso, NULL);
+    pthread_mutex_init(&recurso->mutex, NULL);
+
+    dictionary_put(recursos_disponibles, nombre, recurso);
+    dictionary_put(cola_de_bloqueados_por_recurso, nombre, queue_create());
+}
+
+void iniciar_recursos()
+{
+    for (int i = 0; i < string_array_size(recursos); i++)
+    {
+        iniciar_recurso(recursos[i], instancias_recursos[i]);
+    }
+}
+
+int32_t restar_instancia_a_recurso(char *nombre)
+{
+    t_recurso_en_kernel *recurso = dictionary_get(recursos_disponibles, nombre);
+    pthread_mutex_lock(&recurso->mutex);
+    recurso->instancias--;
+    pthread_mutex_unlock(&recurso->mutex);
+    return recurso->instancias;
+}
+
+void agregar_pcb_a_cola_bloqueados_de_recurso(t_pcb *pcb, char *nombre)
+{
+    t_recurso_en_kernel *recurso = dictionary_get(recursos_disponibles, nombre);
+    pthread_mutex_lock(&recurso->mutex_cola_recurso);
+    queue_push(dictionary_get(cola_de_bloqueados_por_recurso, nombre), pcb);
+    pthread_mutex_unlock(&recurso->mutex_cola_recurso);
+}
+
+void sumar_instancia_a_recurso(char *nombre)
+{
+    t_recurso_en_kernel *recurso = dictionary_get(recursos_disponibles, nombre);
+    pthread_mutex_lock(&recurso->mutex);
+    recurso->instancias++;
+    pthread_mutex_unlock(&recurso->mutex);
+    if (recurso->instancias >= 0)
+    {
+        pthread_mutex_lock(&recurso->mutex_cola_recurso);
+        t_pcb *pcb = queue_pop(dictionary_get(cola_de_bloqueados_por_recurso, nombre));
+        pthread_mutex_unlock(&recurso->mutex_cola_recurso);
+        if (pcb != NULL)
+        {
+            set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
+            sem_post(&hay_proceso_a_ready);
+        }
+    }
+}
+
+bool existe_recurso(char *nombre){
+    return dictionary_has_key(recursos_disponibles, nombre);
+}
+
+void finalizar_proceso(t_pcb *pcb)
+{
+    pcb->estado_actual = EXIT;
+    liberar_recursos(pcb->pid);
+
+    sem_post(&contador_grado_multiprogramacion);
+    destruir_pcb(pcb);
+}
+
+void liberar_recursos(uint32_t pid)
+{
+    t_dictionary *recursos_asignados = dictionary_get(recursos_asignados_por_proceso, pid);
+    t_list *recursos_asignados_lista = dictionary_elements(recursos_asignados);
+    for (int i = 0; i < list_size(recursos_asignados_lista); i++)
+    {
+        t_recurso_asignado_a_proceso *recurso_asignado = list_get(recursos_asignados, i);
+        for (size_t i = 0; i < recurso_asignado->instancias_asignadas; i++)
+        {
+            sumar_instancia_a_recurso(recurso_asignado->nombre_recurso);
+        }
+    }
+}
+
+void retener_instancia_de_recurso(char *nombre_recurso, uint32_t pid)
+{
+    t_dictionary *recursos = dictionary_get(recursos_asignados_por_proceso, pid);
+    if (!dictionary_has_key(recursos, nombre_recurso))
+    {
+        dictionary_put(recursos, nombre_recurso, 1);
+    }
+    else
+    {
+        dictionary_put(recursos, nombre_recurso, dictionary_get(recursos, nombre_recurso) + 1);
+    }
 }
