@@ -623,6 +623,7 @@ void *verificar_quantum()
                     log_info(logger_kernel, "DESALOJÉ POR END");
                     break;
                 default:
+                    log_info(logger_kernel, "MOTIVO DESCONOCIDO DE DESALOJO");
                     break;
                 }
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);

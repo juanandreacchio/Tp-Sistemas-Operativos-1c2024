@@ -69,7 +69,7 @@ void *iniciar_servidor_dispatch(void *arg)
     while (1)
     {
         t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
-        printf("recibi el proceso:%d", pcb->pid);
+        //printf("recibi el proceso:%d", pcb->pid);
         comenzar_proceso(pcb, conexion_memoria, conexion_kernel_dispatch);
     }
     return NULL;
@@ -89,12 +89,12 @@ void *iniciar_servidor_interrupt(void *arg)
 
         if (respuesta_kernel->codigo_operacion == INTERRUPTION)
         {
-            log_info(logger_cpu, "Ocurrio una interrupcion");
             if (interrupcion_recibida != NULL)
             {
                 free(interrupcion_recibida);
             }
             interrupcion_recibida = deserializar_interrupcion(respuesta_kernel->buffer);
+            log_info(logger_cpu, "ME LLEGO UNA INTERRUPCION DEL KERNEL DEL PROCESO: %d",interrupcion_recibida->pid);
         }
         else
         {
@@ -113,7 +113,7 @@ void accion_interrupt(t_pcb *pcb, op_code motivo, int socket)
     }
 
     interruption_flag = 0;
-    log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion");
+    log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion nevio PCB y motivo de desalojo a Kernel");
     enviar_motivo_desalojo(motivo, socket);
     enviar_pcb(pcb, socket);
 }
@@ -244,6 +244,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 {
     t_instruccion *instruccion = NULL;
     input_ouput_flag = 0;
+    interrupcion_recibida = NULL;
     while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1)
     {
         if (instruccion != NULL)
@@ -257,8 +258,13 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             break;
         }
         decode_y_execute_instruccion(instruccion, pcb);
-        if (check_interrupt(pcb->pid))
+        if(check_interrupt(pcb->pid))
+        {
+            log_info(logger_cpu,"el chequeo de interrupcion encontro que hay una interrupcion");
             interruption_flag = 1;
+        }
+            
+        usleep(500000);
     }
 
     imprimir_registros_por_pantalla(pcb->registros);
@@ -277,7 +283,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
     if (interruption_flag == 1)
     {
         accion_interrupt(pcb, interrupcion_recibida->motivo, socket_Kernel);
-        interruption_flag = 0;
+        //interruption_flag = 0; no es necesario esta dentro del accion_interrupt
     }
     // input_ouput_flag = 0;
 }

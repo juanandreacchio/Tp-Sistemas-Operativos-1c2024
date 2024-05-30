@@ -460,6 +460,10 @@ int esperar_cliente(int socket_servidor, t_log *logger)
 void *serializar_paquete(t_paquete *paquete, int bytes)
 {
 	void *magic = malloc(bytes);
+	if (magic == NULL) {
+    perror("malloc falló");
+    exit(1);
+}
 	int desplazamiento = 0;
 
 	memcpy(magic + desplazamiento, &(paquete->codigo_operacion), sizeof(int));
@@ -1030,7 +1034,7 @@ void imprimir_lista_de_procesos(t_list *lista_procesos)
 	{
 		t_proceso *proceso = list_get(lista_procesos, i);
 		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
-		// imprimir_proceso(proceso);
+		imprimir_proceso(proceso);
 	}
 }
 
