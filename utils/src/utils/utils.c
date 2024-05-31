@@ -434,7 +434,7 @@ int iniciar_servidor(t_log *logger, char *puerto, char *nombre)
 	socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 
 	if (setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) 
-    error("setsockopt(SO_REUSEADDR) failed");
+    perror("setsockopt(SO_REUSEADDR) failed");
 
 	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
 
@@ -708,18 +708,15 @@ void buffer_read(t_buffer *buffer, void *data, uint32_t size)
 	buffer->offset += size;
 }
 
-void imprimir_instruccion(t_instruccion instruccion)
+void imprimir_instruccion(t_instruccion *instruccion)
 {
-	// Imprimir el identificador (como un entero)
-	printf("Identificador: %d\n", instruccion.identificador);
-
-	// Imprimir los parámetros
-	printf("Parámetros:\n");
-	for (uint32_t i = 0; i < instruccion.cant_parametros; i++)
+	printf("Instruccion: %d\n", instruccion->identificador);
+	for (int i = 0; i < instruccion->cant_parametros; i++)
 	{
-		printf("  Parametro %u: %s\n", i + 1, instruccion.parametros[i]);
+		printf("Parametro %d: %s\n", i + 1, instruccion->parametros[i]);
 	}
 }
+
 
 uint32_t espacio_parametros(t_instruccion *instruccion)
 {
@@ -931,32 +928,6 @@ t_buffer *serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria
 	return buffer;
 }
 
-t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buffer *buffer)
-{
-	t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-	buffer->offset = 0;
-
-	buffer_read(buffer, &solicitud->pid, sizeof(uint32_t));
-	buffer_read(buffer, &solicitud->path_length, sizeof(uint32_t));
-	solicitud->path = malloc(solicitud->path_length);
-	buffer_read(buffer, solicitud->path, solicitud->path_length);
-	return solicitud;
-}
-
-void imprimir_proceso(t_proceso *proceso)
-{
-	printf("PID: %d\n", proceso->pid);
-	// printf("Path del archivo de instrucciones: %s\n", proceso->path);
-	printf("Lista de instrucciones:\n");
-	for (int i = 0; i < list_size(proceso->lista_instrucciones); i++)
-	{
-		t_instruccion *instruccion = list_get(proceso->lista_instrucciones, i);
-		printf("Instrucción %d: ", i + 1);
-		// imprimir_instruccion(*instruccion);
-	}
-	// Si quieres imprimir también la tabla de páginas, puedes hacerlo aquí
-}
-
 t_list *parsear_instrucciones(FILE *archivo_instrucciones)
 {
 	int longitud_de_linea_maxima = 1024;
@@ -1026,16 +997,6 @@ t_identificador string_to_identificador(char *string)
 	if (strcasecmp(string, "EXIT") == 0)
 		return EXIT;
 	return -1;
-}
-
-void imprimir_lista_de_procesos(t_list *lista_procesos)
-{
-	for (int i = 0; i < list_size(lista_procesos); i++)
-	{
-		t_proceso *proceso = list_get(lista_procesos, i);
-		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
-		imprimir_proceso(proceso);
-	}
 }
 
 t_buffer *serializar_interrupcion(t_interrupcion *interrupcion)
