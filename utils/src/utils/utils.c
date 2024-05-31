@@ -1133,3 +1133,18 @@ t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer){
 	instruccion->instruccion_io = instruccion_deserializar(buffer, buffer->offset);
 	return instruccion;
 }
+
+char* estado_to_string(estados estado){
+	switch (estado){
+		case NEW:
+			return "NEW";
+		case READY:
+			return "READY";
+		case EXEC:
+			return "EXEC";
+		case BLOCKED:
+			return "BLOCKED";
+		case TERMINATED:
+			return "TERMINATED";
+	}
+}

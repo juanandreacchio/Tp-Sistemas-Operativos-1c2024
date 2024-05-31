@@ -35,10 +35,13 @@ void *recibir_dispatch()
             pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
 
             pcb_actualizado->estado_actual = BLOCKED;
+            logear_cambio_estado(pcb_actualizado->pid, "EXEC", "BLOCKED");
 
             pthread_mutex_lock(&mutex_lista_de_blocked);
             list_add(lista_procesos_blocked, pcb_actualizado);
             pthread_mutex_unlock(&mutex_lista_de_blocked);
+
+            logear_bloqueo_proceso(pcb_actualizado->pid, nombre_io);
 
             sem_post(&contador_grado_multiprogramacion);
 
@@ -65,6 +68,8 @@ void *recibir_dispatch()
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             sem_post(&hay_proceso_a_ready);
 
+            logear_cambio_estado(pcb_actualizado->pid, "EXEC", "READY");
+
             sem_post(&cpu_libre);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
@@ -90,6 +95,8 @@ void *recibir_dispatch()
             if (!existe_recurso(recurso_solicitado))
             {
                 set_add_pcb_cola(pcb_actualizado, EXIT, cola_procesos_exit, mutex_cola_de_exit);
+                logear_cambio_estado(pcb_actualizado->pid, "EXEC", "EXIT");
+
                 sem_post(&hay_proceso_exit);
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
@@ -104,10 +111,15 @@ void *recibir_dispatch()
                 agregar_pcb_a_cola_bloqueados_de_recurso(pcb_actualizado, recurso_solicitado);
 
                 pcb_actualizado->estado_actual = BLOCKED;
+                logear_cambio_estado(pcb_actualizado->pid, "EXEC", "BLOCKED");
+
                 sem_post(&cpu_libre);
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
+
+                logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
+                sem_post(&contador_grado_multiprogramacion);
             }
             else
             {
@@ -122,6 +134,8 @@ void *recibir_dispatch()
             if (!existe_recurso(recurso_signal))
             {
                 set_add_pcb_cola(pcb_actualizado, EXIT, cola_procesos_exit, mutex_cola_de_exit);
+                logear_cambio_estado(pcb_actualizado->pid, "EXEC", "EXIT");
+                
                 sem_post(&hay_proceso_exit);
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
@@ -136,5 +150,3 @@ void *recibir_dispatch()
         }
     }
 }
-
-

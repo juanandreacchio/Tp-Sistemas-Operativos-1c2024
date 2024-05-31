@@ -10,6 +10,7 @@ void ejecutar_PCB(t_pcb *pcb)
 void setear_pcb_en_ejecucion(t_pcb *pcb)
 {
     pcb->estado_actual = EXEC;
+    logear_cambio_estado(pcb->pid, estado_to_string(pcb->estado_actual), "EXEC");
 
     pthread_mutex_lock(&mutex_proceso_en_ejecucion);
     pcb_en_ejecucion = pcb;
@@ -45,4 +46,12 @@ t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
         exit(1);
     }
     return pcb;
+}
+
+void logear_bloqueo_proceso(uint32_t pid, char* motivo){
+    log_info(logger_kernel, "PID: %d - Bloqueado por: %s", pid, motivo);
+}
+
+void logear_cambio_estado(uint32_t pid, char* estado_anterior, char * estado_actual){
+    log_info(logger_kernel, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pid, estado_anterior, estado_actual);
 }

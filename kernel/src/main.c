@@ -48,6 +48,8 @@ pthread_t planificador_corto;
 pthread_t planificador_largo;
 pthread_t dispatch;
 pthread_t hilo_quantum;
+pthread_t planificador_largo_creacion;
+pthread_t planificador_largo_eliminacion;
 op_code motivo_ultimo_desalojo;
 char **recursos;
 char **instancias_recursos;

@@ -268,4 +268,5 @@ cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
 t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer);
 t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion);
 op_code tipo_interfaz_to_cod_op(cod_interfaz tipo);
+char* estado_to_string(estados estado);
 #endif /* UTILS_H_ */

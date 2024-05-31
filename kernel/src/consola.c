@@ -79,6 +79,8 @@ void ejecutar_comando(char *comando)
         set_add_pcb_cola(pcb_creado, NEW, cola_procesos_new, mutex_cola_de_new);
         sem_post(&hay_proceso_nuevo);
 
+        log_info(logger_kernel, "Se crea el proceso %d en NEW", pcb_creado->pid);
+
         pthread_mutex_lock(&mutex_pid);
         contador_pid++;
         pthread_mutex_unlock(&mutex_pid);

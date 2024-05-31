@@ -66,6 +66,8 @@ extern t_pcb *pcb_en_ejecucion;
 extern pthread_t planificador_corto;
 extern pthread_t dispatch;
 extern pthread_t hilo_quantum;
+extern pthread_t planificador_largo_creacion;
+extern pthread_t planificador_largo_eliminacion;
 extern char **recursos;
 extern char **instancias_recursos;
 extern pthread_mutex_t mutex_cola_de_exit;
@@ -97,6 +99,7 @@ void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista);
 void agregar_pcb_a_cola_bloqueados_de_recurso(t_pcb *pcb, char *nombre);
 
+
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------
 void iniciar_planificador_corto_plazo();
 void iniciar_planificador_largo_plazo();
@@ -119,6 +122,10 @@ void liberar_recursos(uint32_t pid);
 void retener_instancia_de_recurso(char *nombre_recurso, uint32_t pid);
 int32_t restar_instancia_a_recurso(char *nombre);
 void sumar_instancia_a_recurso(char *nombre);
+
+// ---------------------- FUNCIONES DE LOGS --------------------------
+void logear_bloqueo_proceso(uint32_t pid, char* motivo);
+void logear_cambio_estado(uint32_t pid, char* estado_anterior, char * estado_actual);
 
 
 
