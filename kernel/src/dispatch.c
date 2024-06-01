@@ -80,12 +80,12 @@ void *recibir_dispatch()
             break;
         case END_PROCESS:
             log_info(logger_kernel, "entre al end process por dispatcher");
-            sem_post(&contador_grado_multiprogramacion);
+            finalizar_pcb(pcb_actualizado);
 
-            sem_post(&cpu_libre);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
+            sem_post(&cpu_libre);
             break;
         case WAIT_SOLICITADO:
             t_paquete *respuesta = recibir_paquete(conexion_dispatch);
@@ -94,10 +94,8 @@ void *recibir_dispatch()
 
             if (!existe_recurso(recurso_solicitado))
             {
-                set_add_pcb_cola(pcb_actualizado, EXIT, cola_procesos_exit, mutex_cola_de_exit);
-                logear_cambio_estado(pcb_actualizado->pid, "EXEC", "EXIT");
+                finalizar_pcb(pcb_actualizado);
 
-                sem_post(&hay_proceso_exit);
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
@@ -133,10 +131,8 @@ void *recibir_dispatch()
 
             if (!existe_recurso(recurso_signal))
             {
-                set_add_pcb_cola(pcb_actualizado, EXIT, cola_procesos_exit, mutex_cola_de_exit);
-                logear_cambio_estado(pcb_actualizado->pid, "EXEC", "EXIT");
-                
-                sem_post(&hay_proceso_exit);
+                finalizar_pcb(pcb_actualizado);
+
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);

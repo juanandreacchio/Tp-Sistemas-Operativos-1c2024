@@ -43,6 +43,7 @@ t_queue *cola_procesos_ready;
 t_queue *cola_procesos_new;
 t_queue *cola_procesos_exit;
 t_list *lista_procesos_blocked; // lsita de los prccesos bloqueados
+t_list *procesos_en_sistema;
 t_pcb *pcb_en_ejecucion;
 pthread_t planificador_corto;
 pthread_t planificador_largo;

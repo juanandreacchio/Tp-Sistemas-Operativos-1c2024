@@ -37,6 +37,10 @@ void eliminacion_de_procesos()
         pthread_mutex_unlock(&mutex_cola_de_exit);
         liberar_recursos(pcb_exit->pid);
 
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
+        list_remove_element(procesos_en_sistema, pcb_exit);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
+
         sem_post(&contador_grado_multiprogramacion);
         destruir_pcb(pcb_exit);
     }

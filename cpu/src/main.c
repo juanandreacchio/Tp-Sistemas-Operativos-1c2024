@@ -69,7 +69,7 @@ void *iniciar_servidor_dispatch(void *arg)
     while (1)
     {
         t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
-        //printf("recibi el proceso:%d", pcb->pid);
+        // printf("recibi el proceso:%d", pcb->pid);
         comenzar_proceso(pcb, conexion_memoria, conexion_kernel_dispatch);
     }
     return NULL;
@@ -94,7 +94,7 @@ void *iniciar_servidor_interrupt(void *arg)
                 free(interrupcion_recibida);
             }
             interrupcion_recibida = deserializar_interrupcion(respuesta_kernel->buffer);
-            log_info(logger_cpu, "ME LLEGO UNA INTERRUPCION DEL KERNEL DEL PROCESO: %d",interrupcion_recibida->pid);
+            log_info(logger_cpu, "ME LLEGO UNA INTERRUPCION DEL KERNEL DEL PROCESO: %d", interrupcion_recibida->pid);
         }
         else
         {
@@ -206,8 +206,20 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     case COPY_STRING:
         break;
     case WAIT:
+        enviar_motivo_desalojo(WAIT_SOLICITADO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
+
+        t_paquete *paquete = crear_paquete(WAIT_SOLICITADO);
+        paquete->buffer = serializar_instruccion(instruccion);
+        enviar_paquete(paquete, conexion_kernel_dispatch);
         break;
     case SIGNAL:
+        enviar_motivo_desalojo(SIGNAL_SOLICITADO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
+
+        t_paquete *paquete = crear_paquete(SIGNAL_SOLICITADO);
+        paquete->buffer = serializar_instruccion(instruccion);
+        enviar_paquete(paquete, conexion_kernel_dispatch);
         break;
     case EXIT:
         end_process_flag = 1;
@@ -258,12 +270,12 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             break;
         }
         decode_y_execute_instruccion(instruccion, pcb);
-        if(check_interrupt(pcb->pid))
+        if (check_interrupt(pcb->pid))
         {
-            log_info(logger_cpu,"el chequeo de interrupcion encontro que hay una interrupcion");
+            log_info(logger_cpu, "el chequeo de interrupcion encontro que hay una interrupcion");
             interruption_flag = 1;
         }
-            
+
         usleep(500000);
     }
 
@@ -283,7 +295,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
     if (interruption_flag == 1)
     {
         accion_interrupt(pcb, interrupcion_recibida->motivo, socket_Kernel);
-        //interruption_flag = 0; no es necesario esta dentro del accion_interrupt
+        // interruption_flag = 0; no es necesario esta dentro del accion_interrupt
     }
     // input_ouput_flag = 0;
 }

@@ -48,6 +48,14 @@ t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
     return pcb;
 }
 
+void finalizar_pcb(t_pcb *pcb) // Agrega al proceso a la cola de exits para q sea eliminado
+{
+    set_add_pcb_cola(pcb, EXIT, cola_procesos_exit, mutex_cola_de_exit);
+    logear_cambio_estado(pcb->pid, pcb->estado_actual, "EXIT");
+
+    sem_post(&hay_proceso_exit);
+}
+
 void logear_bloqueo_proceso(uint32_t pid, char* motivo){
     log_info(logger_kernel, "PID: %d - Bloqueado por: %s", pid, motivo);
 }

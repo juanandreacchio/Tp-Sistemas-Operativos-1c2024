@@ -57,11 +57,13 @@ extern pthread_mutex_t mutex_interfaces_conectadas;
 extern pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de la cola de cada interfaz
 extern pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 extern pthread_mutex_t mutex_flag_cpu_libre;
+extern pthread_mutex_t mutex_procesos_en_sistema;
 extern sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 extern t_queue *cola_procesos_ready;
 extern t_queue *cola_procesos_new;
 extern t_queue *cola_procesos_exit;
 extern t_list *lista_procesos_blocked; // lsita de los prccesos bloqueados
+extern t_list *procesos_en_sistema;
 extern t_pcb *pcb_en_ejecucion;
 extern pthread_t planificador_corto;
 extern pthread_t dispatch;
@@ -98,6 +100,7 @@ void setear_pcb_en_ejecucion(t_pcb *pcb);
 void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t mutex);
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista);
 void agregar_pcb_a_cola_bloqueados_de_recurso(t_pcb *pcb, char *nombre);
+void finalizar_pcb(t_pcb *pcb);
 
 
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------

@@ -33,6 +33,7 @@ void iniciar_colas_de_estados_procesos()
 void iniciar_listas()
 {
     lista_procesos_blocked = list_create();
+    procesos_en_sistema = list_create();
 }
 
 void iniciar_diccionarios()
@@ -64,4 +65,5 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_flag_cpu_libre, NULL);
     pthread_mutex_init(&mutex_motivo_ultimo_desalojo, NULL);
     pthread_mutex_init(&mutex_cola_de_exit, NULL);
+    pthread_mutex_init(&mutex_procesos_en_sistema, NULL);
 }

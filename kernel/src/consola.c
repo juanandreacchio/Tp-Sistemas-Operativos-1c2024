@@ -75,11 +75,14 @@ void ejecutar_comando(char *comando)
         paquete->buffer = buffer;
 
         enviar_paquete(paquete, conexion_memoria);
-        // tengo mis dudas sobre si hay que suar una cola de new proque no c si podemos tener mas de uno en new
         set_add_pcb_cola(pcb_creado, NEW, cola_procesos_new, mutex_cola_de_new);
         sem_post(&hay_proceso_nuevo);
 
         log_info(logger_kernel, "Se crea el proceso %d en NEW", pcb_creado->pid);
+
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
+        list_add(procesos_en_sistema, pcb_creado);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
 
         pthread_mutex_lock(&mutex_pid);
         contador_pid++;
@@ -89,8 +92,23 @@ void ejecutar_comando(char *comando)
     }
     else if (strcmp(consola[0], "FINALIZAR_PROCESO") == 0)
     {
-        buffer_add(buffer, consola[1], string_length(consola[1]) + 1); //[pid]
-        // finalizar_proceso(buffer);
+        uint32_t pid = atoi(consola[1]);
+        t_pcb *pcb = buscar_pcb_por_pid(pid, procesos_en_sistema);
+
+        if (pcb == NULL)
+        {
+            log_error(logger_kernel, "No se encontro el proceso con PID %d en el sistema", pid);
+            return;
+        }
+
+        liberar_recursos(pcb_exit->pid);
+
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
+        list_remove_element(procesos_en_sistema, pcb);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
+
+        sem_post(&contador_grado_multiprogramacion);
+        destruir_pcb(pcb);
     }
     else if (strcmp(consola[0], "MULTIPROGRAMACION") == 0)
     {
