@@ -138,11 +138,16 @@ void *atender_cliente(int socket_cliente)
     case STDIN:
         t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
         t_solicitudEscribirEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudEscribirEnMemoria));
-        ptr_solicitud->marco = obtener_marco(instruccion); // implementar funcion
-        ptr_solicitud->offset = obtener_offset(instruccion); // implementar funcion
-        ptr_solicitud->tamanio = obtener_tamanio(instruccion); // implementar funcion
+        ptr_solicitud->direccion = atoi(instruccion->parametros[0]); 
+        ptr_solicitud->tamanio = atoi(instruccion->parametros[1]);
 
-        free(ptr_solicitud);
+        // Leer desde el STDIN
+        ptr_solicitud->dato = leer_desde_teclado(ptr_solicitud->tamanio);
+        if (!ptr_solicitud->dato) {
+            free(ptr_solicitud);
+            break;
+        }
+
         // falta agregar al buffer dato a escribir
         t_buffer *buffer = serializar_solicitud_escribir_memoria(ptr_solicitud);
         
@@ -152,16 +157,13 @@ void *atender_cliente(int socket_cliente)
         enviar_paquete(paquete_escritura, socket_conexion_memoria);
         
         eliminar_paquete(paquete_escritura);
+        free(ptr_solicitud);
 
         // recibir confirmacion de memoria
 
         t_paquete *paquete_respuesta = recibir_paquete(socket_conexion_memoria);
 
-        if(paquete_respuesta->codigo_operacion == OK){
-            enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
-        } else {
-            // enviar que salio mal
-        }
+        enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
 
         eliminar_paquete(paquete_respuesta);
         break;
@@ -170,17 +172,19 @@ void *atender_cliente(int socket_cliente)
 
         t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
         t_solicitudEscribirEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudEscribirEnMemoria));
-        ptr_solicitud->marco = obtener_marco(instruccion); // implementar funcion
-        ptr_solicitud->offset = obtener_offset(instruccion); // implementar funcion
-        ptr_solicitud->tamanio = obtener_tamanio(instruccion); // implementar funcion
+        
+        ptr_solicitud->direccion = atoi(instruccion->parametros[0]); 
+        ptr_solicitud->tamanio = atoi(instruccion->parametros[1]);
 
         t_buffer *buffer = serializar_solicitud_leer_memoria(ptr_solicitud);
-        free(ptr_solicitud);
+        
         paquete_escritura->buffer = buffer;
 
-        // Enviar paquete a memoria
+        // Enviar paquete a memoria 
         enviar_paquete(paquete_escritura, socket_conexion_memoria);   
+
         eliminar_paquete(paquete_escritura);
+        free(ptr_solicitud);
 
         // recibir dato de memoria
 
@@ -222,4 +226,21 @@ void *atender_cliente(int socket_cliente)
     }
 
     return NULL;
+}
+
+void* leer_desde_teclado(uint32_t tamanio) {
+    void *dato = malloc(tamanio);
+    if (!dato) {
+        log_error(logger_entradasalida, "Error al asignar memoria para el dato");
+        return NULL;
+    }
+
+    log_info(logger_entradasalida, "Ingrese el dato a escribir en la memoria: ");
+    if (fread(dato, 1, tamanio, stdin) != tamanio) {
+        log_error(logger_entradasalida, "Error al leer el dato desde el STDIN");
+        free(dato);
+        return NULL;
+    }
+
+    return dato;
 }

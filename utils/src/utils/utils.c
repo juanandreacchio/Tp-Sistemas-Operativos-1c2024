@@ -943,6 +943,25 @@ t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buff
 	return solicitud;
 }
 
+t_buffer *serializar_solicitud_escribir_memoria(t_solicitudEscribirEnMemoria *solicitud)
+{
+	t_buffer *buffer = crear_buffer();
+
+	buffer_add(buffer, &solicitud->direccion, sizeof(uint32_t));
+	buffer_add(buffer, &solicitud->tamanio, sizeof(uint32_t));
+	buffer_add(buffer, solicitud->dato, solicitud->tamanio);
+	return buffer;
+}
+
+t_buffer *serializar_solicitud_leer_memoria(t_solicitudLeerEnMemoria *solicitud)
+{
+	t_buffer *buffer = crear_buffer();
+
+	buffer_add(buffer, &solicitud->direccion, sizeof(uint32_t));
+	buffer_add(buffer, &solicitud->tamanio, sizeof(uint32_t));
+	return buffer;
+}
+
 void imprimir_proceso(t_proceso *proceso)
 {
 	printf("PID: %d\n", proceso->pid);

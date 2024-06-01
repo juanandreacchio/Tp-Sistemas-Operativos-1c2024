@@ -149,6 +149,19 @@ typedef struct
 	char *path;
 } t_solicitudCreacionProcesoEnMemoria;
 
+typedef struct 
+{
+	uint32_t direccion;
+	uint32_t tamanio;
+	char *dato; // dato a escribir 
+} t_solicitudEscribirEnMemoria;
+
+typedef struct 
+{
+	uint32_t direccion;
+	uint32_t tamanio;
+} t_solicitudLeerEnMemoria;
+
 typedef struct
 {
 	void *contenido;
@@ -255,4 +268,6 @@ cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
 t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer);
 t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion);
 op_code tipo_interfaz_to_cod_op(cod_interfaz tipo);
+t_buffer *serializar_solicitud_escribir_memoria(t_solicitudEscribirEnMemoria *solicitud);
+t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buffer *buffer);
 #endif /* UTILS_H_ */
