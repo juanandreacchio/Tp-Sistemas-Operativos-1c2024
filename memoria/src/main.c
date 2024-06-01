@@ -173,8 +173,7 @@ void *atender_cliente(void *socket_cliente)
                 int paginas_a_agregar = nuevo_tamanio - tamanio_actual;
                 for (int i = 0; i < paginas_a_agregar; i++)
                 {
-                    t_pagina *pagina = malloc(sizeof(t_pagina));
-                    pagina->numero_marco = -1;
+                    t_pagina *pagina = inicializar_pagina(obtener_primer_marco_libre());
                     list_add(proceso->tabla_paginas, pagina);
                 }
             }
