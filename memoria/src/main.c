@@ -192,34 +192,62 @@ void *atender_cliente(void *socket_cliente)
             break;
         case ESCRITURA_MEMORIA:
             log_info(logger_memoria, "Se recibio un mensaje para escribir en memoria");
-            uint32_t marco, offset, tamanio;
-            buffer_read(buffer, &marco, sizeof(uint32_t));
-            buffer_read(buffer, &offset, sizeof(uint32_t));
-            buffer_read(buffer, &tamanio, sizeof(uint32_t));
-            void *buffer_escritura = malloc(tamanio);
-            buffer_read(buffer, buffer_escritura, tamanio);
-            void *direccion_fisica = obtener_direccion_fisica(marco);
-            memcpy(direccion_fisica + offset, buffer_escritura, tamanio);
-            free(buffer_escritura);
-
+            // Llegan: cantidad de marcos a escribir, marco, offset, tamanio, buffer_escritura
+            uint32_t cantidad_marcos;
+            buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
+            for (int i = 0; i < cantidad_marcos; i++)
+            {
+                uint32_t marco, offset, tamanio;
+                buffer_read(buffer, &marco, sizeof(uint32_t));
+                buffer_read(buffer, &offset, sizeof(uint32_t));
+                buffer_read(buffer, &tamanio, sizeof(uint32_t));
+                void *direccion_fisica = obtener_direccion_fisica(marco);
+                void *buffer_escritura = malloc(tamanio);
+                buffer_read(buffer, buffer_escritura, tamanio);
+                // chequeo que direccion_fisica + offset no supere el tamaño de la pagina
+                if (offset + direccion_fisica > TAM_PAGINA)
+                {
+                    log_info(logger_memoria, "Se intento escribir fuera de los limites de la pagina");
+                    paquete = crear_paquete(ERROR);
+                    enviar_paquete(paquete, (int)(long int)socket_cliente);
+                    break;
+                }
+                memcpy(direccion_fisica + offset, buffer_escritura, tamanio);
+                paquete = crear_paquete(OK);
+                enviar_paquete(paquete, (int)(long int)socket_cliente);
+                free(buffer_escritura);
+            }
             paquete = crear_paquete(OK);
             enviar_paquete(paquete, (int)(long int)socket_cliente);
             break;
         case LECTURA_MEMORIA:
             log_info(logger_memoria, "Se recibio un mensaje para leer de memoria");
-            uint32_t marco, offset, tamanio;
-            buffer_read(buffer, &marco, sizeof(uint32_t));
-            buffer_read(buffer, &offset, sizeof(uint32_t));
-            buffer_read(buffer, &tamanio, sizeof(uint32_t));
-            void *direccion_fisica = obtener_direccion_fisica(marco);
-            void *buffer_lectura = malloc(tamanio);
-            memcpy(buffer_lectura, direccion_fisica + offset, tamanio);
-
-            paquete = crear_paquete(MEMORIA_LEIDA);
-            buffer_add(paquete->buffer, buffer_lectura, tamanio);
+            // Llegan: cantidad de marcos a leer, marco, offset, tamanio
+            uint32_t cantidad_marcos;
+            buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
+            void *buffer_lectura = malloc(cantidad_marcos * TAM_PAGINA);
+            for (int i = 0; i < cantidad_marcos; i++)
+            {
+                uint32_t marco, offset, tamanio;
+                buffer_read(buffer, &marco, sizeof(uint32_t));
+                buffer_read(buffer, &offset, sizeof(uint32_t));
+                buffer_read(buffer, &tamanio, sizeof(uint32_t));
+                void *direccion_fisica = obtener_direccion_fisica(marco);
+                // chequeo que direccion_fisica + offset no supere el tamaño de la pagina
+                /*if (offset + direccion_fisica > TAM_PAGINA)
+                {
+                    log_info(logger_memoria, "Se intento leer fuera de los limites de la pagina");
+                    paquete = crear_paquete(ERROR);
+                    enviar_paquete(paquete, (int)(long int)socket_cliente);
+                    break;
+                }*/
+                memcpy(buffer_lectura + i * TAM_PAGINA, direccion_fisica + offset, tamanio);
+            }
+            paquete = crear_paquete(LECTURA_MEMORIA);
+            buffer_add(paquete->buffer, buffer_lectura, cantidad_marcos * TAM_PAGINA);
             enviar_paquete(paquete, (int)(long int)socket_cliente);
+            free(buffer_lectura);
             break;
-
         default:
             log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
             // TODO: implementar
