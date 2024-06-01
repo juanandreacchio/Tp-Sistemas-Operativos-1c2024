@@ -14,6 +14,7 @@ cod_interfaz tipo_interfaz;
 uint32_t socket_conexion_kernel, socket_conexion_memoria;
 t_interfaz *interfaz_creada;
 
+
 //                                  <NOMBRE>          <RUTA>
 int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 config/entradasalida.config
 {
@@ -102,7 +103,6 @@ void *iniciar_conexion_kernel(void *arg)
     while (1)
     {
         atender_cliente(socket_conexion_kernel);
-        //enviar_mensaje("", socket_conexion_kernel, FIN_OPERACION_IO, logger_entradasalida); // mensaje avisando que termine
     }
     return NULL;
 }
@@ -111,22 +111,19 @@ void *iniciar_conexion_memoria(void *arg)
 {
     socket_conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_entradasalida);
     enviar_mensaje(interfaz_creada->nombre, socket_conexion_kernel, ENTRADA_SALIDA, logger_entradasalida);
-    while (1)
-    {
-        // TODO: implementar
-    }
     return NULL;
 }
 
 void *atender_cliente(int socket_cliente)
 {
     t_paquete *paquete = recibir_paquete(socket_cliente);
-    t_instruccion *instruccion = instruccion_deserializar(paquete->buffer, 0); // se deberia pasar el offset tmb
+    t_instruccion *instruccion = instruccion_deserializar(paquete->buffer, 0); 
     imprimir_instruccion(*instruccion);
 
     if (instruccion == NULL)
     {
         log_info(logger_entradasalida, "Se recibio una instruccion vacia");
+        eliminar_paquete(paquete);
         return NULL;
     }
 
@@ -139,10 +136,65 @@ void *atender_cliente(int socket_cliente)
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
         break;
     case STDIN:
+        t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
+        t_solicitudEscribirEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudEscribirEnMemoria));
+        ptr_solicitud->marco = obtener_marco(instruccion); // implementar funcion
+        ptr_solicitud->offset = obtener_offset(instruccion); // implementar funcion
+        ptr_solicitud->tamanio = obtener_tamanio(instruccion); // implementar funcion
 
+        free(ptr_solicitud);
+        // falta agregar al buffer dato a escribir
+        t_buffer *buffer = serializar_solicitud_escribir_memoria(ptr_solicitud);
+        
+        paquete_escritura->buffer = buffer;
+
+        // Enviar paquete a memoria
+        enviar_paquete(paquete_escritura, socket_conexion_memoria);
+        
+        eliminar_paquete(paquete_escritura);
+
+        // recibir confirmacion de memoria
+
+        t_paquete *paquete_respuesta = recibir_paquete(socket_conexion_memoria);
+
+        if(paquete_respuesta->codigo_operacion == OK){
+            enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
+        } else {
+            // enviar que salio mal
+        }
+
+        eliminar_paquete(paquete_respuesta);
         break;
     case STDOUT:
+        usleep(atoi(tiempo_unidad_trabajo)); // Las interfaces STDOUT se conectan a memoria para leer una dirección física y mostrar el resultado. Siempre van a consumir una unidad de TIEMPO_UNIDAD_TRABAJO.
 
+        t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
+        t_solicitudEscribirEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudEscribirEnMemoria));
+        ptr_solicitud->marco = obtener_marco(instruccion); // implementar funcion
+        ptr_solicitud->offset = obtener_offset(instruccion); // implementar funcion
+        ptr_solicitud->tamanio = obtener_tamanio(instruccion); // implementar funcion
+
+        t_buffer *buffer = serializar_solicitud_leer_memoria(ptr_solicitud);
+        free(ptr_solicitud);
+        paquete_escritura->buffer = buffer;
+
+        // Enviar paquete a memoria
+        enviar_paquete(paquete_escritura, socket_conexion_memoria);   
+        eliminar_paquete(paquete_escritura);
+
+        // recibir dato de memoria
+
+        t_paquete *paquete_dato = recibir_paquete(socket_conexion_memoria);
+
+        // envio dato respuesta a kernel
+
+        t_paquete *paquete_lectura = crear_paquete(IO_SUCCESS);
+        paquete_lectura->buffer = paquete_dato->buffer;
+
+        enviar_paquete(paquete_lectura, socket_cliente);   
+        
+        eliminar_paquete(paquete_lectura);
+        eliminar_paquete(paquete_dato);
         break;
     case DIALFS:
         switch (instruccion->identificador)

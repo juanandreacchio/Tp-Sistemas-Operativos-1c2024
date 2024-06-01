@@ -25,7 +25,6 @@ extern char *ip_memoria;
 extern char *puerto_memoria;
 extern pthread_t thread_memoria, thread_kernel;
 extern cod_interfaz tipo_interfaz;
-
 extern t_interfaz *interfaz_creada;
 
 
