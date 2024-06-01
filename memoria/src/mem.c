@@ -41,6 +41,7 @@ t_pagina *inicializar_pagina(int numero_marco) {
     }
     pagina->numero_marco = numero_marco;
     pagina->presente = false;
+    bitarray_set_bit(marcos_ocupados, numero_marco);
     return pagina;
 }
 
@@ -55,24 +56,16 @@ void liberar_tabla_paginas(t_list* tabla_paginas) {
     list_destroy(tabla_paginas);
 }
 
-// Funcion para asignar el contenido de una pagina
-void asignar_contenido_pagina(t_proceso* proceso, int numero_pagina, void* contenido) {
-    t_pagina* pagina = list_get(proceso->tabla_paginas, numero_pagina);
-    // Voy a la direccion fisica de la pagina y copio el contenido
-    void* direccion_fisica = obtener_direccion_fisica(pagina->numero_marco);
-    memcpy(direccion_fisica, contenido, TAM_PAGINA);
-}
-
 // Funcion para obtener el marco de una pagina
 int obtener_marco_pagina(t_proceso* proceso, int numero_pagina) {
     t_pagina* pagina = list_get(proceso->tabla_paginas, numero_pagina);
     return pagina->numero_marco;
 }
 
-// Funcion para asignar el marco de una pagina
-void asignar_marco_pagina(t_proceso* proceso, int numero_pagina){
+// Funcion para liberar marco de una pagina
+void liberar_marco_pagina(t_proceso* proceso, int numero_pagina) {
     t_pagina* pagina = list_get(proceso->tabla_paginas, numero_pagina);
-    pagina->numero_marco = obtener_primer_marco_libre();
+    bitarray_clean_bit(marcos_ocupados, pagina->numero_marco);
 }
 
 // --------------------- FUNCIONES DE PROCESO ---------------------

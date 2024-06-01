@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
 
     pthread_mutex_destroy(&mutex);
+    liberar_memoria_principal();
     return 0;
 }
 
@@ -183,8 +184,8 @@ void *atender_cliente(void *socket_cliente)
                 int paginas_a_eliminar = tamanio_actual - nuevo_tamanio;
                 for (int i = 0; i < paginas_a_eliminar; i++)
                 {
-                    t_pagina *pagina = list_get(proceso->tabla_paginas, list_size(proceso->tabla_paginas) - 1);
-                    list_remove(proceso->tabla_paginas, list_size(proceso->tabla_paginas) - 1);
+                    t_pagina *pagina = list_remove(proceso->tabla_paginas, list_size(proceso->tabla_paginas) - 1);
+                    liberar_marco_pagina(proceso, list_size(proceso->tabla_paginas));
                     free(pagina);
                 }
             }

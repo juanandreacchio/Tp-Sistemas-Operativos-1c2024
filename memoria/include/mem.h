@@ -46,12 +46,12 @@ t_pagina *inicializar_pagina(int numero_marco);
 t_list* inicializar_tabla_paginas();
 void* obtener_contenido_pagina(t_proceso* proceso, int numero_pagina);
 void asignar_contenido_pagina(t_proceso* proceso, int numero_pagina, void* contenido);
-void asignar_marco_pagina(t_proceso* proceso, int numero_pagina);
 
 // ------------------ FUNCIONES DE LIBERAR
 void liberar_tabla_paginas(t_list* tabla_paginas);
 void liberar_proceso(t_proceso* proceso);
 void liberar_lista_procesos(t_list* lista_procesos);
 void liberar_memoria_principal();
+void liberar_marco_pagina(t_proceso* proceso, int numero_pagina);
 // void liberar_instruccion(t_instruccion* instruccion);//no esta en el mem.c
 #endif
