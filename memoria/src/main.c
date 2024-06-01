@@ -205,13 +205,13 @@ void *atender_cliente(void *socket_cliente)
                 void *buffer_escritura = malloc(tamanio);
                 buffer_read(buffer, buffer_escritura, tamanio);
                 // chequeo que direccion_fisica + offset no supere el tamaño de la pagina
-                if (offset + direccion_fisica > TAM_PAGINA)
+                /*if (offset + direccion_fisica > TAM_PAGINA)
                 {
                     log_info(logger_memoria, "Se intento escribir fuera de los limites de la pagina");
                     paquete = crear_paquete(ERROR);
                     enviar_paquete(paquete, (int)(long int)socket_cliente);
                     break;
-                }
+                }*/ // NO SE SI ESTO ES NECESARIO
                 memcpy(direccion_fisica + offset, buffer_escritura, tamanio);
                 paquete = crear_paquete(OK);
                 enviar_paquete(paquete, (int)(long int)socket_cliente);
@@ -240,7 +240,7 @@ void *atender_cliente(void *socket_cliente)
                     paquete = crear_paquete(ERROR);
                     enviar_paquete(paquete, (int)(long int)socket_cliente);
                     break;
-                }*/
+                }*/ // NO SE SI ESTO ES NECESARIO
                 memcpy(buffer_lectura + i * TAM_PAGINA, direccion_fisica + offset, tamanio);
             }
             paquete = crear_paquete(LECTURA_MEMORIA);
