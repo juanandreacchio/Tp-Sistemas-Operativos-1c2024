@@ -86,6 +86,7 @@ void iniciar_config(char *ruta)
         printf("Tipo de interfaz desconocido: %s\n", tipo_interfaz_str);
         exit(3);
     }
+    free(tipo_interfaz_str);
 }
 
 t_interfaz *iniciar_interfaz(char *nombre, char *ruta)
@@ -149,14 +150,15 @@ void *atender_cliente(int socket_cliente)
         }
 
         // falta agregar al buffer dato a escribir
-        t_buffer *buffer = serializar_solicitud_escribir_memoria(ptr_solicitud);
+        t_buffer* buffer1 = serializar_solicitud_escribir_memoria(ptr_solicitud);
         
-        paquete_escritura->buffer = buffer;
+        paquete_escritura->buffer = buffer1;
 
         // Enviar paquete a memoria
         enviar_paquete(paquete_escritura, socket_conexion_memoria);
         
         eliminar_paquete(paquete_escritura);
+        liberar_buffer(buffer1); 
         free(ptr_solicitud);
 
         // recibir confirmacion de memoria
@@ -168,23 +170,23 @@ void *atender_cliente(int socket_cliente)
         eliminar_paquete(paquete_respuesta);
         break;
     case STDOUT:
-        usleep(atoi(tiempo_unidad_trabajo)); // Las interfaces STDOUT se conectan a memoria para leer una dirección física y mostrar el resultado. Siempre van a consumir una unidad de TIEMPO_UNIDAD_TRABAJO.
-
+    
         t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
-        t_solicitudEscribirEnMemoria *ptr_solicitud = malloc(sizeof(t_solicitudEscribirEnMemoria));
+        t_solicitudLeerEnMemoria *ptr_solicitud_lectura = malloc(sizeof(t_solicitudEscribirEnMemoria));
         
-        ptr_solicitud->direccion = atoi(instruccion->parametros[0]); 
-        ptr_solicitud->tamanio = atoi(instruccion->parametros[1]);
+        ptr_solicitud_lectura->direccion = atoi(instruccion->parametros[0]); 
+        ptr_solicitud_lectura->tamanio = atoi(instruccion->parametros[1]);
 
-        t_buffer *buffer = serializar_solicitud_leer_memoria(ptr_solicitud);
+        t_buffer *buffer = serializar_solicitud_leer_memoria(ptr_solicitud_lectura);
         
-        paquete_escritura->buffer = buffer;
+        paquete_lectura->buffer = buffer;
 
         // Enviar paquete a memoria 
-        enviar_paquete(paquete_escritura, socket_conexion_memoria);   
+        enviar_paquete(paquete_lectura, socket_conexion_memoria);   
 
-        eliminar_paquete(paquete_escritura);
-        free(ptr_solicitud);
+        eliminar_paquete(paquete_lectura);
+        liberar_buffer(buffer); 
+        free(ptr_solicitud_lectura);
 
         // recibir dato de memoria
 
@@ -192,8 +194,8 @@ void *atender_cliente(int socket_cliente)
 
         // envio dato respuesta a kernel
 
-        t_paquete *paquete_lectura = crear_paquete(IO_SUCCESS);
-        paquete_lectura->buffer = paquete_dato->buffer;
+        t_paquete *paquete_dato_respuesta = crear_paquete(IO_SUCCESS);
+        paquete_dato_respuesta->buffer = paquete_dato->buffer;
 
         enviar_paquete(paquete_lectura, socket_cliente);   
         
