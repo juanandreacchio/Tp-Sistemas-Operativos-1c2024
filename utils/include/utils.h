@@ -45,7 +45,9 @@ typedef enum
 	IO_SUCCESS,
 	EJECUTAR_IO,
 	INTERRUPCION_CLOCK,
-	CERRAR_IO
+	CERRAR_IO,
+	WAIT_SOLICITADO,
+	SIGNAL_SOLICITADO
 
 
 } op_code;
@@ -195,6 +197,17 @@ typedef struct
 	sem_t binario_io_libre;
 } t_semaforosIO;
 
+typedef struct{
+	pthread_mutex_t mutex;
+	pthread_mutex_t mutex_cola_recurso;
+	uint32_t instancias;
+} t_recurso_en_kernel;
+
+typedef struct{
+	char* nombre_recurso;
+	uint32_t instancias_asignadas;
+} t_recurso_asignado_a_proceso;
+
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
 char *cod_op_to_string(op_code codigo_operacion);
@@ -255,4 +268,5 @@ cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
 t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer);
 t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion);
 op_code tipo_interfaz_to_cod_op(cod_interfaz tipo);
+char* estado_to_string(estados estado);
 #endif /* UTILS_H_ */
