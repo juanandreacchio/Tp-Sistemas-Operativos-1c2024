@@ -197,24 +197,12 @@ void *atender_cliente(void *socket_cliente)
             buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
             for (int i = 0; i < cantidad_marcos; i++)
             {
-                uint32_t marco, offset, tamanio;
-                buffer_read(buffer, &marco, sizeof(uint32_t));
-                buffer_read(buffer, &offset, sizeof(uint32_t));
+                uint32_t direccion_fisica, tamanio;
+                buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
                 buffer_read(buffer, &tamanio, sizeof(uint32_t));
-                void *direccion_fisica = obtener_direccion_fisica(marco);
                 void *buffer_escritura = malloc(tamanio);
                 buffer_read(buffer, buffer_escritura, tamanio);
-                // chequeo que direccion_fisica + offset no supere el tamaño de la pagina
-                /*if (offset + direccion_fisica > TAM_PAGINA)
-                {
-                    log_info(logger_memoria, "Se intento escribir fuera de los limites de la pagina");
-                    paquete = crear_paquete(ERROR);
-                    enviar_paquete(paquete, (int)(long int)socket_cliente);
-                    break;
-                }*/ // NO SE SI ESTO ES NECESARIO
-                memcpy(direccion_fisica + offset, buffer_escritura, tamanio);
-                paquete = crear_paquete(OK);
-                enviar_paquete(paquete, (int)(long int)socket_cliente);
+                memcpy(direccion_fisica, buffer_escritura, tamanio);
                 free(buffer_escritura);
             }
             paquete = crear_paquete(OK);
@@ -228,22 +216,12 @@ void *atender_cliente(void *socket_cliente)
             void *buffer_lectura = malloc(cantidad_marcos * TAM_PAGINA);
             for (int i = 0; i < cantidad_marcos; i++)
             {
-                uint32_t marco, offset, tamanio;
-                buffer_read(buffer, &marco, sizeof(uint32_t));
-                buffer_read(buffer, &offset, sizeof(uint32_t));
+                uint32_t direccion_fisica, tamanio;
+                buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
                 buffer_read(buffer, &tamanio, sizeof(uint32_t));
-                void *direccion_fisica = obtener_direccion_fisica(marco);
-                // chequeo que direccion_fisica + offset no supere el tamaño de la pagina
-                /*if (offset + direccion_fisica > TAM_PAGINA)
-                {
-                    log_info(logger_memoria, "Se intento leer fuera de los limites de la pagina");
-                    paquete = crear_paquete(ERROR);
-                    enviar_paquete(paquete, (int)(long int)socket_cliente);
-                    break;
-                }*/ // NO SE SI ESTO ES NECESARIO
-                memcpy(buffer_lectura + i * TAM_PAGINA, direccion_fisica + offset, tamanio);
+                memcpy(buffer_lectura + i * TAM_PAGINA, direccion_fisica, tamanio);
             }
-            paquete = crear_paquete(LECTURA_MEMORIA);
+            paquete = crear_paquete(OK);
             buffer_add(paquete->buffer, buffer_lectura, cantidad_marcos * TAM_PAGINA);
             enviar_paquete(paquete, (int)(long int)socket_cliente);
             free(buffer_lectura);
