@@ -59,7 +59,7 @@ void *verificar_quantum()
 
             if (temporal_gettime(tiempo_transcurrido) >= quantum)
             {
-                log_info(logger_kernel, "PID: %d - Desalojado por fin de Quantum", pcb_en_ejecucion->pid);
+                log_info(logger_kernel, "FIN DE QUANTUM: MANDO INTERRUPCION");
 
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
