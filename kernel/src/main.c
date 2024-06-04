@@ -35,6 +35,7 @@ pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de la cola
 pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 pthread_mutex_t mutex_flag_cpu_libre;
 pthread_mutex_t mutex_motivo_ultimo_desalojo;
+pthread_mutex_t mutex_procesos_en_sistema;
 sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 pthread_mutex_t mutex_cola_de_exit;
 sem_t hay_proceso_exit;

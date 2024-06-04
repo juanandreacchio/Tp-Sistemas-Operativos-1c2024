@@ -103,7 +103,7 @@ void atender_interfaz(char *nombre_interfaz)
             {
                 sem_wait(&contador_grado_multiprogramacion);
                 set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
-                logear_cambio_estado_pcb(pcb, BLOCKED, READY);
+                logear_cambio_estado(pcb, BLOCKED, READY);
                 sem_post(&hay_proceso_a_ready);
             }
 

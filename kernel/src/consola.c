@@ -101,7 +101,7 @@ void ejecutar_comando(char *comando)
             return;
         }
 
-        liberar_recursos(pcb_exit->pid);
+        liberar_recursos(pcb->pid);
 
         pthread_mutex_lock(&mutex_procesos_en_sistema);
         list_remove_element(procesos_en_sistema, pcb);
