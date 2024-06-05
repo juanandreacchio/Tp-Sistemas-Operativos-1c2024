@@ -45,9 +45,15 @@ typedef enum
 	IO_SUCCESS,
 	EJECUTAR_IO,
 	INTERRUPCION_CLOCK,
-	CERRAR_IO
+	CERRAR_IO,
 
-
+	//OPERACIONES DE MEMORIA
+	ACCESO_TABLA_PAGINAS,
+	AJUSTAR_TAMANIO_PROCESO,
+	ESCRITURA_MEMORIA,
+	LECTURA_MEMORIA,
+	OK,
+	MEMORIA_LEIDA
 } op_code;
 
 typedef enum
@@ -149,26 +155,6 @@ typedef struct
 	uint32_t path_length;
 	char *path;
 } t_solicitudCreacionProcesoEnMemoria;
-
-typedef struct
-{
-	void *contenido;
-	int pagina;
-} t_pagina;
-
-typedef struct
-{
-	t_pagina **tabla_paginas;
-} t_tabla_paginas;
-
-typedef struct
-{
-	uint32_t pid;
-	// char* path;
-	t_list *lista_instrucciones;
-	t_tabla_paginas *tabla_paginas;
-} t_proceso;
-
 typedef struct
 {
 	uint32_t pid;
@@ -180,9 +166,6 @@ typedef struct
 	uint32_t conexion;
 	cod_interfaz tipo_interfaz;
 } t_interfaz_en_kernel;
-
-
-
 typedef struct
 {
 	t_instruccion *instruccion_io;
@@ -236,17 +219,16 @@ t_buffer *serializar_instruccion(t_instruccion *instruccion);
 t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset);
 t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones);
 t_list *deserializar_lista_instrucciones(t_buffer *buffer, u_int32_t offset);
-void imprimir_instruccion(t_instruccion instruccion);
+void imprimir_instruccion(t_instruccion* instruccion);
 void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion);
 void destruir_instruccion(t_instruccion *instruccion);
 
 t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros);
 t_buffer *serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria *solicitud);
-t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buffer *buffer);
-void imprimir_proceso(t_proceso *proceso);
+
+
 t_list *parsear_instrucciones(FILE *archivo_instrucciones);
 t_identificador string_to_identificador(char *string);
-void imprimir_lista_de_procesos(t_list *lista_procesos);
 t_interrupcion *deserializar_interrupcion(t_buffer *buffer);
 t_buffer *serializar_interrupcion(t_interrupcion *interrupcion);
 void enviar_motivo_desalojo(op_code motivo, uint32_t socket);

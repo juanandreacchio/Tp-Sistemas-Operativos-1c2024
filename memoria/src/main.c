@@ -8,8 +8,6 @@ int TAM_PAGINA;
 char *PATH_INSTRUCCIONES;
 int RETARDO_RESPUESTA;
 
-int NUM_PAGINAS;
-
 t_log *logger_memoria;
 t_config *config_memoria;
 
@@ -17,6 +15,9 @@ int socket_servidor_memoria;
 
 t_list *procesos_en_memoria;
 pthread_mutex_t mutex;
+
+t_bitarray *marcos_ocupados;
+void *memoria_principal;
 
 //---------------------------variables globales-------------------------------------
 
@@ -42,6 +43,7 @@ int main(int argc, char *argv[])
     terminar_programa(socket_servidor_memoria, logger_memoria, config_memoria);
 
     pthread_mutex_destroy(&mutex);
+    liberar_memoria_principal();
     return 0;
 }
 
@@ -55,8 +57,6 @@ void iniciar_config()
     TAM_PAGINA = config_get_int_value(config_memoria, "TAM_PAGINA");
     PATH_INSTRUCCIONES = config_get_string_value(config_memoria, "PATH_INSTRUCCIONES");
     RETARDO_RESPUESTA = config_get_int_value(config_memoria, "RETARDO_RESPUESTA");
-
-    NUM_PAGINAS = TAM_MEMORIA / TAM_PAGINA;
 }
 
 void iniciar_semaforos()
@@ -78,7 +78,7 @@ void *atender_cliente(void *socket_cliente)
     {
 
         paquete = recibir_paquete((int)(long int)socket_cliente);
-
+        
         if (paquete == NULL)
         {
             log_info(logger_memoria, "Se desconecto el cliente");
@@ -90,6 +90,10 @@ void *atender_cliente(void *socket_cliente)
         op_code codigo_operacion = paquete->codigo_operacion;
         t_buffer *buffer = paquete->buffer;
         printf("codigo de operacion: %s\n", cod_op_to_string(codigo_operacion));
+
+        // NO SE SI ESTO ESTA BIEN, CREO QUE DA LO MISMO DONDE SE PONGA
+        sleep(RETARDO_RESPUESTA);
+
         switch (codigo_operacion)
         {
         case KERNEL:
@@ -117,6 +121,7 @@ void *atender_cliente(void *socket_cliente)
             t_buffer *buffer_prueba = paquete->buffer;
             t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
 
+            //enviar_paquete(paquete, (int)(long int)socket_cliente);
             enviar_paquete(paquete, (int)(long int)socket_cliente);
             // Probar mandar algo al cliente
             // sem_post(&semaforo);
@@ -134,7 +139,92 @@ void *atender_cliente(void *socket_cliente)
             printf("--------------------------PROCESO CREADO-----------------\n");
             imprimir_proceso(proceso_creado);
             // imprimir_lista_de_procesos(procesos_en_memoria);
-
+            break;
+        case END_PROCESS:
+            log_info(logger_memoria, "Se recibio un mensaje para finalizar un proceso");
+            uint32_t pid;
+            buffer_read(buffer, &pid, sizeof(uint32_t));
+            // liberar el proceso y sacarlo de la lista
+            t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
+            liberar_proceso(proceso);
+            list_remove(procesos_en_memoria, posicion_proceso(procesos_en_memoria, pid));
+            break;
+        case ACCESO_TABLA_PAGINAS:
+            log_info(logger_memoria, "Se recibio un mensaje para acceder a la tabla de paginas");
+            uint32_t pid, pagina;
+            buffer_read(buffer, &pid, sizeof(uint32_t));
+            buffer_read(buffer, &pagina, sizeof(uint32_t));
+            t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
+            t_pagina *pag = list_get(proceso->tabla_paginas, pagina);
+            int marco = pag->numero_marco;
+            paquete = crear_paquete(ACCESO_TABLA_PAGINAS);
+            buffer_add(paquete->buffer, &marco, sizeof(int));
+            enviar_paquete(paquete, (int)(long int)socket_cliente);
+            break;
+        case AJUSTAR_TAMANIO_PROCESO:
+            log_info(logger_memoria, "Se recibio un mensaje para ajustar el tamaño de un proceso");
+            uint32_t pid, nuevo_tamanio;
+            buffer_read(buffer, &pid, sizeof(uint32_t));
+            buffer_read(buffer, &nuevo_tamanio, sizeof(uint32_t));
+            t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
+            int tamanio_actual = list_size(proceso->tabla_paginas);
+            if (nuevo_tamanio > tamanio_actual)
+            {
+                // Ampliar el tamaño del proceso
+                int paginas_a_agregar = nuevo_tamanio - tamanio_actual;
+                for (int i = 0; i < paginas_a_agregar; i++)
+                {
+                    t_pagina *pagina = inicializar_pagina(obtener_primer_marco_libre());
+                    list_add(proceso->tabla_paginas, pagina);
+                }
+            }
+            else if (nuevo_tamanio < tamanio_actual)
+            {
+                // Reducir el tamaño del proceso
+                int paginas_a_eliminar = tamanio_actual - nuevo_tamanio;
+                for (int i = 0; i < paginas_a_eliminar; i++)
+                {
+                    t_pagina *pagina = list_remove(proceso->tabla_paginas, list_size(proceso->tabla_paginas) - 1);
+                    liberar_marco_pagina(proceso, list_size(proceso->tabla_paginas));
+                    free(pagina);
+                }
+            }
+            break;
+        case ESCRITURA_MEMORIA:
+            log_info(logger_memoria, "Se recibio un mensaje para escribir en memoria");
+            // Llegan: cantidad de marcos a escribir, marco, offset, tamanio, buffer_escritura
+            uint32_t cantidad_marcos;
+            buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
+            for (int i = 0; i < cantidad_marcos; i++)
+            {
+                uint32_t direccion_fisica, tamanio;
+                buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
+                buffer_read(buffer, &tamanio, sizeof(uint32_t));
+                void *buffer_escritura = malloc(tamanio);
+                buffer_read(buffer, buffer_escritura, tamanio);
+                memcpy(direccion_fisica, buffer_escritura, tamanio);
+                free(buffer_escritura);
+            }
+            paquete = crear_paquete(OK);
+            enviar_paquete(paquete, (int)(long int)socket_cliente);
+            break;
+        case LECTURA_MEMORIA:
+            log_info(logger_memoria, "Se recibio un mensaje para leer de memoria");
+            // Llegan: cantidad de marcos a leer, marco, offset, tamanio
+            uint32_t cantidad_marcos;
+            buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
+            void *buffer_lectura = malloc(cantidad_marcos * TAM_PAGINA);
+            for (int i = 0; i < cantidad_marcos; i++)
+            {
+                uint32_t direccion_fisica, tamanio;
+                buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
+                buffer_read(buffer, &tamanio, sizeof(uint32_t));
+                memcpy(buffer_lectura + i * TAM_PAGINA, direccion_fisica, tamanio);
+            }
+            paquete = crear_paquete(OK);
+            buffer_add(paquete->buffer, buffer_lectura, cantidad_marcos * TAM_PAGINA);
+            enviar_paquete(paquete, (int)(long int)socket_cliente);
+            free(buffer_lectura);
             break;
         default:
             log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
@@ -146,4 +236,14 @@ void *atender_cliente(void *socket_cliente)
 
     log_info(logger_memoria, "SALE DEL WHILE");
     return NULL;
+}
+
+// Funcion para inicializar el bitarray de marcos ocupados
+void inicializar_marcos_ocupados() {
+    int cantidad_marcos = TAM_MEMORIA / TAM_PAGINA;
+    marcos_ocupados = bitarray_create_with_mode(memoria_principal, cantidad_marcos, LSB_FIRST);
+    if (marcos_ocupados == NULL) {
+        printf("Error: no se pudo asignar memoria para el bitarray de marcos ocupados\n");
+        exit(1);
+    }
 }

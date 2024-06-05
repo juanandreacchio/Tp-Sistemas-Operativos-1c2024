@@ -1,60 +1,144 @@
 #include <../include/mem.h>
+// --------------------- FUNCIONES DE MEMORIA ---------------------
+
+// Inicializa la memoria principal con el tamaño de la misma pasado por configuración
+void inicializar_memoria_principal(){
+    memoria_principal = malloc(TAM_MEMORIA);
+    if (memoria_principal == NULL) {
+        printf("Error: no se pudo asignar memoria para la memoria principal\n");
+        exit(1);
+    }
+}
+
+// Funcion para liberar la memoria principal
+void liberar_memoria_principal() {
+    free(memoria_principal);
+}
+
+// Obtener direccion fisica de memoria
+void* obtener_direccion_fisica(int numero_marco) {
+    return memoria_principal + numero_marco * TAM_PAGINA;
+}
+
+// Funcion para obtener el primer marco libre
+int obtener_primer_marco_libre() {
+    for (int i = 0; i < TAM_MEMORIA / TAM_PAGINA; i++) {
+        if (!bitarray_test_bit(marcos_ocupados, i)) {
+            return i;
+        }
+    }
+    return -1;
+}
 
 // --------------------- FUNCIONES DE TABLA DE PAGINAS ---------------------
-void inicializar_pagina(t_pagina* pagina, int numero_pagina) {
-    pagina->contenido = NULL;
-    pagina->pagina = numero_pagina;
-}
 
-//Inicializa la tabla de paginas con la cantidad de paginas que entran en la memoria y las inicializa
-t_tabla_paginas* inicializar_tabla_paginas() {
-    t_tabla_paginas* tabla_paginas = malloc(sizeof(t_tabla_paginas));
-    if (tabla_paginas == NULL) {
-        printf("Error: no se pudo asignar memoria para la tabla de páginas\n");
+// Inicializa una pagina con el numero de marco y la bandera presente
+t_pagina *inicializar_pagina(int numero_marco) {
+    t_pagina* pagina = malloc(sizeof(t_pagina));
+    if (pagina == NULL) {
+        printf("Error: no se pudo asignar memoria para la página\n");
         exit(1);
     }
-
-    tabla_paginas->tabla_paginas = malloc(NUM_PAGINAS * sizeof(t_pagina*));
-    if (tabla_paginas->tabla_paginas == NULL) {
-        printf("Error: no se pudo asignar memoria para la tabla de páginas\n");
-        exit(1);
-    }
-    for (int i = 0; i < NUM_PAGINAS; i++) {
-        tabla_paginas->tabla_paginas[i] = malloc(sizeof(t_pagina));
-        if (tabla_paginas->tabla_paginas[i] == NULL) {
-            printf("Error: no se pudo asignar memoria para la página %d\n", i);
-            exit(1);
-        }
-        inicializar_pagina(tabla_paginas->tabla_paginas[i], i);
-    }
-
-    return tabla_paginas;
+    pagina->numero_marco = numero_marco;
+    pagina->presente = false;
+    bitarray_set_bit(marcos_ocupados, numero_marco);
+    return pagina;
 }
 
-void liberar_tabla_paginas(t_tabla_paginas* tabla_paginas) {
-    for (int i = 0; i < NUM_PAGINAS; i++) {
-        free(tabla_paginas->tabla_paginas[i]);
+// Funcion para liberar la tabla de paginas y las paginas
+void liberar_tabla_paginas(t_list* tabla_paginas) {
+    for (int i = 0; i < list_size(tabla_paginas); i++) {
+        t_pagina* pagina = list_get(tabla_paginas, i);
+        // liberar el marco de la pagina
+        bitarray_clean_bit(marcos_ocupados, pagina->numero_marco);
+        free(pagina);
     }
-    free(tabla_paginas);
+    list_destroy(tabla_paginas);
 }
 
-void* obtener_contenido_pagina(t_proceso* proceso, int numero_pagina) {
-    t_pagina* pagina = proceso->tabla_paginas->tabla_paginas[numero_pagina];
-    return pagina->contenido;
+// Funcion para obtener el marco de una pagina
+int obtener_marco_pagina(t_proceso* proceso, int numero_pagina) {
+    t_pagina* pagina = list_get(proceso->tabla_paginas, numero_pagina);
+    return pagina->numero_marco;
 }
 
-void asignar_contenido_pagina(t_proceso* proceso, int numero_pagina, void* contenido) {
-    t_pagina* pagina = proceso->tabla_paginas->tabla_paginas[numero_pagina];
-    pagina->contenido = contenido;
+// Funcion para liberar marco de una pagina
+void liberar_marco_pagina(t_proceso* proceso, int numero_pagina) {
+    t_pagina* pagina = list_get(proceso->tabla_paginas, numero_pagina);
+    bitarray_clean_bit(marcos_ocupados, pagina->numero_marco);
 }
 
 // --------------------- FUNCIONES DE PROCESO ---------------------
-// Función para crear un proceso y agregarlo a la lista de procesos
 
+// Obtener la posición de un proceso en la lista de procesos a partir de un PID
+int posicion_proceso(t_list* lista_procesos, uint32_t pid) {
+    for (int i = 0; i < list_size(lista_procesos); i++) {
+        t_proceso* proceso = list_get(lista_procesos, i);
+        if (proceso->pid == pid) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Funcion para encontrar un proceso por PID en una lista de procesos
+t_proceso *buscar_proceso_por_pid(t_list *lista_procesos, uint32_t pid)
+{
+    for (int i = 0; i < list_size(lista_procesos); i++)
+    {
+        t_proceso *proceso = list_get(lista_procesos, i);
+        if (proceso->pid == pid)
+        {
+            return proceso;
+        }
+    }
+    return NULL;
+}
+
+// Funcion para imprimir una lista de procesos
+void imprimir_lista_de_procesos(t_list *lista_procesos)
+{
+	for (int i = 0; i < list_size(lista_procesos); i++)
+	{
+		t_proceso *proceso = list_get(lista_procesos, i);
+		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
+		imprimir_proceso(proceso);
+	}
+}
+
+// Funcion para imprimir un proceso
+void imprimir_proceso(t_proceso *proceso)
+{
+	printf("PID: %d\n", proceso->pid);
+	// printf("Path del archivo de instrucciones: %s\n", proceso->path);
+	printf("Lista de instrucciones:\n");
+	for (int i = 0; i < list_size(proceso->lista_instrucciones); i++)
+	{
+		t_instruccion *instruccion = list_get(proceso->lista_instrucciones, i);
+		imprimir_instruccion(instruccion);
+    }
+    printf("Tabla de paginas:\n");
+    for (int i = 0; i < list_size(proceso->tabla_paginas); i++) {
+        t_pagina* pagina = list_get(proceso->tabla_paginas, i);
+        printf("Pagina %d: marco %d, presente %d\n", i, pagina->numero_marco, pagina->presente);
+    }
+}
+
+// Funcion para deserializar una solicitud de creacion de proceso
+t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buffer *buffer)
+{
+	t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+	buffer->offset = 0;
+
+	buffer_read(buffer, &solicitud->pid, sizeof(uint32_t));
+	buffer_read(buffer, &solicitud->path_length, sizeof(uint32_t));
+	solicitud->path = malloc(solicitud->path_length);
+	buffer_read(buffer, solicitud->path, solicitud->path_length);
+	return solicitud;
+}
 
 
 // Función que a partir de un archivo de instrucciones, devuelve la lista de instrucciones
-
 
 t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
     printf("ENTRE A CREAR PROCESO PAAAA");
@@ -84,15 +168,13 @@ t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
     // imprimir_instruccion(instruccion);
     // strcpy(proceso->path, PATH_INSTRUCCIONES);
     // strcat(proceso->path, path);
-    proceso->tabla_paginas = inicializar_tabla_paginas();
+    proceso->tabla_paginas = list_create();
     // wait semáforo contador (con grado multiprogramación)
     list_add(lista_procesos, proceso);
     // signal semáforo contador (con grado multiprogramación)
     return proceso;
 
 }
-
-
 
 // Función para liberar un proceso
 void liberar_proceso(t_proceso* proceso) {
