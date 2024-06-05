@@ -1,4 +1,10 @@
 #include <../include/mem.h>
+//--------------------------ENVIAR TAMAÑO "handshake"---------------------------
+void enviar_tamanio_pagina(int socket)
+{
+    send( socket, &TAM_PAGINA, sizeof(int), 0);
+}
+
 // --------------------- FUNCIONES DE MEMORIA ---------------------
 
 // Inicializa la memoria principal con el tamaño de la misma pasado por configuración

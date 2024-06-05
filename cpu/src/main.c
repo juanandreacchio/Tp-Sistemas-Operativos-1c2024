@@ -28,7 +28,7 @@ int main(void)
 
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
     enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
-    u_int32_t tamanio_de_pagina = recibir_tamanio(conexion_memoria);//TODO
+    tamanio_de_pagina = recibir_tamanio(conexion_memoria);
 
     // iniciar servidor Dispatch y Interrupt
     pthread_create(&hilo_dispatch, NULL, iniciar_servidor_dispatch, NULL);
@@ -59,7 +59,14 @@ void inicializar_flags()
     end_process_flag = 0;
     input_ouput_flag = 0;
 }
-
+//--------------------------RECIBIR TAMAÑO "handshake"---------------------------
+u_int32_t recibir_tamanio(u_int32_t  socket_cliente)
+{
+    int tamanio_pagina;
+    recv(socket_cliente, &tamanio_pagina, sizeof(int), MSG_WAITALL);
+    u_int32_t tam_cast = (u_int32_t)tamanio_pagina;
+    return tam_cast;
+}
 //-------------------------------ATENDER_DISPATCH-------------------------------
 void *iniciar_servidor_dispatch(void *arg)
 {
@@ -206,11 +213,12 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     case IO_FS_READ:
         break;
     case RESIZE:
-        t_paquete *paquete = crear_paquete(AJUSTAR_TAMANIO_PROCESO);
-        buffer_add(paquete->buffer,&pcb->pid,sizeof(u_int32_t));
-        buffer_add(paquete->buffer,&((u_int32_t)atoi(instruccion->parametros[0])) ,sizeof(u_int32_t));
-        enviar_paquete(paquete,conexion_memoria);
-        eliminar_paquete(paquete);
+        t_paquete *paquete_a_enviar = crear_paquete(AJUSTAR_TAMANIO_PROCESO);
+        buffer_add(paquete_a_enviar->buffer,&pcb->pid,sizeof(u_int32_t));
+        u_int32_t tamanio = (u_int32_t)atoi(instruccion->parametros[0]);
+        buffer_add(paquete_a_enviar->buffer,&tamanio ,sizeof(u_int32_t));
+        enviar_paquete(paquete_a_enviar,conexion_memoria);
+        eliminar_paquete(paquete_a_enviar);
         t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
         if(paquete_recibido->codigo_operacion == OUT_OF_MEMORY){
         enviar_motivo_desalojo(OUT_OF_MEMORY, conexion_kernel_dispatch);
@@ -234,7 +242,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         break;
     }
     log_info(logger_cpu, "PID: %d - EJECUTANDO ", pcb->pid);
-    imprimir_instruccion(*instruccion);
+    imprimir_instruccion(instruccion);
 }
 
 bool check_interrupt(uint32_t pid)
@@ -609,25 +617,29 @@ void get_registro(t_registros *registros, char *registro, void *valor) {
 }
 */
 
-void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas)
+void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura)
 {
-            buffer_add(paquete_enviado->buffer, &((u_int32_t)list_size(direcciones_fisicas)), sizeof(uint32_t));
+    uint32_t num_direcciones = (uint32_t)list_size(direcciones_fisicas);
+    buffer_add(paquete_enviado->buffer, &num_direcciones, sizeof(uint32_t));
+    buffer_add(paquete_enviado->buffer, &tamanio_de_lectura, sizeof(uint32_t));
+    
+    for (size_t j = 0; j < list_size(direcciones_fisicas); j++) {
+        t_direc_fisica *direccion_fisica = list_get(direcciones_fisicas, j);
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->direccion_fisica), sizeof(uint32_t));
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->desplazamiento_necesario), sizeof(uint32_t));
+    }
 
-            for (size_t j = 0; j < list_size(direcciones_fisicas); j++) {
-                t_direc_fisica *direccion_fisica = list_get(direcciones_fisicas, j);
-                buffer_add(paquete_enviado->buffer, &(direccion_fisica->direccion_fisica), sizeof(uint32_t));
-                buffer_add(paquete_enviado->buffer, &(direccion_fisica->desplazamiento_necesario), sizeof(uint32_t));
-            }
-
-            //buffer_add(paquete_enviado->buffer, &size_of_element, sizeof(uint32_t)); // Tamaño de lectura//creo que no es necesario
-            enviar_paquete(paquete_enviado, conexion_memoria);
-            eliminar_paquete(paquete_enviado);
+    //buffer_add(paquete_enviado->buffer, &size_of_element, sizeof(uint32_t)); // Tamaño de lectura//creo que no es necesario
+    enviar_paquete(paquete_enviado, conexion_memoria);
+    eliminar_paquete(paquete_enviado);
 
 }
 
 void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor)
 {
-    buffer_add(paquete->buffer, &((u_int32_t)list_size(direc_fisicas)), sizeof(uint32_t));
+    uint32_t num_direcciones = (uint32_t)list_size(direc_fisicas);
+    buffer_add(paquete->buffer, &num_direcciones, sizeof(uint32_t));
+
     uint32_t offset = 0;
     for (size_t i = 0; i < list_size(direc_fisicas); i++) {
         t_direc_fisica *direc = list_get(direc_fisicas, i);
@@ -672,7 +684,7 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion) {
 
             t_list *direcciones_fisicas = traducir_DL_a_DF_generico(direccion_logica, pcb->tabla_paginas, size_of_element);
             t_paquete *paquete_enviado = crear_paquete(LECTURA_MEMORIA);
-            enviar_soli_lectura(paquete_enviado,direcciones_fisicas);
+            enviar_soli_lectura(paquete_enviado,direcciones_fisicas,size_of_element);
 
             t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
             if (paquete_recibido->codigo_operacion != LECTURA_MEMORIA) {
@@ -750,7 +762,7 @@ void copy_string(t_pcb *pcb, size_t tamanio) {
 
     // Leer el string desde la memoria apuntada por SI
     t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
-    enviar_soli_lectura(paquete_lectura,direc_fisicas_si);
+    enviar_soli_lectura(paquete_lectura,direc_fisicas_si,tamanio);
 
     t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
     if (paquete_recibido->codigo_operacion != LECTURA_MEMORIA) {
@@ -795,14 +807,14 @@ t_list *traducir_DL_a_DF_generico(uint32_t DL, t_list *TP, size_t size_of_elemen
             log_error(logger_cpu, "error: pagina no encontrada");
             return direcciones_fisicas;
         }
-        if (!info_pagina->usada) {
+        if (!info_pagina->presente) {
             log_error(logger_cpu, "error: pagina no utilizada");
         }
 
         uint32_t espacio_en_pagina = tamanio_de_pagina - desplazamiento;
 
         t_direc_fisica *direc = malloc(sizeof(t_direc_fisica));
-        direc->direccion_fisica = info_pagina->nro_marco * tamanio_de_pagina + desplazamiento;
+        direc->direccion_fisica = info_pagina->numero_marco * tamanio_de_pagina + desplazamiento;
         if (espacio_en_pagina >= espacio_restante) {
             direc->desplazamiento_necesario = espacio_restante;
             list_add(direcciones_fisicas, direc);

@@ -17,11 +17,8 @@ extern void* memoria_principal;
 extern int TAM_PAGINA;
 extern int TAM_MEMORIA;
 
-typedef struct {
-    int numero_marco;
-    bool presente;
-} t_pagina;
-
+//--------------------------ENVIAR TAMAÑO "handshake"---------------------------
+void enviar_tamanio_pagina(int soket);
 // ------------------ FUNCIONES DE MEMORIA
 
 void inicializar_memoria_principal();

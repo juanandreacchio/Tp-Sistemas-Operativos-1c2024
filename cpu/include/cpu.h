@@ -30,6 +30,9 @@ extern u_int8_t input_ouput_flag;
 void iniciar_config();
 void inicializar_flags();
 
+//--------------------------RECIBIR TAMAÑO "handshake"---------------------------
+u_int32_t recibir_tamanio(u_int32_t  socket_cliente);
+
 // ------------------ FUNCIONES DE CONEXION -------------------------
 void *iniciar_servidor_dispatch(void *arg);
 void *iniciar_servidor_interrupt(void *arg);

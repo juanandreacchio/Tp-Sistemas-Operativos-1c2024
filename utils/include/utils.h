@@ -17,6 +17,7 @@
 #include <semaphore.h>
 #include <commons/collections/queue.h>
 #include <commons/temporal.h>
+#include <math.h>
 
 #define SIZE_REGISTROS 32
 
@@ -50,6 +51,7 @@ typedef enum
 	//OPERACIONES DE MEMORIA
 	ACCESO_TABLA_PAGINAS,
 	AJUSTAR_TAMANIO_PROCESO,
+	OUT_OF_MEMORY,
 	ESCRITURA_MEMORIA,
 	LECTURA_MEMORIA,
 	OK,
@@ -184,6 +186,11 @@ typedef struct
 	u_int32_t direccion_fisica;
 	u_int32_t desplazamiento_necesario;
 } t_direc_fisica;
+
+typedef struct {
+    int numero_marco;
+    bool presente;
+} t_pagina;
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
