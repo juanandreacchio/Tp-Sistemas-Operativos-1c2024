@@ -55,7 +55,9 @@ typedef enum
 	ESCRITURA_MEMORIA,
 	LECTURA_MEMORIA,
 	OK,
-	MEMORIA_LEIDA
+	MEMORIA_LEIDA,
+	PAGINA_A_MARCO,
+	MARCO
 } op_code;
 
 typedef enum
@@ -107,7 +109,6 @@ typedef struct
 	u_int32_t quantum;	   // Unidad de tiempo utilizada por el algoritmo de planificación VRR
 	t_registros registros; // Estructura que contendrá los valores de los registros de uso general de la CPU
 	estados estado_actual;
-	t_list *tabla_paginas;
 } t_pcb;
 
 typedef enum

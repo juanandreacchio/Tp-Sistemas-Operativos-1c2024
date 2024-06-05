@@ -252,6 +252,25 @@ void *atender_cliente(void *socket_cliente)
             eliminar_paquete(paquete_respuesta);
             break;
             }
+        case PAGINA_A_MARCO:
+            {
+            log_info(logger_memoria, "Se recibio un mensaje para mapear una pagina a un marco");
+            uint32_t pid, nro_pagina;
+            buffer_read(buffer, &pid, sizeof(uint32_t));
+            buffer_read(buffer, &nro_pagina, sizeof(uint32_t));
+            t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
+            t_pagina *pagina = list_get(proceso->tabla_paginas, nro_pagina);
+            pagina->numero_marco = marco;
+            bitarray_set_bit(marcos_ocupados, marco);
+
+            // Devuelve la direccion de memoria del marco asignado
+            void *direccion_fisica = obtener_direccion_fisica(marco);
+            paquete = crear_paquete(MARCO);
+            buffer_add(paquete->buffer, &direccion_fisica, sizeof(void *));
+            enviar_paquete(paquete, (int)(long int)socket_cliente);
+            
+            break;
+            }
         default:
             {
             log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
