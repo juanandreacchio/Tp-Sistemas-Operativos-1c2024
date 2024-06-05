@@ -99,6 +99,7 @@ typedef struct
 	u_int32_t quantum;	   // Unidad de tiempo utilizada por el algoritmo de planificación VRR
 	t_registros registros; // Estructura que contendrá los valores de los registros de uso general de la CPU
 	estados estado_actual;
+	t_list *tabla_paginas;
 } t_pcb;
 
 typedef enum
@@ -195,16 +196,16 @@ typedef struct
 	sem_t binario_io_libre;
 } t_semaforosIO;
 
+typedef struct
+{
+	u_int32_t direccion_fisica;
+	u_int32_t desplazamiento_necesario;
+} t_direc_fisica;
+
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
 char *cod_op_to_string(op_code codigo_operacion);
 t_registros inicializar_registros();
-void set_registro(t_registros *registros, char *registro, u_int32_t valor);
-u_int8_t get_registro_int8(t_registros *registros, char *registro);
-u_int32_t get_registro_int32(t_registros *registros, char *registro);
-void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
-void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
-void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
 void imprimir_registros_por_pantalla(t_registros registros);
 t_pcb *crear_pcb(u_int32_t pid, u_int32_t quantum, estados estado);
 t_pcb *recibir_pcb(int socket);
