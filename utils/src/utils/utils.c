@@ -15,6 +15,8 @@ void imprimir_registros_por_pantalla(t_registros registros)
 	printf(" + ECX = %d\n", registros.ECX);
 	printf(" + EDX = %d\n", registros.EDX);
 	printf(" + PC = %d\n", registros.PC);
+	printf(" + SI = %d\n", registros.SI);
+	printf(" + DI = %d\n", registros.DI);
 	printf("-------------------\n");
 }
 

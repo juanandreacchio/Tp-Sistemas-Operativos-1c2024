@@ -10,6 +10,7 @@ void enviar_tamanio_pagina(int socket)
 // Inicializa la memoria principal con el tamaño de la misma pasado por configuración
 void inicializar_memoria_principal(){
     memoria_principal = malloc(TAM_MEMORIA);
+    inicializar_bitarray(TAM_MEMORIA / TAM_PAGINA);
     if (memoria_principal == NULL) {
         printf("Error: no se pudo asignar memoria para la memoria principal\n");
         exit(1);
@@ -35,6 +36,18 @@ int obtener_primer_marco_libre() {
     }
     return -1;
 }
+void inicializar_bitarray(size_t size) {
+    int bytes = (size + 7) / 8;  // Convertir el tamaño a bytes
+    void *bitarray_mem = malloc(bytes);
+    marcos_ocupados = bitarray_create_with_mode(bitarray_mem, bytes, LSB_FIRST);
+}
+
+// Función para destruir el bitarray
+void destruir_bitarray() {
+    bitarray_destroy(marcos_ocupados);
+    free(marcos_ocupados->bitarray);
+}
+
 
 // --------------------- FUNCIONES DE TABLA DE PAGINAS ---------------------
 

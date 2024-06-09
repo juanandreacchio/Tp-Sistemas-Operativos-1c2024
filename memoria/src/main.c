@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
     inciar_listas();
 
     socket_servidor_memoria = iniciar_servidor(logger_memoria, PUERTO_MEMORIA, "MEMORIA");
+    inicializar_memoria_principal();
 
     while (1)
     {
@@ -92,7 +93,7 @@ void *atender_cliente(void *socket_cliente)
         printf("codigo de operacion: %s\n", cod_op_to_string(codigo_operacion));
 
         // NO SE SI ESTO ESTA BIEN, CREO QUE DA LO MISMO DONDE SE PONGA
-        sleep(RETARDO_RESPUESTA);
+        usleep(RETARDO_RESPUESTA);
 
         switch (codigo_operacion)
         {
@@ -147,7 +148,7 @@ void *atender_cliente(void *socket_cliente)
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
 
             printf("--------------------------PROCESO CREADO-----------------\n");
-            imprimir_proceso(proceso_creado);
+            //imprimir_proceso(proceso_creado);
             // imprimir_lista_de_procesos(procesos_en_memoria);
             break;
             }
@@ -162,18 +163,23 @@ void *atender_cliente(void *socket_cliente)
             list_remove(procesos_en_memoria, posicion_proceso(procesos_en_memoria, pid));
             break;
             }
-        case ACCESO_TABLA_PAGINAS:
-            {
+        case ACCESO_TABLA_PAGINAS: {
             log_info(logger_memoria, "Se recibio un mensaje para acceder a la tabla de paginas");
-            uint32_t pid, pagina;
+            uint32_t pid, pagina, num_paginas;
             buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &pagina, sizeof(uint32_t));
+            buffer_read(buffer, &num_paginas, sizeof(uint32_t));
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
-            t_pagina *pag = list_get(proceso->tabla_paginas, pagina);
-            int marco = pag->numero_marco;
-            paquete = crear_paquete(ACCESO_TABLA_PAGINAS);
-            buffer_add(paquete->buffer, &marco, sizeof(int));
-            enviar_paquete(paquete, (int)(long int)socket_cliente);
+            t_paquete *paquete_respuesta = crear_paquete(ACCESO_TABLA_PAGINAS);
+
+            for (uint32_t i = 0; i < num_paginas; i++) {
+                t_pagina *pag = list_get(proceso->tabla_paginas, pagina + i);
+                uint32_t nro_marco = pag->numero_marco;
+                buffer_add(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
+            }
+
+            enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
+            eliminar_paquete(paquete_respuesta);
             break;
             }
         case AJUSTAR_TAMANIO_PROCESO:
@@ -181,7 +187,7 @@ void *atender_cliente(void *socket_cliente)
             log_info(logger_memoria, "Se recibio un mensaje para ajustar el tamaño de un proceso");
             uint32_t pid, nuevo_tamanio;
             buffer_read(buffer, &pid, sizeof(uint32_t));
-            buffer_read(buffer, &nuevo_tamanio, sizeof(uint32_t));
+            buffer_read(buffer, &nuevo_tamanio, sizeof(uint32_t)); 
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
             int tamanio_actual = list_size(proceso->tabla_paginas);
             if (nuevo_tamanio > tamanio_actual)
@@ -205,6 +211,8 @@ void *atender_cliente(void *socket_cliente)
                     free(pagina);
                 }
             }
+            enviar_codigo_operacion(OK,(int)(long int)socket_cliente);
+            //falta cuando no alcanza la memoria con el OUT_OF_MEMORY
             break;
             }
         case ESCRITURA_MEMORIA:
@@ -220,12 +228,11 @@ void *atender_cliente(void *socket_cliente)
                 buffer_read(buffer, &tamanio, sizeof(uint32_t));
                 void *buffer_escritura = malloc(tamanio);
                 buffer_read(buffer, buffer_escritura, tamanio);
-                memcpy(direccion_fisica, buffer_escritura, tamanio);
+                memcpy(((char *)memoria_principal) + direccion_fisica, buffer_escritura, tamanio);
                 free(buffer_escritura);
             }
-            t_paquete *paquete_respuesta = crear_paquete(OK);
-            enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
-            eliminar_paquete(paquete_respuesta);
+
+            enviar_codigo_operacion(OK,(int)(long int)socket_cliente);
             break;
             }
         case LECTURA_MEMORIA:
@@ -242,33 +249,14 @@ void *atender_cliente(void *socket_cliente)
                 uint32_t direccion_fisica, tamanio;
                 buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
                 buffer_read(buffer, &tamanio, sizeof(uint32_t));
-                memcpy(buffer_lectura + offset,direccion_fisica, tamanio);
+                memcpy(buffer_lectura + offset,((char *)memoria_principal) + direccion_fisica, tamanio);
                 offset +=tamanio;
             }
             t_paquete *paquete_respuesta = crear_paquete(LECTURA_MEMORIA);
-            buffer_add(paquete_respuesta->buffer, buffer_lectura, cantidad_marcos * TAM_PAGINA);
+            buffer_add(paquete_respuesta->buffer, buffer_lectura, total_tamanio);
             enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
             free(buffer_lectura);
             eliminar_paquete(paquete_respuesta);
-            break;
-            }
-        case PAGINA_A_MARCO:
-            {
-            log_info(logger_memoria, "Se recibio un mensaje para mapear una pagina a un marco");
-            uint32_t pid, nro_pagina;
-            buffer_read(buffer, &pid, sizeof(uint32_t));
-            buffer_read(buffer, &nro_pagina, sizeof(uint32_t));
-            t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
-            t_pagina *pagina = list_get(proceso->tabla_paginas, nro_pagina);
-            pagina->numero_marco = marco;
-            bitarray_set_bit(marcos_ocupados, marco);
-
-            // Devuelve la direccion de memoria del marco asignado
-            void *direccion_fisica = obtener_direccion_fisica(marco);
-            paquete = crear_paquete(MARCO);
-            buffer_add(paquete->buffer, &direccion_fisica, sizeof(void *));
-            enviar_paquete(paquete, (int)(long int)socket_cliente);
-            
             break;
             }
         default:

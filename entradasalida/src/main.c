@@ -122,7 +122,7 @@ void *atender_cliente(int socket_cliente)
 {
     t_paquete *paquete = recibir_paquete(socket_cliente);
     t_instruccion *instruccion = instruccion_deserializar(paquete->buffer, 0); // se deberia pasar el offset tmb
-    imprimir_instruccion(*instruccion);
+    imprimir_instruccion(instruccion);
 
     if (instruccion == NULL)
     {

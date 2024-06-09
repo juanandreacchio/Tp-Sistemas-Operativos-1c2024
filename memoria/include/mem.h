@@ -12,6 +12,11 @@ typedef struct
 	t_list *tabla_paginas;
 } t_proceso;
 
+typedef struct {
+    int numero_marco;
+    bool presente;
+} t_pagina;
+
 extern t_list *tabla_paginas;
 extern void* memoria_principal;
 extern int TAM_PAGINA;
@@ -24,6 +29,8 @@ void enviar_tamanio_pagina(int soket);
 void inicializar_memoria_principal();
 int obtener_primer_marco_libre();
 void* obtener_direccion_fisica(int numero_marco);
+void inicializar_bitarray(size_t size);
+void destruir_bitarray();
 
 // ------------------ FUNCIONES DE PROCESO EN MEMORIA
 int posicion_proceso(t_list* lista_procesos, uint32_t pid);

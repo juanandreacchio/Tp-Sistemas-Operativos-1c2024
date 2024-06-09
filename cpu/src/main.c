@@ -213,23 +213,28 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     case IO_FS_READ:
         break;
     case RESIZE:
+    {
         t_paquete *paquete_a_enviar = crear_paquete(AJUSTAR_TAMANIO_PROCESO);
         buffer_add(paquete_a_enviar->buffer,&pcb->pid,sizeof(u_int32_t));
         u_int32_t tamanio = (u_int32_t)atoi(instruccion->parametros[0]);
         buffer_add(paquete_a_enviar->buffer,&tamanio ,sizeof(u_int32_t));
         enviar_paquete(paquete_a_enviar,conexion_memoria);
         eliminar_paquete(paquete_a_enviar);
-        t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
-        if(paquete_recibido->codigo_operacion == OUT_OF_MEMORY){
+        op_code operacion = recibir_operacion(conexion_memoria);
+        if(operacion == OUT_OF_MEMORY){
         enviar_motivo_desalojo(OUT_OF_MEMORY, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
-        }else if(paquete_recibido->codigo_operacion != OK)
+        }else if(operacion != OK)
         {
             log_error(logger_cpu,"error:recibi un codigo de operacion desconocido dentro de RESIZE");
         }
-        eliminar_paquete(paquete_recibido);
+        if(operacion == OK)
+            log_info(logger_cpu,"RESIZE hecho");
         break;
+    }
     case COPY_STRING:
+        size_t tamanio = (size_t)atoi(instruccion->parametros[0]);
+        copy_string(pcb,tamanio);
         break;
     case WAIT:
         break;
@@ -676,13 +681,13 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion) {
     };
 
     int encontrado = 0;
+    uint32_t direccion_logica = get_registro_generico(&(pcb->registros), registro_direccion);
     for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++) {
-        if (strcasecmp(registro_direccion, mapa[i].nombre) == 0) {
+        if (strcasecmp(registro_datos, mapa[i].nombre) == 0) {
             encontrado = 1;
-            uint32_t direccion_logica = get_registro_generico(&(pcb->registros), registro_direccion);
             size_t size_of_element = (i < 4) ? sizeof(uint8_t) : sizeof(uint32_t);
 
-            t_list *direcciones_fisicas = traducir_DL_a_DF_generico(direccion_logica, pcb->tabla_paginas, size_of_element);
+            t_list *direcciones_fisicas = traducir_DL_a_DF_generico(direccion_logica, pcb->pid, size_of_element);
             t_paquete *paquete_enviado = crear_paquete(LECTURA_MEMORIA);
             enviar_soli_lectura(paquete_enviado,direcciones_fisicas,size_of_element);
 
@@ -721,7 +726,7 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos) {
         size_of_element = sizeof(uint8_t);
         uint8_t valor = get_registro_generico(&pcb->registros, registro_datos);
         valor_registro = &valor;
-        direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->tabla_paginas, size_of_element);
+        direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, size_of_element);
 
     } else if (strcasecmp(registro_datos, "EAX") == 0 || strcasecmp(registro_datos, "EBX") == 0 ||
                strcasecmp(registro_datos, "ECX") == 0 || strcasecmp(registro_datos, "EDX") == 0 ||
@@ -731,22 +736,18 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos) {
         size_of_element = sizeof(uint32_t);
         uint32_t valor = get_registro_generico(&pcb->registros, registro_datos);
         valor_registro = &valor;
-        direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->tabla_paginas, size_of_element);
+        direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, size_of_element);
 
     } else {
         log_error(logger_cpu, "error: el registro dato no existe dentro de los registros");
         eliminar_paquete(paquete);
         return;
     }
-
     enviar_soli_escritura(paquete,direc_fisicas, size_of_element,valor_registro);
-
-    t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
-    if (paquete_recibido->codigo_operacion != OK) {
+    op_code cod_op = recibir_operacion(conexion_memoria);
+    if (cod_op != OK) {
         log_error(logger_cpu, "error: codigo de operacion inesperado al recibir la escritura de memoria");
     }
-    eliminar_paquete(paquete_recibido);
-
     list_destroy_and_destroy_elements(direc_fisicas, free);
 }
 
@@ -755,10 +756,11 @@ void copy_string(t_pcb *pcb, size_t tamanio) {
     uint32_t direc_logica_di = get_registro_generico(&pcb->registros, "DI");
 
     // Obtener las direcciones físicas para el origen (SI)
-    t_list *direc_fisicas_si = traducir_DL_a_DF_generico(direc_logica_si, pcb->tabla_paginas, tamanio);
+    t_list *direc_fisicas_si = traducir_DL_a_DF_generico(direc_logica_si, pcb->pid, tamanio);
 
     // Obtener las direcciones físicas para el destino (DI)
-    t_list *direc_fisicas_di = traducir_DL_a_DF_generico(direc_logica_di, pcb->tabla_paginas, tamanio);
+    t_list *direc_fisicas_di = traducir_DL_a_DF_generico(direc_logica_di, pcb->pid, tamanio);
+
 
     // Leer el string desde la memoria apuntada por SI
     t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
@@ -782,11 +784,10 @@ void copy_string(t_pcb *pcb, size_t tamanio) {
     t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
     enviar_soli_escritura(paquete_escritura,direc_fisicas_di,tamanio,buffer);
 
-    t_paquete *paquete_recibido_escritura = recibir_paquete(conexion_memoria);
-    if (paquete_recibido_escritura->codigo_operacion != OK) {
+   op_code cod_op = recibir_operacion(conexion_memoria);
+    if (cod_op != OK) {
         log_error(logger_cpu, "error: codigo de operacion inesperado al recibir la escritura de memoria");
     }
-    eliminar_paquete(paquete_recibido_escritura);
 
     free(buffer);
     list_destroy_and_destroy_elements(direc_fisicas_si, free);
@@ -794,39 +795,42 @@ void copy_string(t_pcb *pcb, size_t tamanio) {
 }
 
 //--------------------MMU----------------------------
-t_list *traducir_DL_a_DF_generico(uint32_t DL, t_list *TP, size_t size_of_element) {
+t_list *traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio) {
     uint32_t numero_pagina = floor(DL / tamanio_de_pagina);
     uint32_t desplazamiento = DL - numero_pagina * tamanio_de_pagina;
-    t_list *direcciones_fisicas = list_create();
+    uint32_t num_paginas = (desplazamiento + tamanio + tamanio_de_pagina - 1) / tamanio_de_pagina;
 
-    uint32_t espacio_restante = size_of_element;
+    t_paquete *paquete_solicitud = crear_paquete(ACCESO_TABLA_PAGINAS);
+    buffer_add(paquete_solicitud->buffer, &pid, sizeof(uint32_t));
+    buffer_add(paquete_solicitud->buffer, &numero_pagina, sizeof(uint32_t));
+    buffer_add(paquete_solicitud->buffer, &num_paginas, sizeof(uint32_t));
+    enviar_paquete(paquete_solicitud, conexion_memoria);
+    eliminar_paquete(paquete_solicitud);
 
-    while (espacio_restante > 0) {
-        t_pagina *info_pagina = list_get(TP, numero_pagina);
-        if (!info_pagina) {
-            log_error(logger_cpu, "error: pagina no encontrada");
-            return direcciones_fisicas;
-        }
-        if (!info_pagina->presente) {
-            log_error(logger_cpu, "error: pagina no utilizada");
-        }
-
-        uint32_t espacio_en_pagina = tamanio_de_pagina - desplazamiento;
-
-        t_direc_fisica *direc = malloc(sizeof(t_direc_fisica));
-        direc->direccion_fisica = info_pagina->numero_marco * tamanio_de_pagina + desplazamiento;
-        if (espacio_en_pagina >= espacio_restante) {
-            direc->desplazamiento_necesario = espacio_restante;
-            list_add(direcciones_fisicas, direc);
-            break;
-        } else {
-            direc->desplazamiento_necesario = espacio_en_pagina;
-            list_add(direcciones_fisicas, direc);
-            espacio_restante -= espacio_en_pagina;
-            desplazamiento = 0;
-            numero_pagina++;
-        }
+    t_paquete *paquete_respuesta = recibir_paquete(conexion_memoria);
+    if (paquete_respuesta->codigo_operacion != ACCESO_TABLA_PAGINAS) {
+        log_error(logger_cpu, "Error: código de operación inesperado al recibir los marcos de memoria");
+        eliminar_paquete(paquete_respuesta);
+        return NULL;
     }
+
+    t_list *direcciones_fisicas = list_create();
+    paquete_respuesta->buffer->offset = 0;
+    size_t tamanio_restante = tamanio;
+
+    for (uint32_t i = 0; i < num_paginas; i++) {
+        uint32_t nro_marco;
+        buffer_read(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
+        log_info(logger_cpu,"nro_marco: %d",nro_marco);
+        t_direc_fisica *direc = malloc(sizeof(t_direc_fisica));
+        direc->direccion_fisica = nro_marco * tamanio_de_pagina + ((i == 0) ? desplazamiento : 0);
+        size_t espacio_disponible = (i == 0) ? (tamanio_de_pagina - desplazamiento) : tamanio_de_pagina;
+        direc->desplazamiento_necesario = (tamanio_restante < espacio_disponible) ? tamanio_restante : espacio_disponible;
+        tamanio_restante -= direc->desplazamiento_necesario;
+        list_add(direcciones_fisicas, direc);
+    }
+
+    eliminar_paquete(paquete_respuesta);
     return direcciones_fisicas;
 }
 

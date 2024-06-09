@@ -188,10 +188,6 @@ typedef struct
 	u_int32_t desplazamiento_necesario;
 } t_direc_fisica;
 
-typedef struct {
-    int numero_marco;
-    bool presente;
-} t_pagina;
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
