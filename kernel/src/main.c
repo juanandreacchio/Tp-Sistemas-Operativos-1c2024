@@ -15,8 +15,11 @@ u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt, flag_cpu_libr
 int socket_servidor_kernel;
 int contador_pcbs;
 uint32_t contador_pid;
+t_pcb *ultimo_pcb_ejecutado;
+uint32_t procesos_en_ready_plus;
 int quantum;
 char *nombre_entrada_salida_conectada;
+uint16_t planificar_ready_plus;
 
 t_dictionary *conexiones_io;
 t_dictionary *colas_blocks_io; // cola de cada interfaz individual, adentro están las isntrucciones a ejecutar
@@ -24,6 +27,7 @@ t_dictionary *diccionario_semaforos_io;
 t_dictionary *recursos_disponibles;
 t_dictionary *cola_de_bloqueados_por_recurso;
 t_dictionary *recursos_asignados_por_proceso;
+t_dictionary *tiempo_restante_de_quantum_por_proceso;
 
 pthread_mutex_t mutex_pid;
 pthread_mutex_t mutex_cola_de_readys;
@@ -36,6 +40,7 @@ pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 pthread_mutex_t mutex_flag_cpu_libre;
 pthread_mutex_t mutex_motivo_ultimo_desalojo;
 pthread_mutex_t mutex_procesos_en_sistema;
+pthread_mutex_t mutex_cola_de_ready_plus;
 sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 pthread_mutex_t mutex_cola_de_exit;
 sem_t hay_proceso_exit;
@@ -43,6 +48,7 @@ sem_t hay_proceso_nuevo;
 t_queue *cola_procesos_ready;
 t_queue *cola_procesos_new;
 t_queue *cola_procesos_exit;
+t_queue *cola_ready_plus;
 t_list *lista_procesos_blocked; // lsita de los prccesos bloqueados
 t_list *procesos_en_sistema;
 t_pcb *pcb_en_ejecucion;
@@ -61,6 +67,7 @@ int grado_multiprogramacion;
 int main(void)
 {
     iniciar_config();
+    iniciar_variables();
     iniciar_listas();
     iniciar_colas_de_estados_procesos();
     iniciar_diccionarios();
@@ -97,6 +104,14 @@ int main(void)
     {
         log_info(logger_kernel, "iniciando contador de quantum");
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum, NULL);
+        pthread_detach(hilo_quantum);
+    }
+
+    if(strcmp(algoritmo_planificacion, "VRR") == 0){
+        log_info(logger_kernel, "iniciando contador de quantum");
+        cola_ready_plus = queue_create();
+        tiempo_restante_de_quantum_por_proceso = dictionary_create();
+        pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum_vrr, NULL);
         pthread_detach(hilo_quantum);
     }
 

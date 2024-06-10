@@ -39,6 +39,10 @@ extern int quantum;
 extern op_code motivo_ultimo_desalojo;
 extern char *nombre_entrada_salida_conectada;
 extern int grado_multiprogramacion;
+extern t_pcb *ultimo_pcb_ejecutado;
+extern uint32_t procesos_en_ready_plus;
+extern uint16_t planificar_ready_plus;
+
 
 extern t_dictionary *conexiones_io;
 extern t_dictionary *colas_blocks_io; // cola de cada interfaz individual, adentro están las isntrucciones a ejecutar
@@ -46,6 +50,7 @@ extern t_dictionary *diccionario_semaforos_io;
 extern t_dictionary *recursos_disponibles;
 extern t_dictionary *cola_de_bloqueados_por_recurso;
 extern t_dictionary *recursos_asignados_por_proceso;
+extern t_dictionary *tiempo_restante_de_quantum_por_proceso;
 
 extern pthread_mutex_t mutex_motivo_ultimo_desalojo;
 extern pthread_mutex_t mutex_pid;
@@ -58,10 +63,12 @@ extern pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de 
 extern pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 extern pthread_mutex_t mutex_flag_cpu_libre;
 extern pthread_mutex_t mutex_procesos_en_sistema;
+extern pthread_mutex_t mutex_cola_de_ready_plus;
 extern sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 extern t_queue *cola_procesos_ready;
 extern t_queue *cola_procesos_new;
 extern t_queue *cola_procesos_exit;
+extern t_queue *cola_ready_plus;
 extern t_list *lista_procesos_blocked; // lsita de los prccesos bloqueados
 extern t_list *procesos_en_sistema;
 extern t_pcb *pcb_en_ejecucion;
@@ -75,6 +82,7 @@ extern char **instancias_recursos;
 extern pthread_mutex_t mutex_cola_de_exit;
 extern sem_t hay_proceso_exit;
 extern sem_t hay_proceso_nuevo;
+extern sem_t hay_proceso_a_ready_plus;
 extern pthread_t planificador_largo;
 
 // --------------------- FUNCIONES DE INICIO -------------------------
@@ -84,6 +92,7 @@ void iniciar_listas();
 void iniciar_colas_de_estados_procesos();
 void iniciar_config();
 void iniciar_recursos();
+void iniciar_variables();
 
 void* atender_cliente(void *socket_cliente);
 
@@ -110,6 +119,7 @@ void creacion_de_procesos();
 void eliminacion_de_procesos();
 void *recibir_dispatch();
 void *verificar_quantum();
+void *verificar_quantum_vrr();
 
 // --------------------- FUNCIONES DE INTERFACES ENTRADA/SALIDA -------------------------
 bool interfaz_conectada(char *nombre_interfaz);

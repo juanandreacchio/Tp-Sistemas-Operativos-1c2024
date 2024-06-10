@@ -66,4 +66,13 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_motivo_ultimo_desalojo, NULL);
     pthread_mutex_init(&mutex_cola_de_exit, NULL);
     pthread_mutex_init(&mutex_procesos_en_sistema, NULL);
+    pthread_mutex_init(&mutex_cola_de_ready_plus, NULL);
+}
+
+void iniciar_variables(){
+    contador_pid = 0;
+    ultimo_pcb_ejecutado = NULL;
+    procesos_en_ready_plus = 0;
+    planificar_ready_plus = 0;
+    nombre_entrada_salida_conectada = NULL;
 }

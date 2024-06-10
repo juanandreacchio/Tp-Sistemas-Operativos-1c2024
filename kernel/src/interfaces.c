@@ -102,6 +102,14 @@ void atender_interfaz(char *nombre_interfaz)
             if (pcb != NULL)
             {
                 sem_wait(&contador_grado_multiprogramacion);
+                if (pcb->quantum > 0)
+                {
+                    set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
+                    logear_cambio_estado(pcb, BLOCKED, READY);
+                    procesos_en_ready_plus++;
+                    sem_post(&(semaforos_interfaz->binario_io_libre));
+                    break;
+                }
                 set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
                 logear_cambio_estado(pcb, BLOCKED, READY);
                 sem_post(&hay_proceso_a_ready);

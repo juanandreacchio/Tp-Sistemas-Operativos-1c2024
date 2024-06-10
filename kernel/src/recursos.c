@@ -50,6 +50,13 @@ void sumar_instancia_a_recurso(char *nombre)
         pthread_mutex_unlock(&recurso->mutex_cola_recurso);
         if (pcb != NULL)
         {
+            if (pcb->quantum > 0)
+            {
+                    set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
+                    logear_cambio_estado(pcb, BLOCKED, READY);
+                    procesos_en_ready_plus++;
+                    return;
+            }
             set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
             sem_post(&hay_proceso_a_ready);
         }
@@ -77,10 +84,10 @@ void liberar_recursos(uint32_t pid)
 
 void retener_instancia_de_recurso(char *nombre_recurso, uint32_t pid)
 {
-    t_dictionary *recursos = dictionary_get(recursos_asignados_por_proceso, (void*)pid);
+    t_dictionary *recursos = dictionary_get(recursos_asignados_por_proceso, (void *)pid);
     if (!dictionary_has_key(recursos, nombre_recurso))
     {
-        dictionary_put(recursos, nombre_recurso, (void*)1);
+        dictionary_put(recursos, nombre_recurso, (void *)1);
     }
     else
     {

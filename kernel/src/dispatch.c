@@ -11,6 +11,8 @@ void *recibir_dispatch()
         motivo_ultimo_desalojo = motivo_desalojo;
         pthread_mutex_unlock(&mutex_motivo_ultimo_desalojo);
 
+        ultimo_pcb_ejecutado = pcb_actualizado; // poner mutex
+
         switch (motivo_desalojo)
         {
         case OPERACION_IO:
@@ -30,9 +32,7 @@ void *recibir_dispatch()
                 exit(EXIT_FAILURE);
             }
 
-            pthread_mutex_lock(&mutex_proceso_en_ejecucion);
-            pcb_en_ejecucion = NULL;
-            pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
+    
 
             pcb_actualizado->estado_actual = BLOCKED;
             logear_cambio_estado(pcb_actualizado->pid, "EXEC", "BLOCKED");
@@ -65,8 +65,13 @@ void *recibir_dispatch()
             break;
         case FIN_CLOCK:
             log_info(logger_kernel, "entre al fin de clock por dispatcher");
+
+    
+
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             sem_post(&hay_proceso_a_ready);
+
+
 
             logear_cambio_estado(pcb_actualizado->pid, "EXEC", "READY");
 
@@ -75,11 +80,11 @@ void *recibir_dispatch()
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
-        case KILL_PROCESS:
-            // TODO
-            break;
         case END_PROCESS:
             log_info(logger_kernel, "entre al end process por dispatcher");
+
+
+
             finalizar_pcb(pcb_actualizado);
 
             pthread_mutex_lock(&mutex_flag_cpu_libre);
@@ -111,12 +116,13 @@ void *recibir_dispatch()
                 pcb_actualizado->estado_actual = BLOCKED;
                 logear_cambio_estado(pcb_actualizado->pid, "EXEC", "BLOCKED");
 
-                sem_post(&cpu_libre);
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
                 logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
+
+                sem_post(&cpu_libre);
                 sem_post(&contador_grado_multiprogramacion);
             }
             else
