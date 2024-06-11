@@ -101,11 +101,17 @@ void ejecutar_comando(char *comando)
             return;
         }
 
-        liberar_recursos(pcb->pid);
-
         pthread_mutex_lock(&mutex_procesos_en_sistema);
         list_remove_element(procesos_en_sistema, pcb);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);
+
+        if (pcb->estado_actual == EXEC)
+        {
+            enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_dispatch);
+            return;
+        }
+
+        liberar_recursos(pcb->pid);
 
         sem_post(&contador_grado_multiprogramacion);
         destruir_pcb(pcb);

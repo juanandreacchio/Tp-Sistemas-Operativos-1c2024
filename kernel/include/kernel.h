@@ -19,6 +19,11 @@ typedef struct{
     t_instruccion *instruccion;
 } t_instruccion_bloqueada_en_io;
 
+typedef struct{
+    pthread_mutex_t mutex;
+    t_queue *cola;
+} t_cola_interfaz_io;
+
 
 extern t_config *config_kernel;
 

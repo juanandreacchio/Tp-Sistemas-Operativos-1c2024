@@ -40,6 +40,7 @@ void iniciar_planificador_corto_plazo()
                 pthread_mutex_lock(&mutex_cola_de_ready_plus);
                 pcb_a_ejecutar = queue_pop(cola_ready_plus);
                 pthread_mutex_unlock(&mutex_cola_de_ready_plus);
+                procesos_en_ready_plus--;
             }
             else
             {
@@ -164,6 +165,10 @@ void *verificar_quantum_vrr()
                         log_info(logger_kernel, "DESALOJÉ POR IO");
                         break;
                     case WAIT_SOLICITADO:
+                        if (buscar_pcb_por_pid(ultimo_pcb_ejecutado->pid, lista_procesos_blocked) != NULL)
+                        {
+                            ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
+                        }
                         log_info(logger_kernel, "DESALOJÉ POR WAIT");
                         break;
                     case END_PROCESS:

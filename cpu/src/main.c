@@ -284,6 +284,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
     if (instruccion != NULL)
         free(instruccion);
 
+
     if (end_process_flag == 1)
     {
         end_process_flag = 0;

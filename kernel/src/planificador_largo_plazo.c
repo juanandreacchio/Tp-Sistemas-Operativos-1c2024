@@ -36,7 +36,7 @@ void eliminacion_de_procesos()
         t_pcb *pcb_exit = queue_pop(cola_procesos_exit);
         pthread_mutex_unlock(&mutex_cola_de_exit);
         liberar_recursos(pcb_exit->pid);
-
+        // Falta eliminarlo de memoria
         pthread_mutex_lock(&mutex_procesos_en_sistema);
         list_remove_element(procesos_en_sistema, pcb_exit);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);

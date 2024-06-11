@@ -32,8 +32,6 @@ void *recibir_dispatch()
                 exit(EXIT_FAILURE);
             }
 
-    
-
             pcb_actualizado->estado_actual = BLOCKED;
             logear_cambio_estado(pcb_actualizado->pid, "EXEC", "BLOCKED");
 
@@ -50,9 +48,11 @@ void *recibir_dispatch()
             instruccion_en_io->instruccion_io = utlima_instruccion;
             instruccion_en_io->pid = pcb_actualizado->pid;
 
-            pthread_mutex_lock(&mutex_cola_interfaces); // estopy casi seguro que este mutex esta mal porque es el mismo que esta arriba y son listas distintas
-            queue_push((t_queue *)dictionary_get(colas_blocks_io, nombre_io), instruccion_en_io);
-            pthread_mutex_unlock(&mutex_cola_interfaces);
+            t_cola_interfaz_io *cola_interfaz = dictionary_get(colas_blocks_io, nombre_io);
+
+            pthread_mutex_lock(&cola_interfaz->mutex);
+            queue_push(cola_interfaz->cola, instruccion_en_io);
+            pthread_mutex_unlock(&cola_interfaz->mutex);
 
             t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_io);
             sem_post(&semaforos_interfaz->instruccion_en_cola);
@@ -66,12 +66,8 @@ void *recibir_dispatch()
         case FIN_CLOCK:
             log_info(logger_kernel, "entre al fin de clock por dispatcher");
 
-    
-
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             sem_post(&hay_proceso_a_ready);
-
-
 
             logear_cambio_estado(pcb_actualizado->pid, "EXEC", "READY");
 
@@ -82,8 +78,6 @@ void *recibir_dispatch()
             break;
         case END_PROCESS:
             log_info(logger_kernel, "entre al end process por dispatcher");
-
-
 
             finalizar_pcb(pcb_actualizado);
 
@@ -147,6 +141,12 @@ void *recibir_dispatch()
             }
             sumar_instancia_a_recurso(recurso_solicitado);
             setear_pcb_en_ejecucion(pcb_actualizado);
+            break;
+        case KILL_PROCESS:
+            liberar_recursos(pcb_actualizado->pid);
+
+            sem_post(&contador_grado_multiprogramacion);
+            destruir_pcb(pcb_actualizado);
         default:
             break;
         }

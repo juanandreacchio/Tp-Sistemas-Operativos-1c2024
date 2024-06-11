@@ -38,14 +38,18 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
 
     t_interfaz_en_kernel *interfaz = malloc(sizeof(t_interfaz_en_kernel));
     interfaz->conexion = conexion;
-    interfaz->tipo_interfaz = cod_op_to_tipo_interfaz(tipo); // hacer cod_op_to_cod_interfaz
+    interfaz->tipo_interfaz = cod_op_to_tipo_interfaz(tipo); 
 
     pthread_mutex_lock(&mutex_interfaces_conectadas);
     dictionary_put(conexiones_io, nombre, interfaz); // Guardar el socket como entero
     pthread_mutex_unlock(&mutex_interfaces_conectadas);
 
+    t_cola_interfaz_io *cola_interfaz = malloc(sizeof(t_cola_interfaz_io));
+    cola_interfaz->cola = queue_create();
+    pthread_mutex_init(&(cola_interfaz->mutex), NULL);
+
     pthread_mutex_lock(&mutex_cola_interfaces);
-    dictionary_put(colas_blocks_io, nombre, queue_create());
+    dictionary_put(colas_blocks_io, nombre, cola_interfaz);
     pthread_mutex_unlock(&mutex_cola_interfaces);
 
     t_semaforosIO *semaforos_interfaz = malloc(sizeof(t_semaforosIO));
@@ -80,8 +84,11 @@ void atender_interfaz(char *nombre_interfaz)
         sem_wait(&(semaforos_interfaz->binario_io_libre));
         pthread_mutex_lock(&(semaforos_interfaz->mutex));
 
-        t_queue *cola = dictionary_get(colas_blocks_io, nombre_interfaz);
-        t_instruccionEnIo *instruccion = queue_pop(cola);
+        t_cola_interfaz_io *cola = dictionary_get(colas_blocks_io, nombre_interfaz);
+
+        pthread_mutex_lock(&(cola->mutex));
+        t_instruccionEnIo *instruccion = queue_pop(cola->cola);
+        pthread_mutex_unlock(&(cola->mutex));
 
         pthread_mutex_unlock(&(semaforos_interfaz->mutex));
 
