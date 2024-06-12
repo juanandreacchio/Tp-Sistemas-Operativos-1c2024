@@ -165,6 +165,7 @@ void *verificar_quantum_vrr()
                         log_info(logger_kernel, "DESALOJÉ POR IO");
                         break;
                     case WAIT_SOLICITADO:
+                        sem_wait(&podes_revisar_lista_bloqueados);
                         if (buscar_pcb_por_pid(ultimo_pcb_ejecutado->pid, lista_procesos_blocked) != NULL)
                         {
                             ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
@@ -206,6 +207,8 @@ void *verificar_quantum_vrr()
                         log_info(logger_kernel, "DESALOJÉ POR IO");
                         break;
                     case WAIT_SOLICITADO:
+                        sem_wait(&podes_revisar_lista_bloqueados); 
+                        // x las dudas, voy a esperar si lo carga o no en la lista de bloqueados
                         if (buscar_pcb_por_pid(ultimo_pcb_ejecutado->pid, lista_procesos_blocked) != NULL)
                         {
                             ultimo_pcb_ejecutado->quantum = quantum - temporal_gettime(tiempo_transcurrido);

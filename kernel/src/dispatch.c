@@ -98,6 +98,7 @@ void *recibir_dispatch()
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                sem_post(&podes_revisar_lista_bloqueados);
                 sem_post(&cpu_libre);
                 break;
             }
@@ -123,6 +124,8 @@ void *recibir_dispatch()
             {
                 setear_pcb_en_ejecucion(pcb_actualizado);
             }
+            sem_post(&podes_revisar_lista_bloqueados);
+
             break;
         case SIGNAL_SOLICITADO:
             t_paquete *respuesta_signal = recibir_paquete(conexion_dispatch);

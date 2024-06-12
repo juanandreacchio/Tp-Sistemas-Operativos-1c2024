@@ -47,6 +47,8 @@ extern int grado_multiprogramacion;
 extern t_pcb *ultimo_pcb_ejecutado;
 extern uint32_t procesos_en_ready_plus;
 extern uint16_t planificar_ready_plus;
+extern sem_t podes_revisar_lista_bloqueados;
+
 
 
 extern t_dictionary *conexiones_io;

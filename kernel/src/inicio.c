@@ -54,6 +54,7 @@ void iniciar_semaforos()
     sem_init(&arrancar_quantum, 0, 0);
     sem_init(&hay_proceso_nuevo, 0, 0);
     sem_init(&hay_proceso_exit, 0, 0);
+    sem_init(&podes_revisar_lista_bloqueados, 0, 0);
     pthread_mutex_init(&mutex_pid, NULL);
     pthread_mutex_init(&mutex_cola_de_readys, NULL);
     pthread_mutex_init(&mutex_lista_de_blocked, NULL);
