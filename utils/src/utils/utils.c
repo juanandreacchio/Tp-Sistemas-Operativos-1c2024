@@ -858,21 +858,45 @@ cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op){
 	}
 }
 
-t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion){
-	t_buffer *buffer = crear_buffer();
-	buffer_add(buffer, &instruccion->pid, sizeof(uint32_t));
 
-	t_buffer *buffer_instruccion = serializar_instruccion(instruccion->instruccion_io);
-	buffer_add(buffer, buffer_instruccion->stream, buffer_instruccion->size);
-	destruir_buffer(buffer_instruccion);
 
-	return buffer;
+// FUNCIONES PARA ESCRIBIR O LEER EN MEMORIA
+void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket)
+{
+    uint32_t num_direcciones = (uint32_t)list_size(direcciones_fisicas);
+    buffer_add(paquete_enviado->buffer, &num_direcciones, sizeof(uint32_t));
+    buffer_add(paquete_enviado->buffer, &tamanio_de_lectura, sizeof(uint32_t));
+    
+    for (size_t j = 0; j < list_size(direcciones_fisicas); j++) {
+        t_direc_fisica *direccion_fisica = list_get(direcciones_fisicas, j);
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->direccion_fisica), sizeof(uint32_t));
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->desplazamiento_necesario), sizeof(uint32_t));
+    }
+
+    //buffer_add(paquete_enviado->buffer, &size_of_element, sizeof(uint32_t)); // Tamaño de lectura//creo que no es necesario
+    enviar_paquete(paquete_enviado, socket);
+    eliminar_paquete(paquete_enviado);
+
 }
 
-t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer){
-	t_instruccionEnIo *instruccion = malloc(sizeof(t_instruccionEnIo));
-	buffer->offset = 0;
-	buffer_read(buffer, &instruccion->pid, sizeof(uint32_t));
-	instruccion->instruccion_io = instruccion_deserializar(buffer, buffer->offset);
-	return instruccion;
+void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket)
+{
+    uint32_t num_direcciones = (uint32_t)list_size(direc_fisicas);
+    buffer_add(paquete->buffer, &num_direcciones, sizeof(uint32_t));
+
+    uint32_t offset = 0;
+    for (size_t i = 0; i < list_size(direc_fisicas); i++) {
+        t_direc_fisica *direc = list_get(direc_fisicas, i);
+        size_t size_to_copy = (i == list_size(direc_fisicas) - 1) ? tamanio - offset : direc->desplazamiento_necesario;
+
+        buffer_add(paquete->buffer, &(direc->direccion_fisica), sizeof(uint32_t));
+        buffer_add(paquete->buffer, &(direc->desplazamiento_necesario), sizeof(uint32_t));
+        buffer_add(paquete->buffer, ((char *)valor) + offset, size_to_copy);
+        
+        offset += direc->desplazamiento_necesario;
+    }
+
+    //buffer_add(paquete->buffer, &size_of_element, sizeof(uint32_t)); // Tamaño de escritura//creo que no es necesario
+    enviar_paquete(paquete, socket);
+    eliminar_paquete(paquete);
 }

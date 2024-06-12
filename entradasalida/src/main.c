@@ -14,6 +14,7 @@ cod_interfaz tipo_interfaz;
 uint32_t socket_conexion_kernel, socket_conexion_memoria;
 t_interfaz *interfaz_creada;
 
+
 //                                  <NOMBRE>          <RUTA>
 int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 config/entradasalida.config
 {
@@ -30,14 +31,17 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
 
     interfaz_creada = iniciar_interfaz(nombre, ruta);
 
+    if ((int)(long int)tipo_interfaz != GENERICA)
+    {
+    socket_conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_entradasalida);
+    enviar_mensaje(interfaz_creada->nombre, socket_conexion_memoria, ENTRADA_SALIDA, logger_entradasalida);
+    }
+
     pthread_create(&thread_kernel, NULL, iniciar_conexion_kernel, interfaz_creada);
     pthread_join(thread_kernel, NULL);
 
-    if ((int)(long int)tipo_interfaz != GENERICA)
-    {
-        pthread_create(&thread_memoria, NULL, iniciar_conexion_memoria, NULL);
-        pthread_join(thread_memoria, NULL);
-    }
+    log_info(logger_entradasalida,"tipode interfaz es: %d",tipo_interfaz);
+    
 
     log_info(logger_entradasalida, "I/O %s terminada", interfaz_creada->nombre);
     config_destroy(config_entradasalida);
@@ -85,6 +89,7 @@ void iniciar_config(char *ruta)
         printf("Tipo de interfaz desconocido: %s\n", tipo_interfaz_str);
         exit(3);
     }
+    free(tipo_interfaz_str);
 }
 
 t_interfaz *iniciar_interfaz(char *nombre, char *ruta)
@@ -102,50 +107,103 @@ void *iniciar_conexion_kernel(void *arg)
     while (1)
     {
         atender_cliente(socket_conexion_kernel);
-        //enviar_mensaje("", socket_conexion_kernel, FIN_OPERACION_IO, logger_entradasalida); // mensaje avisando que termine
     }
     return NULL;
 }
 
-void *iniciar_conexion_memoria(void *arg)
-{
-    socket_conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_entradasalida);
-    enviar_mensaje(interfaz_creada->nombre, socket_conexion_kernel, ENTRADA_SALIDA, logger_entradasalida);
-    while (1)
-    {
-        // TODO: implementar
-    }
-    return NULL;
-}
+
 
 void *atender_cliente(int socket_cliente)
 {
     t_paquete *paquete = recibir_paquete(socket_cliente);
-    t_instruccion *instruccion = instruccion_deserializar(paquete->buffer, 0); // se deberia pasar el offset tmb
-    imprimir_instruccion(instruccion);
-
-    if (instruccion == NULL)
-    {
-        log_info(logger_entradasalida, "Se recibio una instruccion vacia");
-        return NULL;
-    }
-
     switch (tipo_interfaz)
     {
-    case GENERICA:
+    case GENERICA:{
+        u_int32_t unidad_de_trabajo;
+        buffer_read(paquete->buffer,&unidad_de_trabajo,sizeof(u_int32_t));
+
         log_info(logger_entradasalida,"arranco a dormir x tiempo");
-        usleep(atoi(instruccion->parametros[1]) * atoi(tiempo_unidad_trabajo) * 1000); // *1000 para pasarlo a microsegundos
+        usleep(unidad_de_trabajo * atoi(tiempo_unidad_trabajo) * 1000); // *1000 para pasarlo a microsegundos
         log_info(logger_entradasalida,"termine de dormirme x tiempo");
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
         break;
-    case STDIN:
+        }
+    case STDIN:{
+
+        u_int32_t cantidad_marcos,total_tamanio;
+        buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
+        buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
+        t_list *direcciones_fisicas = list_create();
+        for (int i = 0; i < cantidad_marcos; i++)
+        {
+            t_direc_fisica *direc_fisica = malloc(sizeof(t_direc_fisica));
+            buffer_read(paquete->buffer, &direc_fisica->direccion_fisica, sizeof(uint32_t));
+            buffer_read(paquete->buffer, &direc_fisica->desplazamiento_necesario, sizeof(uint32_t));
+            list_add(direcciones_fisicas,direc_fisica);
+        }
+       
+        // Leer desde el STDIN
+        char *dato = leer_desde_teclado(total_tamanio);
+        if (dato == NULL) {
+            log_info(logger_entradasalida,"error: el dato dio null");
+        }
+        if (strlen(dato) > total_tamanio) {
+            log_info(logger_entradasalida,"error: el dato dio null");
+        }
+
+        t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
+        enviar_soli_escritura(paquete_escritura, direcciones_fisicas,total_tamanio,dato,socket_conexion_memoria);
+
+        // recibir confirmacion de memoria
+
+        op_code operacion = recibir_operacion(socket_conexion_memoria);
+        if(operacion==OK)
+        {
+            enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
+        }
+        else
+        {
+            log_error(logger_entradasalida,"error: no OK la escritura");
+        }
+
+        
 
         break;
-    case STDOUT:
+        }
+    case STDOUT:{
 
+        u_int32_t cantidad_marcos,total_tamanio;
+        buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
+        buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
+        t_list *direcciones_fisicas = list_create();
+        for (int i = 0; i < cantidad_marcos; i++)
+        {
+            t_direc_fisica *direc_fisica = malloc(sizeof(t_direc_fisica));
+            buffer_read(paquete->buffer, &direc_fisica->direccion_fisica, sizeof(uint32_t));
+            buffer_read(paquete->buffer, &direc_fisica->desplazamiento_necesario, sizeof(uint32_t));
+            list_add(direcciones_fisicas,direc_fisica);
+        }
+        t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
+        enviar_soli_lectura(paquete_lectura,direcciones_fisicas,total_tamanio,socket_conexion_memoria);
+        
+
+        // recibir dato de memoria
+
+        t_paquete *paquete_dato = recibir_paquete(socket_conexion_memoria);
+        char *str = malloc(total_tamanio);
+        buffer_read(paquete_dato->buffer,str, total_tamanio);
+        eliminar_paquete(paquete_dato);
+
+        log_info(logger_entradasalida,"leido: %s",str);
+        enviar_codigo_operacion(IO_SUCCESS, socket_cliente);  
+        
+        
         break;
+        }
     case DIALFS:
-        switch (instruccion->identificador)
+        t_identificador identificador;
+        buffer_read(paquete->buffer,&identificador, sizeof(t_identificador));
+        switch (identificador)
         {
         case IO_FS_CREATE:
             log_info(logger_entradasalida, "Se recibio una instruccion IO_FS_CREATE");
@@ -168,6 +226,30 @@ void *atender_cliente(int socket_cliente)
         }
         break;
     }
+    eliminar_paquete(paquete);
 
     return NULL;
+}
+
+void* leer_desde_teclado(uint32_t tamanio) {
+    void *dato = malloc(tamanio);
+    if (!dato) {
+        log_error(logger_entradasalida, "Error al asignar memoria para el dato");
+        return NULL;
+    }
+
+    log_info(logger_entradasalida, "Ingrese el dato a escribir en la memoria: ");
+    if (fgets(dato, tamanio, stdin) == NULL) {
+        log_error(logger_entradasalida, "Error al leer el dato desde el STDIN");
+        free(dato);
+        return NULL;
+    }
+
+    // Elimina el carácter de nueva línea si está presente.
+    char *newline = strchr(dato, '\n');
+    if (newline) {
+        *newline = '\0';
+    }
+
+    return dato;
 }

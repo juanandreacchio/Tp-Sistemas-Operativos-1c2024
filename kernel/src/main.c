@@ -359,18 +359,21 @@ void *recibir_dispatch()
         {
         case OPERACION_IO:
             t_paquete *respuesta_kernel = recibir_paquete(conexion_dispatch);
-            t_instruccion *utlima_instruccion = instruccion_deserializar(respuesta_kernel->buffer, 0);
-
-            char *nombre_io = utlima_instruccion->parametros[0];
+            u_int32_t nombre_length;
+            t_identificador identificador;
+            buffer_read(respuesta_kernel->buffer,&identificador,sizeof(t_identificador));
+            buffer_read(respuesta_kernel->buffer,&nombre_length,sizeof(u_int32_t));
+            char *nombre_io = malloc(nombre_length + 1);
+            buffer_read(respuesta_kernel->buffer, nombre_io, nombre_length);
             if (!interfaz_conectada(nombre_io))
             {
                 log_error(logger_kernel, "La interfaz %s no está conectada", nombre_io);
                 exit(EXIT_FAILURE);
             }
             t_interfaz_en_kernel *interfaz = dictionary_get(conexiones_io, nombre_io);
-            if (!esOperacionValida(utlima_instruccion->identificador, interfaz->tipo_interfaz))
+            if (!esOperacionValida(identificador, interfaz->tipo_interfaz))
             {
-                log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", utlima_instruccion->identificador, nombre_io);
+                log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", identificador, nombre_io);
                 exit(EXIT_FAILURE);
             }
 
@@ -386,13 +389,15 @@ void *recibir_dispatch()
 
             sem_post(&contador_grado_multiprogramacion);
 
-            // 1. La agregamos a la cola de blocks io. Ultima instrucción y PID
-            t_instruccionEnIo *instruccion_en_io = malloc(sizeof(t_instruccionEnIo));
-            instruccion_en_io->instruccion_io = utlima_instruccion;
-            instruccion_en_io->pid = pcb_actualizado->pid;
+            // 1. La agregamos a la cola de blocks io. datos necesarios para ahhacer el io y PID
+            t_info_en_io *info_io = malloc(sizeof(t_info_en_io));
+            buffer_read(respuesta_kernel->buffer,&info_io->tam_info,sizeof(u_int32_t));
+            info_io->info_necesaria = malloc(info_io->tam_info);
+            buffer_read(respuesta_kernel->buffer,info_io->info_necesaria,info_io->tam_info);
+            info_io->pid = pcb_actualizado->pid;
 
             pthread_mutex_lock(&mutex_cola_interfaces); // estopy casi seguro que este mutex esta mal porque es el mismo que esta arriba y son listas distintas
-            queue_push((t_queue *)dictionary_get(colas_blocks_io, nombre_io), instruccion_en_io);
+            queue_push((t_queue *)dictionary_get(colas_blocks_io, nombre_io), info_io);
             pthread_mutex_unlock(&mutex_cola_interfaces);
 
             t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_io);
@@ -495,11 +500,12 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
     pthread_detach(hilo_IO);
 }
 
-void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO, t_interfaz_en_kernel *conexion_io)
+void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io)
 {
     t_paquete *paquete = crear_paquete(EJECUTAR_IO);
-    paquete->buffer = serializar_instruccion(instruccionEnIO->instruccion_io);
+    buffer_add(paquete->buffer,info_io->info_necesaria,info_io->tam_info);
     enviar_paquete(paquete, conexion_io->conexion);
+    
 }
 
 void atender_interfaz(char *nombre_interfaz)
@@ -510,22 +516,21 @@ void atender_interfaz(char *nombre_interfaz)
 
         sem_wait(&(semaforos_interfaz->instruccion_en_cola));
         sem_wait(&(semaforos_interfaz->binario_io_libre));
+
         pthread_mutex_lock(&(semaforos_interfaz->mutex));
-
         t_queue *cola = dictionary_get(colas_blocks_io, nombre_interfaz);
-        t_instruccionEnIo *instruccion = queue_pop(cola);
-
+        t_info_en_io *info_io = queue_pop(cola);
         pthread_mutex_unlock(&(semaforos_interfaz->mutex));
 
         t_interfaz_en_kernel *conexion_io = dictionary_get(conexiones_io, nombre_interfaz);
-        ejecutar_instruccion_io(nombre_interfaz, instruccion, conexion_io);
+        ejecutar_instruccion_io(nombre_interfaz, info_io, conexion_io);
 
         op_code resultado_operacion = recibir_operacion(conexion_io->conexion);
         switch (resultado_operacion)
         {
         case IO_SUCCESS:
             log_info(logger_kernel, "llegue a IO_SUCCESS");
-            t_pcb *pcb = buscar_pcb_por_pid(instruccion->pid, lista_procesos_blocked);
+            t_pcb *pcb = buscar_pcb_por_pid(info_io->pid, lista_procesos_blocked);
 
             pthread_mutex_lock(&mutex_lista_de_blocked);
             list_remove_element(lista_procesos_blocked, pcb);

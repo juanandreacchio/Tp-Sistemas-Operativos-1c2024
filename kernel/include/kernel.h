@@ -8,17 +8,15 @@
 #include <utils/hello.h>
 #include <commons/log.h>
 #include <commons/string.h>
-#include<readline/readline.h>
+#include <readline/readline.h>
 #include <../include/utils.h>
 #include <semaphore.h>
 
-
-
-typedef struct{
+typedef struct
+{
     uint32_t pid;
     t_instruccion *instruccion;
 } t_instruccion_bloqueada_en_io;
-
 
 extern t_config *config_kernel;
 
@@ -59,7 +57,6 @@ extern pthread_t planificador_corto;
 extern pthread_t dispatch;
 extern pthread_t hilo_quantum;
 
-
 // --------------------- FUNCIONES DE INICIO -------------------------
 void iniciar_semaforos();
 void iniciar_diccionarios();
@@ -67,14 +64,13 @@ void iniciar_listas();
 void iniciar_colas_de_estados_procesos();
 void iniciar_config();
 
-void* atender_cliente(void *socket_cliente);
+void *atender_cliente(void *socket_cliente);
 
 // --------------------- FUNCIONES DE CONSOLA INTERACTIVA -------------------------
-void *iniciar_consola_interactiva(); 
-bool validar_comando(char* comando); 
-void ejecutar_comando(char* comandoRecibido); 
+void *iniciar_consola_interactiva();
+bool validar_comando(char *comando);
+void ejecutar_comando(char *comandoRecibido);
 // void ejecutar_script(t_buffer* buffer);
-
 
 // --------------------- FUNCIONES DE PCB -------------------------
 void ejecutar_PCB(t_pcb *pcb);
@@ -91,9 +87,7 @@ void *verificar_quantum();
 bool interfaz_conectada(char *nombre_interfaz);
 bool esOperacionValida(t_identificador identificador, cod_interfaz tipo);
 void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion);
-void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO,t_interfaz_en_kernel *conexion_io);
+void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io);
 void atender_interfaz(char *nombre_interfaz);
-
-
 
 #endif

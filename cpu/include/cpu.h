@@ -55,8 +55,6 @@ u_int32_t get_registro_generico(t_registros *registros, char *registro);
 void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
 void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
 void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
-void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura);
-void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor);
 void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion);
 void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos);
 void copy_string(t_pcb *pcb, size_t tamanio);
