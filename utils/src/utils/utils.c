@@ -900,3 +900,25 @@ void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t taman
     enviar_paquete(paquete, socket);
     eliminar_paquete(paquete);
 }
+t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer){
+	t_instruccionEnIo *instruccion = malloc(sizeof(t_instruccionEnIo));
+	buffer->offset = 0;
+	buffer_read(buffer, &instruccion->pid, sizeof(uint32_t));
+	instruccion->instruccion_io = instruccion_deserializar(buffer, buffer->offset);
+	return instruccion;
+}
+
+char* estado_to_string(estados estado){
+	switch (estado){
+		case NEW:
+			return "NEW";
+		case READY:
+			return "READY";
+		case EXEC:
+			return "EXEC";
+		case BLOCKED:
+			return "BLOCKED";
+		case TERMINATED:
+			return "TERMINATED";
+	}
+}

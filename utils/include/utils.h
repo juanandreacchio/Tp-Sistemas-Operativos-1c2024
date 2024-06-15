@@ -47,7 +47,6 @@ typedef enum
 	EJECUTAR_IO,
 	INTERRUPCION_CLOCK,
 	CERRAR_IO,
-
 	//OPERACIONES DE MEMORIA
 	ACCESO_TABLA_PAGINAS,
 	AJUSTAR_TAMANIO_PROCESO,
@@ -58,6 +57,9 @@ typedef enum
 	MEMORIA_LEIDA,
 	PAGINA_A_MARCO,
 	MARCO
+	WAIT_SOLICITADO,
+	SIGNAL_SOLICITADO
+
 } op_code;
 
 typedef enum
@@ -184,12 +186,23 @@ typedef struct
 	sem_t binario_io_libre;
 } t_semaforosIO;
 
+
 typedef struct
 {
 	u_int32_t direccion_fisica;
 	u_int32_t desplazamiento_necesario;
 } t_direc_fisica;
 
+typedef struct{
+	pthread_mutex_t mutex;
+	pthread_mutex_t mutex_cola_recurso;
+	uint32_t instancias;
+} t_recurso_en_kernel;
+
+typedef struct{
+	char* nombre_recurso;
+	uint32_t instancias_asignadas;
+} t_recurso_asignado_a_proceso;
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
@@ -244,4 +257,5 @@ cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
 op_code tipo_interfaz_to_cod_op(cod_interfaz tipo);
 void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket);
 void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket);
+char* estado_to_string(estados estado);
 #endif /* UTILS_H_ */
