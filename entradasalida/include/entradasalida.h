@@ -25,7 +25,6 @@ extern char *ip_memoria;
 extern char *puerto_memoria;
 extern pthread_t thread_memoria, thread_kernel;
 extern cod_interfaz tipo_interfaz;
-
 extern t_interfaz *interfaz_creada;
 
 
@@ -34,6 +33,7 @@ void iniciar_config();
 void *iniciar_conexion_kernel(void *arg);
 void *iniciar_conexion_memoria(void *arg);
 t_interfaz *iniciar_interfaz(char* nombre,char* ruta);
+void* leer_desde_teclado(uint32_t tamanio);
 
 // ------------------------ FUNCIONES DE EJECUCION --------------------
 void *atender_cliente(int socket_cliente);

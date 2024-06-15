@@ -8,22 +8,21 @@
 #include <utils/hello.h>
 #include <commons/log.h>
 #include <commons/string.h>
-#include<readline/readline.h>
+#include <readline/readline.h>
 #include <../include/utils.h>
 #include <semaphore.h>
 
-
-
-typedef struct{
+typedef struct
+{
     uint32_t pid;
     t_instruccion *instruccion;
 } t_instruccion_bloqueada_en_io;
+
 
 typedef struct{
     pthread_mutex_t mutex;
     t_queue *cola;
 } t_cola_interfaz_io;
-
 
 extern t_config *config_kernel;
 
@@ -99,14 +98,13 @@ void iniciar_config();
 void iniciar_recursos();
 void iniciar_variables();
 
-void* atender_cliente(void *socket_cliente);
+void *atender_cliente(void *socket_cliente);
 
 // --------------------- FUNCIONES DE CONSOLA INTERACTIVA -------------------------
-void *iniciar_consola_interactiva(); 
-bool validar_comando(char* comando); 
-void ejecutar_comando(char* comandoRecibido); 
+void *iniciar_consola_interactiva();
+bool validar_comando(char *comando);
+void ejecutar_comando(char *comandoRecibido);
 // void ejecutar_script(t_buffer* buffer);
-
 
 // --------------------- FUNCIONES DE PCB -------------------------
 void ejecutar_PCB(t_pcb *pcb);
@@ -130,8 +128,9 @@ void *verificar_quantum_vrr();
 bool interfaz_conectada(char *nombre_interfaz);
 bool esOperacionValida(t_identificador identificador, cod_interfaz tipo);
 void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion);
-void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO,t_interfaz_en_kernel *conexion_io);
+void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io);
 void atender_interfaz(char *nombre_interfaz);
+
 
 // -------------------- FUNCIONES DE RECURSOS -------------------------------
 void iniciar_recurso(char* nombre, char* instancias);
@@ -144,7 +143,5 @@ void sumar_instancia_a_recurso(char *nombre);
 // ---------------------- FUNCIONES DE LOGS --------------------------
 void logear_bloqueo_proceso(uint32_t pid, char* motivo);
 void logear_cambio_estado(uint32_t pid, char* estado_anterior, char * estado_actual);
-
-
 
 #endif
