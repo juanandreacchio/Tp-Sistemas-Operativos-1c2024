@@ -183,7 +183,7 @@ void *atender_cliente(void *socket_cliente)
             break;
             }
         case AJUSTAR_TAMANIO_PROCESO:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje para ajustar el tamaño de un proceso");
             uint32_t pid, nuevo_tamanio;
             buffer_read(buffer, &pid, sizeof(uint32_t));
@@ -196,6 +196,10 @@ void *atender_cliente(void *socket_cliente)
                 int paginas_a_agregar = nuevo_tamanio - tamanio_actual;
                 for (int i = 0; i < paginas_a_agregar; i++)
                 {
+                    if (!hay_memoria_disponible()) {
+                        enviar_codigo_operacion(OUT_OF_MEMORY, (int)(long int)socket_cliente);
+                        break;
+                    }
                     t_pagina *pagina = inicializar_pagina(obtener_primer_marco_libre());
                     list_add(proceso->tabla_paginas, pagina);
                 }
@@ -212,9 +216,8 @@ void *atender_cliente(void *socket_cliente)
                 }
             }
             enviar_codigo_operacion(OK,(int)(long int)socket_cliente);
-            //falta cuando no alcanza la memoria con el OUT_OF_MEMORY
             break;
-            }
+        }
         case ESCRITURA_MEMORIA:
             {
             log_info(logger_memoria, "Se recibio un mensaje para escribir en memoria");
@@ -281,4 +284,13 @@ void inicializar_marcos_ocupados() {
         printf("Error: no se pudo asignar memoria para el bitarray de marcos ocupados\n");
         exit(1);
     }
+}
+
+bool hay_memoria_disponible() {
+    for (int i = 0; i < TAM_MEMORIA / TAM_PAGINA; i++) {
+        if (!bitarray_test_bit(marcos_ocupados, i)) {
+            return true;
+        }
+    }
+    return false;
 }
