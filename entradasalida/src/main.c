@@ -9,11 +9,14 @@ char *puerto_kernel;
 char *ip_memoria;
 char *puerto_memoria;
 char *tiempo_unidad_trabajo;
+char *block_size;
+char *block_count;
+char *path_fs;
 pthread_t thread_memoria, thread_kernel;
 cod_interfaz tipo_interfaz;
 uint32_t socket_conexion_kernel, socket_conexion_memoria;
 t_interfaz *interfaz_creada;
-
+t_bitarray* bitmap;
 
 //                                  <NOMBRE>          <RUTA>
 int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 config/entradasalida.config
@@ -83,12 +86,17 @@ void iniciar_config(char *ruta)
     else if (strcmp(tipo_interfaz_str, "DialFS") == 0)
     {
         tipo_interfaz = DIALFS;
+        block_size = config_get_string_value(config_entradasalida, "BLOCK_SIZE");
+        block_count = config_get_string_value(config_entradasalida, "BLOCK_COUNT");
+        path_fs = config_get_string_value(config_entradasalida, "PATH_BASE_DIALFS");
+        retraso_compactacion = config_get_string_value(config_entradasalida, "RETRASO_COMPACTACION");
     }
     else
     {
         printf("Tipo de interfaz desconocido: %s\n", tipo_interfaz_str);
         exit(3);
     }
+
     free(tipo_interfaz_str);
 }
 
