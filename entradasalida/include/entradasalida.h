@@ -34,6 +34,7 @@ extern char* block_size;
 extern char* retraso_compactacion;
 extern t_bitarray* bitmap;
 
+
 // ------------------------ FUNCIONES DE INICIO --------------------
 void iniciar_config();
 void *iniciar_conexion_kernel(void *arg);
@@ -47,5 +48,9 @@ void *atender_cliente(int socket_cliente);
 // -------------------- FUNCIONES DE FILE SYSTEM -----------------------
 void create_archivos_bloques();
 void crear_bitmap();
-
+void crear_archivo_metadata(const char* base_path, const char* filename, int initial_block);
+void crear_archivo(const char* base_path, const char* filename);
+void levantarFileSystem();
+void asignar_bloque(uint32_t bloque_libre);
+uint32_t buscar_bloque_libre();
 #endif

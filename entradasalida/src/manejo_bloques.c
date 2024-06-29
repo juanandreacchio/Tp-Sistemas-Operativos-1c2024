@@ -43,3 +43,20 @@ void create_archivos_bloques() {
     
     close(archivo_bloques);
 }
+
+int crear_archivo(const char* base_path, const char* filename) {
+    uint32_t bloque_libre = buscar_bloque_libre();
+
+    if (bloque_libre == -1) {
+        log_error(logger_entradasalida, "No se encontraron bloques libres");
+        return -1;
+    }
+
+    asignar_bloque(bloque_libre);
+
+    crear_archivo_metadata(base_path, filename, bloque_libre);
+    
+    log_info(logger_entradasalida, "Archivo %s creado", filename);
+
+    return 0;
+}
