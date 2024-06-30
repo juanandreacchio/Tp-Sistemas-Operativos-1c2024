@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <utils/hello.h>
 #include <commons/log.h>
 #include <commons/bitarray.h>
@@ -52,5 +53,20 @@ void crear_archivo_metadata(const char* base_path, const char* filename, int ini
 void crear_archivo(const char* base_path, const char* filename);
 void levantarFileSystem();
 void asignar_bloque(uint32_t bloque_libre);
+void liberar_bloque(uint32_t bloque);
 uint32_t buscar_bloque_libre();
+char* buscar_archivo(const char* archivo_buscar);
+uint32_t calcular_bloques_adicionales(uint32_t tamanio_actual,uint32_t tamanio_nuevo);
+uint32_t calcular_bloques_a_liberar(uint32_t tamanio_actual, uint32_t tamanio_nuevo);
+uint32_t obtener_tamanio_archivo(const char* metadata_path);
+uint32_t obtener_bloque_inicial(const char* metadata_path);
+uint32_t obtener_ultimo_bloque(uint32_t bloque_inicial, uint32_t tamanio_actual);
+uint32_t buscar_bloques_contiguos_libres(uint32_t bloques_adicionales);
+int verificar_bloques_contiguos_libres(uint32_t bloque_inicial, uint32_t cantidad_bloques);
+void actualizar_metadata_tamanio(const char* metadata_path, size_t tamanio_nuevo);
+
+void acortar_archivo(const char* filename, uint32_t tamanio_nuevo);
+void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo);
+void borrar_archivo(const char* filename);
+int crear_archivo(const char* filename);
 #endif
