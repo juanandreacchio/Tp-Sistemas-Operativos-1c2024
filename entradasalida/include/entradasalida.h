@@ -49,7 +49,7 @@ void *atender_cliente(int socket_cliente);
 // -------------------- FUNCIONES DE FILE SYSTEM -----------------------
 void create_archivos_bloques();
 void crear_bitmap();
-void crear_archivo_metadata(const char* base_path, const char* filename, int initial_block);
+void iniciar_archivo_metadata(const char* filename, int initial_block);
 void crear_archivo(const char* base_path, const char* filename);
 void levantarFileSystem();
 void asignar_bloque(uint32_t bloque_libre);

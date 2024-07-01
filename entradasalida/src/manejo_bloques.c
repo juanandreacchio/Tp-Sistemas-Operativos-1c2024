@@ -59,7 +59,7 @@ int crear_archivo(const char* filename) {
 
     asignar_bloque(bloque_libre);
 
-    crear_archivo_metadata(filename, bloque_libre);
+    iniciar_archivo_metadata(filename, bloque_libre);
     
     log_info(logger_entradasalida, "Archivo %s creado", filename);
 
@@ -117,8 +117,7 @@ void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo) {
         }
     }
 
-    int tamanio_sumado = tamanio_actual + tamanio_nuevo;
-    actualizar_metadata_tamanio(metadata_path, tamanio_sumado);
+    actualizar_metadata_tamanio(metadata_path, tamanio_nuevo);
     log_info(logger_entradasalida, "Archivo %s ampliado en %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_adicionales);
 }
 
@@ -135,8 +134,6 @@ void acortar_archivo(const char* filename, uint32_t tamanio_nuevo) {
             liberar_bloque(ultimo_bloque - i);//crear
         }
     }
-
-    int tamanio_restado = tamanio_actual - tamanio_nuevo;
-    actualizar_metadata_tamanio(metadata_path, tamanio_restado);
+    actualizar_metadata_tamanio(metadata_path, tamanio_nuevo);
     log_info(logger_entradasalida, "Archivo %s reducido en %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_a_liberar);
 }

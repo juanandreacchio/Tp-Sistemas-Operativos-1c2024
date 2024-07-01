@@ -94,15 +94,12 @@ char* buscar_archivo(const char* archivo_buscar) {
 uint32_t calcular_bloques_adicionales(uint32_t tamanio_actual,uint32_t tamanio_nuevo) {
     uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)atoi(block_size));
     uint32_t bloques_nuevos = (uint32_t)ceil((double)tamanio_nuevo / (double)atoi(block_size));
-
-    uint32_t bloques_adicionales = bloques_nuevos - bloques_actuales;
-    return bloques_adicionales;
+    return bloques_nuevos - bloques_actuales;
 }
 
 uint32_t calcular_bloques_a_liberar(uint32_t tamanio_actual, uint32_t tamanio_nuevo) {
     uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)atoi(block_size));
-    uint32_t tamanio_final = tamanio_actual - tamanio_nuevo;
-    uint32_t bloques_nuevos = (uint32_t)ceil((double)tamanio_final / (double)atoi(block_size));
+    uint32_t bloques_nuevos = (uint32_t)ceil((double)tamanio_nuevo / (double)atoi(block_size));
     return bloques_actuales - bloques_nuevos;
 }
 
@@ -138,7 +135,7 @@ uint32_t obtener_ultimo_bloque(uint32_t bloque_inicial, uint32_t tamanio_actual)
     return bloque_inicial + bloques_actuales - 1;
 }
 
-void actualizar_metadata_tamanio(const char* metadata_path, size_t tamanio_nuevo) {
+void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nuevo) {
     t_config* config = config_create(metadata_path);
     
     if (config == NULL) {
@@ -147,7 +144,7 @@ void actualizar_metadata_tamanio(const char* metadata_path, size_t tamanio_nuevo
     }
 
     char buffer[10];
-    sprintf(buffer, "%zu", tamanio_nuevo);
+    sprintf(buffer, "%u", tamanio_nuevo);
     config_set_value(config, "TAMANIO_ARCHIVO", buffer);
 
     if (!config_save(config)) {

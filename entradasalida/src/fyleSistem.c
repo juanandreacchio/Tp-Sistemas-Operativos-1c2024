@@ -6,9 +6,9 @@ void levantarFileSystem(){
 }
 
 
-void crear_archivo_metadata(const char* base_path, const char* filename, int initial_block) {
+void iniciar_archivo_metadata(const char* filename, int initial_block) {
     char metadata_path[256];
-    snprintf(metadata_path, sizeof(metadata_path), "%s/%s", base_path, filename);
+    snprintf(metadata_path, sizeof(metadata_path), "%s/%s", path_fs, filename);
 
     t_config* config = config_create(metadata_path);
     if (!config) {
