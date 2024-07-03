@@ -1,7 +1,5 @@
 #include <../include/entradasalida.h>
 
-const char* path_bitmap = "bitmap.dat"; // Ruta del archivo de bitmap
-
 void crear_bitmap(){
     int tam_bitmap = ceil(atoi(block_count) / 8.0);
     int bitmap_fd = open(path_bitmap, O_CREAT | O_RDWR, 0744);

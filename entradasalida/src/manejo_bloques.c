@@ -1,7 +1,5 @@
 #include <../include/entradasalida.h>
 
-const char* path_archivo_bloques = "bloques.dat"; // Ruta del archivo de bloques
-
 void create_archivos_bloques() {
     int archivo_bloques = open(path_archivo_bloques, O_CREAT | O_RDWR, 0744); // O_CREAT crea el archivo si no existe, O_RDWR abre el archivo para lectura y escritura
     if (archivo_bloques == -1) {
@@ -59,14 +57,14 @@ int crear_archivo(const char* filename) {
 
     asignar_bloque(bloque_libre);
 
-    iniciar_archivo_metadata(filename, bloque_libre);
+    crear_archivo_metadata(filename, bloque_libre);
     
     log_info(logger_entradasalida, "Archivo %s creado", filename);
 
     return 0;
 }
 
-void borrar_archivo(const char* filename) {
+void borrar_archivo(char* filename) {
     char* metadata_path = buscar_archivo(filename);
     if (metadata_path == NULL) {
         log_error(logger_entradasalida, "Archivo %s no encontrado", filename);
@@ -118,7 +116,7 @@ void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo) {
     }
 
     actualizar_metadata_tamanio(metadata_path, tamanio_nuevo);
-    log_info(logger_entradasalida, "Archivo %s ampliado en %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_adicionales);
+    log_info(logger_entradasalida, "Archivo %s ampliado a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_adicionales);
 }
 
 void acortar_archivo(const char* filename, uint32_t tamanio_nuevo) {
@@ -135,5 +133,124 @@ void acortar_archivo(const char* filename, uint32_t tamanio_nuevo) {
         }
     }
     actualizar_metadata_tamanio(metadata_path, tamanio_nuevo);
-    log_info(logger_entradasalida, "Archivo %s reducido en %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_a_liberar);
+    log_info(logger_entradasalida, "Archivo %s reducido a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_a_liberar);
+}
+
+void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int puntero_archivo){
+    char* metadata_path = buscar_archivo(filename);
+    if (!metadata_path) {
+        printf("Archivo no encontrado\n");
+        return;
+    }
+
+    uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
+    if (puntero_archivo + tamanio_datos > tamanio_archivo) {
+        printf("El tamaño de datos excede el tamaño del archivo\n");
+        free(metadata_path);
+        return;
+    }
+
+    int archivo_fd = open(path_archivo_bloques, O_RDWR);
+    if (archivo_fd == -1) {
+        printf("Error al abrir el archivo de bloques\n");
+        free(metadata_path);
+        return;
+    }
+
+    void* mmap_bloques = mmap(NULL, block_size * block_count, PROT_READ | PROT_WRITE, MAP_SHARED, archivo_fd, 0);
+    if (mmap_bloques == MAP_FAILED) {
+        printf("Error al mapear el archivo de bloques en memoria\n");
+        close(archivo_fd);
+        free(metadata_path);
+        return;
+    }
+
+    uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
+    uint32_t offset_inicial = puntero_archivo % block_size;
+    uint32_t bloque_actual = bloque_inicial + (puntero_archivo / block_size);
+    uint32_t bytes_escritos = 0;
+
+    while (bytes_escritos < tamanio_datos) {
+        size_t offset = bloque_actual * block_size + offset_inicial;
+
+        size_t bytes_a_escribir;
+        if (tamanio_datos - bytes_escritos > block_size - offset_inicial) {
+        bytes_a_escribir = block_size - offset_inicial;
+        } else {
+            bytes_a_escribir = tamanio_datos - bytes_escritos;
+        }
+
+        memcpy(mmap_bloques + offset, datos + bytes_escritos, bytes_a_escribir);
+        bytes_escritos += bytes_a_escribir;
+        offset_inicial = 0;  // Para siguientes iteraciones, offset_inicial será 0
+        bloque_actual++;
+    }
+
+    // Sincronizar los cambios
+    if (msync(mmap_bloques, block_size * block_count, MS_SYNC) == -1) {
+        printf("Error al sincronizar el archivo de bloques\n");
+    }
+
+    if (munmap(mmap_bloques, block_size * block_count) == -1) {
+        printf("Error al desmapear la memoria\n");
+    }
+
+    close(archivo_fd);
+    free(metadata_path);
+}
+
+void leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, void* buffer) {
+    char* metadata_path = buscar_archivo(filename);
+    if (!metadata_path) {
+        printf("Archivo no encontrado\n");
+        return;
+    }
+
+    uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
+    if (puntero_archivo + tamanio_datos > tamanio_archivo) {
+        printf("El tamaño de datos a leer excede el tamaño del archivo\n");
+        free(metadata_path);
+        return;
+    }
+
+    int archivo_fd = open(path_archivo_bloques, O_RDONLY);
+    if (archivo_fd == -1) {
+        printf("Error al abrir el archivo de bloques\n");
+        free(metadata_path);
+        return;
+    }
+
+    void* mmap_bloques = mmap(NULL, block_size * block_count, PROT_READ, MAP_SHARED, archivo_fd, 0);
+    if (mmap_bloques == MAP_FAILED) {
+        printf("Error al mapear el archivo de bloques en memoria\n");
+        close(archivo_fd);
+        free(metadata_path);
+        return;
+    }
+
+    uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
+    uint32_t offset_inicial = puntero_archivo % block_size;
+    uint32_t bloque_actual = bloque_inicial + (puntero_archivo / block_size);
+
+    uint32_t bytes_leidos = 0;
+    while (bytes_leidos < tamanio_datos) {
+        size_t offset = bloque_actual * block_size + offset_inicial;
+        size_t bytes_a_leer;
+        if (tamanio_datos - bytes_leidos > block_size - offset_inicial) {
+            bytes_a_leer = block_size - offset_inicial;
+        } else {
+            bytes_a_leer = tamanio_datos - bytes_leidos;
+        }
+        memcpy(buffer + bytes_leidos, mmap_bloques + offset, bytes_a_leer);
+        bytes_leidos += bytes_a_leer;
+        offset_inicial = 0;  // Para siguientes iteraciones, offset_inicial será 0
+        bloque_actual++;
+    }
+
+    if (munmap(mmap_bloques, block_size * block_count) == -1) {
+        printf("Error al desmapear la memoria\n");
+    }
+
+    close(archivo_fd);
+    free(metadata_path);
 }

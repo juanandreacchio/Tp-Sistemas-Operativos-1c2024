@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <dirent.h>
+#include <sys/stat.h>
 #include <utils/hello.h>
 #include <commons/log.h>
 #include <commons/bitarray.h>
@@ -30,16 +31,17 @@ extern pthread_t thread_memoria, thread_kernel;
 extern cod_interfaz tipo_interfaz;
 extern t_interfaz *interfaz_creada;
 extern char* path_fs;
-extern char* block_count;
-extern char* block_size;
+extern int block_count, block_size;
 extern char* retraso_compactacion;
 extern t_bitarray* bitmap;
+
+extern char* path_archivo_bloques;
+extern char* path_bitmap;
 
 
 // ------------------------ FUNCIONES DE INICIO --------------------
 void iniciar_config();
 void *iniciar_conexion_kernel(void *arg);
-void *iniciar_conexion_memoria(void *arg);
 t_interfaz *iniciar_interfaz(char* nombre,char* ruta);
 void* leer_desde_teclado(uint32_t tamanio);
 
@@ -49,8 +51,8 @@ void *atender_cliente(int socket_cliente);
 // -------------------- FUNCIONES DE FILE SYSTEM -----------------------
 void create_archivos_bloques();
 void crear_bitmap();
-void iniciar_archivo_metadata(const char* filename, int initial_block);
-void crear_archivo(const char* base_path, const char* filename);
+void crear_archivo_metadata(const char* filename, int initial_block);
+int crear_archivo(const char* filename);
 void levantarFileSystem();
 void asignar_bloque(uint32_t bloque_libre);
 void liberar_bloque(uint32_t bloque);
@@ -61,12 +63,13 @@ uint32_t calcular_bloques_a_liberar(uint32_t tamanio_actual, uint32_t tamanio_nu
 uint32_t obtener_tamanio_archivo(const char* metadata_path);
 uint32_t obtener_bloque_inicial(const char* metadata_path);
 uint32_t obtener_ultimo_bloque(uint32_t bloque_inicial, uint32_t tamanio_actual);
-uint32_t buscar_bloques_contiguos_libres(uint32_t bloques_adicionales);
 int verificar_bloques_contiguos_libres(uint32_t bloque_inicial, uint32_t cantidad_bloques);
-void actualizar_metadata_tamanio(const char* metadata_path, size_t tamanio_nuevo);
+void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nuevo);
 
 void acortar_archivo(const char* filename, uint32_t tamanio_nuevo);
 void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo);
-void borrar_archivo(const char* filename);
+void borrar_archivo(char* filename);
 int crear_archivo(const char* filename);
+void leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, void* buffer);
+void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int puntero_archivo)
 #endif

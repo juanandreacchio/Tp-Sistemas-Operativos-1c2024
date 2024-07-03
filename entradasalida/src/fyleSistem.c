@@ -1,12 +1,14 @@
 #include <../include/entradasalida.h>
 
 void levantarFileSystem(){
+    char* path_archivo_bloques = "bloques.dat"; // Ruta del archivo de bloques
     create_archivos_bloques();
+    char* path_bitmap = "bitmap.dat"; // Ruta del archivo de bitmap
     crear_bitmap();
 }
 
 
-void iniciar_archivo_metadata(const char* filename, int initial_block) {
+void crear_archivo_metadata(const char* filename, int initial_block) {
     char metadata_path[256];
     snprintf(metadata_path, sizeof(metadata_path), "%s/%s", path_fs, filename);
 

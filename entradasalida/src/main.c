@@ -8,9 +8,9 @@ char *ip_kernel;
 char *puerto_kernel;
 char *ip_memoria;
 char *puerto_memoria;
-char *tiempo_unidad_trabajo;
-char *block_size;
-char *block_count;
+int tiempo_unidad_trabajo;
+int block_size;
+int block_count;
 char *path_fs;
 pthread_t thread_memoria, thread_kernel;
 cod_interfaz tipo_interfaz;
@@ -86,8 +86,8 @@ void iniciar_config(char *ruta)
     else if (strcmp(tipo_interfaz_str, "DialFS") == 0)
     {
         tipo_interfaz = DIALFS;
-        block_size = config_get_string_value(config_entradasalida, "BLOCK_SIZE");
-        block_count = config_get_string_value(config_entradasalida, "BLOCK_COUNT");
+        block_size = atoi(config_get_string_value(config_entradasalida, "BLOCK_SIZE"));
+        block_count = atoi(config_get_string_value(config_entradasalida, "BLOCK_COUNT"));
         path_fs = config_get_string_value(config_entradasalida, "PATH_BASE_DIALFS");
         retraso_compactacion = config_get_string_value(config_entradasalida, "RETRASO_COMPACTACION");
     }
@@ -131,7 +131,7 @@ void *atender_cliente(int socket_cliente)
         buffer_read(paquete->buffer,&unidad_de_trabajo,sizeof(u_int32_t));
 
         log_info(logger_entradasalida,"arranco a dormir x tiempo");
-        usleep(unidad_de_trabajo * atoi(tiempo_unidad_trabajo) * 1000); // *1000 para pasarlo a microsegundos
+        usleep(unidad_de_trabajo * tiempo_unidad_trabajo * 1000); // *1000 para pasarlo a microsegundos
         log_info(logger_entradasalida,"termine de dormirme x tiempo");
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
         break;
