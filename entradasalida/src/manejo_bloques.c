@@ -15,7 +15,7 @@ void create_archivos_bloques() {
     }
     off_t current_size = st.st_size;
 
-    int total_size = atoi(block_count) * atoi(block_size);
+    int total_size = block_count * block_size;
     if (current_size < total_size) {
         if (ftruncate(archivo_bloques, total_size) == -1) {
             log_error(logger_entradasalida,"Error al ajustar el tamaño del archivo");
@@ -80,7 +80,7 @@ void borrar_archivo(char* filename) {
         return;
     }
 
-    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_archivo / (double)atoi(block_size));
+    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_archivo / (double)(block_size));
     for (uint32_t i = 0; i < bloques_actuales; i++) {
         liberar_bloque(bloque_inicial + i);
     }
@@ -96,18 +96,30 @@ void borrar_archivo(char* filename) {
 }
 
 void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo) {
-    char* metadata_path = buscar_archivo(filename);  
+    char* metadata_path = buscar_archivo(filename);
+    if (!metadata_path) {
+        log_error(logger_entradasalida, "No se encontró el archivo: %s", filename);
+        return;
+    }  
     uint32_t tamanio_actual = obtener_tamanio_archivo(metadata_path);
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
     
     uint32_t bloques_adicionales = calcular_bloques_adicionales(tamanio_actual, tamanio_nuevo);
 
     if (bloques_adicionales > 0){
-        int bloques_libres = verificar_bloques_contiguos_libres(bloque_inicial, bloques_adicionales);
+         int bloques_libres = verificar_bloques_contiguos_libres(bloque_inicial + (tamanio_actual / block_size), bloques_adicionales);
         if (bloques_libres == -1) {
-            log_error(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes");
-            free(metadata_path);
-            return;
+            log_info(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes");
+
+            compactar_file_system(filename);
+            
+            bloque_inicial = obtener_bloque_inicial(metadata_path);
+            bloques_libres = verificar_bloques_contiguos_libres(bloque_inicial + (tamanio_actual / block_size), bloques_adicionales);
+            if (bloques_libres == -1) {
+                log_error(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes después de la compactación");
+                free(metadata_path);
+                return;
+            }
         }
 
         for (uint32_t i = 0; i < bloques_adicionales; i++) {
@@ -120,7 +132,11 @@ void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo) {
 }
 
 void acortar_archivo(const char* filename, uint32_t tamanio_nuevo) {
-    char* metadata_path = buscar_archivo(filename);  
+    char* metadata_path = buscar_archivo(filename);
+    if (!metadata_path) {
+        log_error(logger_entradasalida, "No se encontró el archivo: %s", filename);
+        return;
+    }  
     uint32_t tamanio_actual = obtener_tamanio_archivo(metadata_path);
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
 
@@ -199,7 +215,7 @@ void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int p
     free(metadata_path);
 }
 
-void leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, void* buffer) {
+void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, void* buffer) {
     char* metadata_path = buscar_archivo(filename);
     if (!metadata_path) {
         printf("Archivo no encontrado\n");
@@ -253,4 +269,148 @@ void leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, v
 
     close(archivo_fd);
     free(metadata_path);
+    return buffer;
+}
+
+void compactar_file_system(const char* archivo_a_mover) {
+    log_info(logger_entradasalida, "Iniciando compactación del sistema de archivos...");
+
+    int cantidad_archivos = 0;
+    archivo_info* archivos = listar_archivos(&cantidad_archivos);
+
+    if (archivos == NULL) {
+        log_error(logger_entradasalida, "No se encontraron archivos para compactar");
+        return;
+    }
+
+    archivo_info archivo_mover_info;
+    int encontrado = 0;
+
+    // Primero, encontrar la información del archivo que se moverá al final
+    for (int i = 0; i < cantidad_archivos; i++) {
+        if (strcmp(archivos[i].nombre_archivo, archivo_a_mover) == 0) {
+            archivo_mover_info = archivos[i];
+            encontrado = 1;
+
+            // Eliminar el archivo de la lista
+            for (int j = i; j < cantidad_archivos - 1; j++) {
+                archivos[j] = archivos[j + 1];
+            }
+            cantidad_archivos--;
+            break;
+        }
+    }
+
+    if (!encontrado) {
+        log_error(logger_entradasalida, "No se encontró el archivo a mover: %s", archivo_a_mover);
+        free(archivos);
+        return;
+    }
+
+    // Crear un buffer para almacenar temporalmente los bloques del archivo a mover
+    void* buffer = malloc(archivo_mover_info.cantidad_bloques * block_size);
+    if (buffer == NULL) {
+        log_error(logger_entradasalida, "Error al asignar memoria para el buffer");
+        free(archivos);
+        return;
+    }
+
+    int archivo_fd = open(path_archivo_bloques, O_RDWR);
+    if (archivo_fd == -1) {
+        log_error(logger_entradasalida, "Error al abrir el archivo de bloques");
+        free(buffer);
+        free(archivos);
+        return;
+    }
+
+    void* mmap_bloques = mmap(NULL, block_size * block_count, PROT_READ | PROT_WRITE, MAP_SHARED, archivo_fd, 0);
+    if (mmap_bloques == MAP_FAILED) {
+        log_error(logger_entradasalida, "Error al mapear el archivo de bloques");
+        close(archivo_fd);
+        free(buffer);
+        free(archivos);
+        return;
+    }
+
+    // Copiar los bloques del archivo a mover al buffer
+    for (uint32_t j = 0; j < archivo_mover_info.cantidad_bloques; j++) {
+        void* origen = mmap_bloques + ((archivo_mover_info.bloque_inicial + j) * block_size);
+        void* destino = buffer + (j * block_size);
+        memcpy(destino, origen, block_size);
+
+        // Marcar el bloque antiguo como libre
+        bitarray_clean_bit(bitmap, archivo_mover_info.bloque_inicial + j);
+    }
+
+    // Mover todos los archivos excepto el archivo a mover al inicio del espacio libre contiguo
+    uint32_t bloque_libre = 0; // Inicialmente, el primer bloque libre  
+    for (int i = 0; i < cantidad_archivos; i++) {
+        archivo_info* info = &archivos[i];
+
+        // Obtener la ruta completa del archivo de metadata
+        char* metadata_path = buscar_archivo(info->nombre_archivo);
+        if (metadata_path == NULL) {
+            log_error(logger_entradasalida, "No se pudo encontrar la metadata para el archivo: %s", info->nombre_archivo);
+            continue;
+        }
+
+        for (uint32_t j = 0; j < info->cantidad_bloques; j++) {
+            uint32_t bloque_actual = info->bloque_inicial + j;
+
+            if (bloque_actual == bloque_libre) {
+                bloque_libre++;
+                continue;
+            }
+
+            // Mover el bloque y actualizar el bitmap
+            mover_bloque(mmap_bloques,bloque_actual, bloque_libre);
+
+            bloque_libre++;
+        }
+
+        // Actualizar la metadata con el nuevo bloque inicial
+        actualizar_metadata_bloque_inicial(metadata_path, bloque_libre - info->cantidad_bloques);
+        free(metadata_path);
+    }
+
+    // Ahora escribir los bloques del archivo específico al final del espacio libre
+    for (uint32_t j = 0; j < archivo_mover_info.cantidad_bloques; j++) {
+        void* origen = buffer + (j * block_size);
+        void* destino = mmap_bloques + (bloque_libre * block_size);
+        memcpy(destino, origen, block_size);
+
+        // Marcar el nuevo bloque como ocupado en el bitmap
+        bitarray_set_bit(bitmap, bloque_libre);
+
+        bloque_libre++;
+    }
+
+    // Actualizar la metadata del archivo movido
+    char* metadata_path = buscar_archivo(archivo_mover_info.nombre_archivo);
+    if (metadata_path == NULL) {
+        log_error(logger_entradasalida, "No se pudo encontrar la metadata para el archivo: %s", archivo_mover_info.nombre_archivo);
+        free(buffer);
+        free(archivos);
+        return;
+    }
+    actualizar_metadata_bloque_inicial(metadata_path, bloque_libre - archivo_mover_info.cantidad_bloques);
+    
+    free(metadata_path);
+
+    if (munmap(mmap_bloques, block_size * block_count) == -1) {
+        log_error(logger_entradasalida, "Error al desmapear la memoria");
+    }
+    
+    if (msync(mmap_bloques, block_size * block_count, MS_SYNC) == -1) {
+        log_error(logger_entradasalida, "Error al sincronizar el archivo de bloques");
+    }
+
+    close(archivo_fd);
+    free(buffer);
+
+    // Esperar el tiempo determinado por RETRASO_COMPACTACION antes de finalizar
+    usleep(retraso_compactacion * 1000); // Convertir milisegundos a microsegundos
+
+    free(archivos);
+    log_info(logger_entradasalida, "Compactación del sistema de archivos completada");
 }

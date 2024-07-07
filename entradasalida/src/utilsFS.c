@@ -49,6 +49,12 @@ void asignar_bloque(uint32_t bloque_libre) {
 
     // Marcar el bloque como ocupado en el bitmap
     bitarray_set_bit(bitmap, bloque_libre);
+    
+    // sincronizar bitmap con disco
+
+    if (msync(bitmap->bitarray, bitmap->size, MS_SYNC) == -1) {
+        log_error(logger_entradasalida, "Error al sincronizar el archivo de bitmap");
+    }
 
     log_info(logger_entradasalida, "Bloque %d asignado al archivo %s", bloque_libre);
 }
@@ -60,6 +66,13 @@ void liberar_bloque(uint32_t bloque) {
     }
 
     bitarray_clean_bit(bitmap, bloque);
+
+    // sincronizar bitmap con disco
+
+    if (msync(bitmap->bitarray, bitmap->size, MS_SYNC) == -1) {
+        log_error(logger_entradasalida, "Error al sincronizar el archivo de bitmap");
+    }
+
     log_info(logger_entradasalida, "Bloque %d liberado", bloque);
 }
 
@@ -92,14 +105,14 @@ char* buscar_archivo(const char* archivo_buscar) {
 }
 
 uint32_t calcular_bloques_adicionales(uint32_t tamanio_actual,uint32_t tamanio_nuevo) {
-    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)atoi(block_size));
-    uint32_t bloques_nuevos = (uint32_t)ceil((double)tamanio_nuevo / (double)atoi(block_size));
+    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)(block_size));
+    uint32_t bloques_nuevos = (uint32_t)ceil((double)tamanio_nuevo / (double)(block_size));
     return bloques_nuevos - bloques_actuales;
 }
 
 uint32_t calcular_bloques_a_liberar(uint32_t tamanio_actual, uint32_t tamanio_nuevo) {
-    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)atoi(block_size));
-    uint32_t bloques_nuevos = (uint32_t)ceil((double)tamanio_nuevo / (double)atoi(block_size));
+    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)(block_size));
+    uint32_t bloques_nuevos = (uint32_t)ceil((double)tamanio_nuevo / (double)(block_size));
     return bloques_actuales - bloques_nuevos;
 }
 
@@ -131,7 +144,7 @@ uint32_t obtener_bloque_inicial(const char* metadata_path){
 }
 
 uint32_t obtener_ultimo_bloque(uint32_t bloque_inicial, uint32_t tamanio_actual) {
-    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)atoi(block_size));
+    uint32_t bloques_actuales = (uint32_t)ceil((double)tamanio_actual / (double)(block_size));
     return bloque_inicial + bloques_actuales - 1;
 }
 
@@ -154,4 +167,69 @@ void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nue
     config_destroy(config);
 }
 
+void actualizar_metadata_bloque_inicial(const char* metadata_path, uint32_t bloque_inicial) {
+    t_config* config = config_create(metadata_path);
+    
+    if (config == NULL) {
+        log_error(logger_entradasalida, "Error al abrir el archivo de metadata para actualizar");
+        return;
+    }
 
+    char buffer[10];
+    sprintf(buffer, "%u", bloque_inicial);
+    config_set_value(config, "BLOQUE_INICIAL", buffer);
+
+    if (!config_save(config)) {
+        log_error(logger_entradasalida, "Error al guardar el archivo de metadata después de actualizar");
+    }
+    
+    config_destroy(config);
+}
+
+archivo_info* listar_archivos(int* cantidad_archivos) {
+    archivo_info* archivos = NULL;
+    *cantidad_archivos = 0;
+
+    DIR* dir = opendir(path_fs);
+    if (dir == NULL) {
+        log_error(logger_entradasalida, "No se pudo abrir el directorio de archivos");
+        return NULL;
+    }
+
+    struct dirent* entry;
+    // Contar la cantidad de archivos 
+    while ((entry = readdir(dir)) != NULL) { 
+        *cantidad_archivos++;
+    }
+
+    if (*cantidad_archivos > 0) {
+        archivos = malloc((*cantidad_archivos) * sizeof(archivo_info));
+        rewinddir(dir);  // rewinddir reinicia el puntero del directorio
+        int index = 0;
+        while ((entry = readdir(dir)) != NULL) {
+            if (entry->d_type == DT_REG) { // Solo archivos regulares
+                archivo_info* info = &archivos[index++];
+                snprintf(info->nombre_archivo, sizeof(info->nombre_archivo), "%s", entry->d_name);
+
+                char metadata_path[256];
+                snprintf(metadata_path, sizeof(metadata_path), "%s/%s", path_fs, entry->d_name);
+
+                info->bloque_inicial = obtener_bloque_inicial(metadata_path);
+                uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
+                info->cantidad_bloques = (uint32_t)ceil((double)tamanio_archivo / (double)block_size);
+            }
+        }
+    }
+
+    closedir(dir);
+    return archivos;
+}
+
+void mover_bloque(void* mapbloques,uint32_t bloque_origen, uint32_t bloque_destino) {
+    void* origen = mmap_bloques + (bloque_origen * block_size);
+    void* destino = mmap_bloques + (bloque_destino * block_size);
+    memcpy(destino, origen, block_size);
+
+    asignar_bloque(bloque_origen); 
+    liberar_bloque(bloque_destino); 
+}

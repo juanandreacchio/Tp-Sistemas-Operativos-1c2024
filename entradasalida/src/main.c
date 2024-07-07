@@ -11,6 +11,7 @@ char *puerto_memoria;
 int tiempo_unidad_trabajo;
 int block_size;
 int block_count;
+int retraso_compactacion;
 char *path_fs;
 pthread_t thread_memoria, thread_kernel;
 cod_interfaz tipo_interfaz;
@@ -89,7 +90,7 @@ void iniciar_config(char *ruta)
         block_size = atoi(config_get_string_value(config_entradasalida, "BLOCK_SIZE"));
         block_count = atoi(config_get_string_value(config_entradasalida, "BLOCK_COUNT"));
         path_fs = config_get_string_value(config_entradasalida, "PATH_BASE_DIALFS");
-        retraso_compactacion = config_get_string_value(config_entradasalida, "RETRASO_COMPACTACION");
+        retraso_compactacion = atoi(config_get_string_value(config_entradasalida, "RETRASO_COMPACTACION"));
     }
     else
     {

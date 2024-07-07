@@ -1,7 +1,7 @@
 #include <../include/entradasalida.h>
 
 void crear_bitmap(){
-    int tam_bitmap = ceil(atoi(block_count) / 8.0);
+    int tam_bitmap = ceil(block_count / 8.0);
     int bitmap_fd = open(path_bitmap, O_CREAT | O_RDWR, 0744);
 
     if (bitmap_fd == -1) {

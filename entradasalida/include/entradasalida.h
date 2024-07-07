@@ -32,12 +32,16 @@ extern cod_interfaz tipo_interfaz;
 extern t_interfaz *interfaz_creada;
 extern char* path_fs;
 extern int block_count, block_size;
-extern char* retraso_compactacion;
+extern int retraso_compactacion;
 extern t_bitarray* bitmap;
 
 extern char* path_archivo_bloques;
 extern char* path_bitmap;
-
+typedef struct {
+    char nombre_archivo[256];
+    uint32_t bloque_inicial;
+    uint32_t cantidad_bloques;
+} archivo_info;
 
 // ------------------------ FUNCIONES DE INICIO --------------------
 void iniciar_config();
@@ -65,11 +69,15 @@ uint32_t obtener_bloque_inicial(const char* metadata_path);
 uint32_t obtener_ultimo_bloque(uint32_t bloque_inicial, uint32_t tamanio_actual);
 int verificar_bloques_contiguos_libres(uint32_t bloque_inicial, uint32_t cantidad_bloques);
 void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nuevo);
+archivo_info* listar_archivos(int* cantidad_archivos);
 
 void acortar_archivo(const char* filename, uint32_t tamanio_nuevo);
 void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo);
 void borrar_archivo(char* filename);
 int crear_archivo(const char* filename);
 void leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, void* buffer);
-void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int puntero_archivo)
+void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int puntero_archivo);
+void compactar_file_system(const char* archivo_a_mover);
+void mover_bloque(void* mapbloques,uint32_t bloque_origen, uint32_t bloque_destino);
+void actualizar_metadata_bloque_inicial(const char* metadata_path, uint32_t bloque_inicial);
 #endif
