@@ -246,6 +246,19 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
+        FILE *archivo = fopen(consola[1], "r");
+        if (archivo == NULL)
+        {
+            log_error(logger_kernel, "No se pudo abrir el archivo");
+            exit(EXIT_FAILURE);
+        }
+        while (!feof(archivo))
+        {
+            char *linea = malloc(100);
+            fgets(linea, 100, archivo);
+            ejecutar_comando(linea);
+            free(linea);
+        }  
     }
     else if (strcmp(consola[0], "INICIAR_PROCESO") == 0)
     {
@@ -670,8 +683,7 @@ void *verificar_quantum()
             }
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
-
-
-
+    }
+}
 
 
