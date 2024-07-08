@@ -17,6 +17,7 @@
 #include <semaphore.h>
 #include <commons/collections/queue.h>
 #include <commons/temporal.h>
+#include <math.h>
 
 #define SIZE_REGISTROS 32
 
@@ -46,9 +47,18 @@ typedef enum
 	EJECUTAR_IO,
 	INTERRUPCION_CLOCK,
 	CERRAR_IO,
+	//OPERACIONES DE MEMORIA
+	ACCESO_TABLA_PAGINAS,
+	AJUSTAR_TAMANIO_PROCESO,
+	OUT_OF_MEMORY,
+	ESCRITURA_MEMORIA,
+	LECTURA_MEMORIA,
+	OK,
+	MEMORIA_LEIDA,
+	PAGINA_A_MARCO,
+	MARCO
 	WAIT_SOLICITADO,
 	SIGNAL_SOLICITADO
-
 
 } op_code;
 
@@ -153,25 +163,6 @@ typedef struct
 
 typedef struct
 {
-	void *contenido;
-	int pagina;
-} t_pagina;
-
-typedef struct
-{
-	t_pagina **tabla_paginas;
-} t_tabla_paginas;
-
-typedef struct
-{
-	uint32_t pid;
-	// char* path;
-	t_list *lista_instrucciones;
-	t_tabla_paginas *tabla_paginas;
-} t_proceso;
-
-typedef struct
-{
 	uint32_t pid;
 	uint32_t pc;
 } t_solicitudInstruccionEnMemoria;
@@ -181,14 +172,12 @@ typedef struct
 	uint32_t conexion;
 	cod_interfaz tipo_interfaz;
 } t_interfaz_en_kernel;
-
-
-
 typedef struct
 {
-	t_instruccion *instruccion_io;
+	void *info_necesaria;
+	uint32_t tam_info;
 	uint32_t pid;
-} t_instruccionEnIo;
+} t_info_en_io;
 
 typedef struct
 {
@@ -196,6 +185,13 @@ typedef struct
 	sem_t instruccion_en_cola;
 	sem_t binario_io_libre;
 } t_semaforosIO;
+
+
+typedef struct
+{
+	u_int32_t direccion_fisica;
+	u_int32_t desplazamiento_necesario;
+} t_direc_fisica;
 
 typedef struct{
 	pthread_mutex_t mutex;
@@ -212,12 +208,6 @@ void terminar_programa(int conexion, t_log *logger, t_config *config);
 
 char *cod_op_to_string(op_code codigo_operacion);
 t_registros inicializar_registros();
-void set_registro(t_registros *registros, char *registro, u_int32_t valor);
-u_int8_t get_registro_int8(t_registros *registros, char *registro);
-u_int32_t get_registro_int32(t_registros *registros, char *registro);
-void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
-void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
-void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
 void imprimir_registros_por_pantalla(t_registros registros);
 t_pcb *crear_pcb(u_int32_t pid, u_int32_t quantum, estados estado);
 t_pcb *recibir_pcb(int socket);
@@ -248,25 +238,24 @@ t_buffer *serializar_instruccion(t_instruccion *instruccion);
 t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset);
 t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones);
 t_list *deserializar_lista_instrucciones(t_buffer *buffer, u_int32_t offset);
-void imprimir_instruccion(t_instruccion instruccion);
+void imprimir_instruccion(t_instruccion* instruccion);
 void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion);
 void destruir_instruccion(t_instruccion *instruccion);
 
 t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros);
 t_buffer *serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria *solicitud);
-t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buffer *buffer);
-void imprimir_proceso(t_proceso *proceso);
+
+
 t_list *parsear_instrucciones(FILE *archivo_instrucciones);
 t_identificador string_to_identificador(char *string);
-void imprimir_lista_de_procesos(t_list *lista_procesos);
 t_interrupcion *deserializar_interrupcion(t_buffer *buffer);
 t_buffer *serializar_interrupcion(t_interrupcion *interrupcion);
 void enviar_motivo_desalojo(op_code motivo, uint32_t socket);
 op_code recibir_motivo_desalojo(uint32_t socket_cliente);
 void enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket);
 cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
-t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer);
-t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion);
 op_code tipo_interfaz_to_cod_op(cod_interfaz tipo);
+void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket);
+void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket);
 char* estado_to_string(estados estado);
 #endif /* UTILS_H_ */

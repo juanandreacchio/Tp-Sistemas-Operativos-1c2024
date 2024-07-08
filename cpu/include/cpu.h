@@ -30,6 +30,9 @@ extern u_int8_t input_ouput_flag;
 void iniciar_config();
 void inicializar_flags();
 
+//--------------------------RECIBIR TAMAÑO "handshake"---------------------------
+u_int32_t recibir_tamanio(u_int32_t  socket_cliente);
+
 // ------------------ FUNCIONES DE CONEXION -------------------------
 void *iniciar_servidor_dispatch(void *arg);
 void *iniciar_servidor_interrupt(void *arg);
@@ -43,4 +46,18 @@ void accion_interrupt(t_pcb *pcb, op_code motivo, int socket);
 // ------------------------ FUNCIONES DE PCB ------------------------
 t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket);
 void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel);
+
+//------------------------FUNCIONES DE OPERACIONES------------------------------
+void set_registro(t_registros *registros, char *registro, u_int32_t valor);
+u_int8_t get_registro_int8(t_registros *registros, char *registro);
+u_int32_t get_registro_int32(t_registros *registros, char *registro);
+u_int32_t get_registro_generico(t_registros *registros, char *registro);
+void sum_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
+void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino);
+void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
+void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion);
+void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos);
+void copy_string(t_pcb *pcb, size_t tamanio);
+//--------------------MMU----------------------------
+t_list *traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio);
 #endif

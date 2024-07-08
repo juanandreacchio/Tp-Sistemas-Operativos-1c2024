@@ -1,230 +1,6 @@
 #include <../include/utils.h>
 
-//----------------- FUNCIONES DE REGISTROS -------------------------------
-
 sem_t semaforo;
-
-void set_registro(t_registros *registros, char *registro, u_int32_t valor)
-{
-	if (strcasecmp(registro, "AX") == 0)
-	{
-		u_int8_t valor8 = (u_int8_t)valor;
-		registros->AX = valor8;
-	}
-
-	if (strcasecmp(registro, "BX") == 0)
-	{
-		u_int8_t valor8 = (u_int8_t)valor;
-		registros->BX = valor8;
-	}
-	if (strcasecmp(registro, "CX") == 0)
-	{
-		u_int8_t valor8 = (u_int8_t)valor;
-		registros->CX = valor8;
-	}
-	if (strcasecmp(registro, "DX") == 0)
-	{
-		u_int8_t valor8 = (u_int8_t)valor;
-		registros->DX = valor8;
-	}
-	if (strcasecmp(registro, "EAX") == 0)
-	{
-		registros->EAX = valor;
-	}
-	if (strcasecmp(registro, "EBX") == 0)
-	{
-		registros->EBX = valor;
-	}
-	if (strcasecmp(registro, "ECX") == 0)
-	{
-		registros->ECX = valor;
-	}
-	if (strcasecmp(registro, "EDX") == 0)
-	{
-		registros->EDX = valor;
-	}
-	if (strcasecmp(registro, "PC") == 0)
-	{
-		registros->PC = valor;
-	}
-}
-
-u_int8_t get_registro_int8(t_registros *registros, char *registro)
-{
-	if (strcasecmp(registro, "AX") == 0)
-	{
-		return registros->AX;
-	}
-	else if (strcasecmp(registro, "BX") == 0)
-	{
-		return registros->BX;
-	}
-	else if (strcasecmp(registro, "CX") == 0)
-	{
-		return registros->CX;
-	}
-	else if (strcasecmp(registro, "DX") == 0)
-	{
-		return registros->DX;
-	}
-	return -1;
-}
-
-u_int32_t get_registro_int32(t_registros *registros, char *registro)
-{
-	if (strcasecmp(registro, "EAX") == 0)
-	{
-		return registros->EAX;
-	}
-	else if (strcasecmp(registro, "EBX") == 0)
-	{
-		return registros->EBX;
-	}
-	else if (strcasecmp(registro, "ECX") == 0)
-	{
-		return registros->ECX;
-	}
-	else if (strcasecmp(registro, "EDX") == 0)
-	{
-		return registros->EDX;
-	}
-	else if (strcasecmp(registro, "PC") == 0)
-	{
-		return registros->PC;
-	}
-	return -1;
-}
-
-void sum_registro(t_registros *registros, char *registroDestino, char *registroOrigen)
-{
-
-	if (strcasecmp(registroDestino, "AX") == 0)
-	{
-		registros->AX += get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "BX") == 0)
-	{
-		registros->BX += get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "CX") == 0)
-	{
-		registros->CX += get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "DX") == 0)
-	{
-		registros->DX += get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "EAX") == 0)
-	{
-		registros->EAX += get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "EBX") == 0)
-	{
-		registros->EBX += get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "ECX") == 0)
-	{
-		registros->ECX += get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "EDX") == 0)
-	{
-		registros->EDX += get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "PC") == 0)
-	{
-		registros->PC += get_registro_int32(registros, registroOrigen);
-	}
-}
-
-void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino)
-{
-
-	if (strcasecmp(registroDestino, "AX") == 0)
-	{
-		registros->AX -= get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "BX") == 0)
-	{
-		registros->BX -= get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "CX") == 0)
-	{
-		registros->CX -= get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "DX") == 0)
-	{
-		registros->DX -= get_registro_int8(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "EAX") == 0)
-	{
-		registros->EAX -= get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "EBX") == 0)
-	{
-		registros->EBX -= get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "ECX") == 0)
-	{
-		registros->ECX -= get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "EDX") == 0)
-	{
-		registros->EDX -= get_registro_int32(registros, registroOrigen);
-	}
-	else if (strcasecmp(registroDestino, "PC") == 0)
-	{
-		registros->PC -= get_registro_int32(registros, registroOrigen);
-	}
-}
-void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor)
-{
-	u_int8_t valoregistroInt8 = 0;
-	u_int32_t valoregistroInt32 = 0;
-
-	if (strcasecmp(registro, "AX") == 0 || strcasecmp(registro, "BX") == 0 || strcasecmp(registro, "CX") == 0 || strcasecmp(registro, "DX") == 0)
-	{
-
-		valoregistroInt8 = get_registro_int8(registros, registro);
-		if (valoregistroInt8 != 0)
-			registros->PC = valor;
-	}
-	if (strcasecmp(registro, "EAX") == 0 || strcasecmp(registro, "EBX") == 0 || strcasecmp(registro, "ECX") == 0 || strcasecmp(registro, "EDX") == 0 || strcasecmp(registro, "PC") == 0)
-	{
-		valoregistroInt32 = get_registro_int32(registros, registro);
-		if (valoregistroInt32 != 0)
-			registros->PC = valor;
-	}
-}
-
-/*--------------esta es otra opcion para despues vemos cual preferimos -------------------
-void get_registro(t_registros *registros, char *registro, void *valor) {
-	// Define el mapa de cadenas a punteros
-	struct {
-		char *nombre;
-		void *direccion;
-	} mapa[] = {
-		{"AX", &(registros->AX)},
-		{"BX", &(registros->BX)},
-		{"CX", &(registros->CX)},
-		{"DX", &(registros->DX)},
-		{"EAX", &(registros->EAX)},
-		{"EBX", &(registros->EBX)},
-		{"ECX", &(registros->ECX)},
-		{"EDX", &(registros->EDX)}
-	};
-
-	// Itera sobre el mapa para encontrar el registro correspondiente
-	for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++) {
-		if (strcasecmp(registro, mapa[i].nombre) == 0) {
-			// Copia el valor del registro a la dirección proporcionada
-			memcpy(valor, mapa[i].direccion, sizeof(uint32_t)); // Usa sizeof(uint8_t) o sizeof(uint32_t) según corresponda
-			return;
-		}
-	}
-
-	// Si no se encuentra el registro, aquí puedes manejar el error
-}
-*/
 
 void imprimir_registros_por_pantalla(t_registros registros)
 {
@@ -239,6 +15,8 @@ void imprimir_registros_por_pantalla(t_registros registros)
 	printf(" + ECX = %d\n", registros.ECX);
 	printf(" + EDX = %d\n", registros.EDX);
 	printf(" + PC = %d\n", registros.PC);
+	printf(" + SI = %d\n", registros.SI);
+	printf(" + DI = %d\n", registros.DI);
 	printf("-------------------\n");
 }
 
@@ -434,7 +212,7 @@ int iniciar_servidor(t_log *logger, char *puerto, char *nombre)
 	socket_servidor = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
 
 	if (setsockopt(socket_servidor, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0) 
-    error("setsockopt(SO_REUSEADDR) failed");
+    perror("setsockopt(SO_REUSEADDR) failed");
 
 	bind(socket_servidor, servinfo->ai_addr, servinfo->ai_addrlen);
 
@@ -708,18 +486,15 @@ void buffer_read(t_buffer *buffer, void *data, uint32_t size)
 	buffer->offset += size;
 }
 
-void imprimir_instruccion(t_instruccion instruccion)
+void imprimir_instruccion(t_instruccion *instruccion)
 {
-	// Imprimir el identificador (como un entero)
-	printf("Identificador: %d\n", instruccion.identificador);
-
-	// Imprimir los parámetros
-	printf("Parámetros:\n");
-	for (uint32_t i = 0; i < instruccion.cant_parametros; i++)
+	printf("Instruccion: %d\n", instruccion->identificador);
+	for (int i = 0; i < instruccion->cant_parametros; i++)
 	{
-		printf("  Parametro %u: %s\n", i + 1, instruccion.parametros[i]);
+		printf("Parametro %d: %s\n", i + 1, instruccion->parametros[i]);
 	}
 }
+
 
 uint32_t espacio_parametros(t_instruccion *instruccion)
 {
@@ -931,32 +706,6 @@ t_buffer *serializar_solicitud_crear_proceso(t_solicitudCreacionProcesoEnMemoria
 	return buffer;
 }
 
-t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buffer *buffer)
-{
-	t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
-	buffer->offset = 0;
-
-	buffer_read(buffer, &solicitud->pid, sizeof(uint32_t));
-	buffer_read(buffer, &solicitud->path_length, sizeof(uint32_t));
-	solicitud->path = malloc(solicitud->path_length);
-	buffer_read(buffer, solicitud->path, solicitud->path_length);
-	return solicitud;
-}
-
-void imprimir_proceso(t_proceso *proceso)
-{
-	printf("PID: %d\n", proceso->pid);
-	// printf("Path del archivo de instrucciones: %s\n", proceso->path);
-	printf("Lista de instrucciones:\n");
-	for (int i = 0; i < list_size(proceso->lista_instrucciones); i++)
-	{
-		t_instruccion *instruccion = list_get(proceso->lista_instrucciones, i);
-		printf("Instrucción %d: ", i + 1);
-		// imprimir_instruccion(*instruccion);
-	}
-	// Si quieres imprimir también la tabla de páginas, puedes hacerlo aquí
-}
-
 t_list *parsear_instrucciones(FILE *archivo_instrucciones)
 {
 	int longitud_de_linea_maxima = 1024;
@@ -1026,16 +775,6 @@ t_identificador string_to_identificador(char *string)
 	if (strcasecmp(string, "EXIT") == 0)
 		return EXIT;
 	return -1;
-}
-
-void imprimir_lista_de_procesos(t_list *lista_procesos)
-{
-	for (int i = 0; i < list_size(lista_procesos); i++)
-	{
-		t_proceso *proceso = list_get(lista_procesos, i);
-		printf("\n------------------------ PROCESO %d ------------------------", i + 1);
-		imprimir_proceso(proceso);
-	}
 }
 
 t_buffer *serializar_interrupcion(t_interrupcion *interrupcion)
@@ -1119,17 +858,48 @@ cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op){
 	}
 }
 
-t_buffer *serializar_instruccion_en_io(t_instruccionEnIo *instruccion){
-	t_buffer *buffer = crear_buffer();
-	buffer_add(buffer, &instruccion->pid, sizeof(uint32_t));
 
-	t_buffer *buffer_instruccion = serializar_instruccion(instruccion->instruccion_io);
-	buffer_add(buffer, buffer_instruccion->stream, buffer_instruccion->size);
-	destruir_buffer(buffer_instruccion);
 
-	return buffer;
+// FUNCIONES PARA ESCRIBIR O LEER EN MEMORIA
+void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket)
+{
+    uint32_t num_direcciones = (uint32_t)list_size(direcciones_fisicas);
+    buffer_add(paquete_enviado->buffer, &num_direcciones, sizeof(uint32_t));
+    buffer_add(paquete_enviado->buffer, &tamanio_de_lectura, sizeof(uint32_t));
+    
+    for (size_t j = 0; j < list_size(direcciones_fisicas); j++) {
+        t_direc_fisica *direccion_fisica = list_get(direcciones_fisicas, j);
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->direccion_fisica), sizeof(uint32_t));
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->desplazamiento_necesario), sizeof(uint32_t));
+    }
+
+    //buffer_add(paquete_enviado->buffer, &size_of_element, sizeof(uint32_t)); // Tamaño de lectura//creo que no es necesario
+    enviar_paquete(paquete_enviado, socket);
+    eliminar_paquete(paquete_enviado);
+
 }
 
+void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket)
+{
+    uint32_t num_direcciones = (uint32_t)list_size(direc_fisicas);
+    buffer_add(paquete->buffer, &num_direcciones, sizeof(uint32_t));
+
+    uint32_t offset = 0;
+    for (size_t i = 0; i < list_size(direc_fisicas); i++) {
+        t_direc_fisica *direc = list_get(direc_fisicas, i);
+        size_t size_to_copy = (i == list_size(direc_fisicas) - 1) ? tamanio - offset : direc->desplazamiento_necesario;
+
+        buffer_add(paquete->buffer, &(direc->direccion_fisica), sizeof(uint32_t));
+        buffer_add(paquete->buffer, &(direc->desplazamiento_necesario), sizeof(uint32_t));
+        buffer_add(paquete->buffer, ((char *)valor) + offset, size_to_copy);
+        
+        offset += direc->desplazamiento_necesario;
+    }
+
+    //buffer_add(paquete->buffer, &size_of_element, sizeof(uint32_t)); // Tamaño de escritura//creo que no es necesario
+    enviar_paquete(paquete, socket);
+    eliminar_paquete(paquete);
+}
 t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer){
 	t_instruccionEnIo *instruccion = malloc(sizeof(t_instruccionEnIo));
 	buffer->offset = 0;

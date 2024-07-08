@@ -6,6 +6,7 @@
 #include <utils/hello.h>
 #include <commons/log.h>
 #include <../include/utils.h>
+#include <commons/bitarray.h>
 
 extern t_log *logger_memoria;
 extern t_config *config_memoria;
@@ -15,13 +16,15 @@ extern int TAM_MEMORIA;
 extern int TAM_PAGINA;
 extern char *PATH_INSTRUCCIONES;
 extern int RETARDO_RESPUESTA;
-extern int NUM_PAGINAS;
 
 extern char *puerto_memoria;
 extern int socket_servidor_memoria;
 
 extern t_list *procesos_en_memoria;
 extern pthread_mutex_t mutex;
+
+extern t_bitarray *marcos_ocupados;
+extern void* memoria_principal;
 
 // ---------------------------FUNCIONES DE INICIO-------------------------------------
 void iniciar_config();
