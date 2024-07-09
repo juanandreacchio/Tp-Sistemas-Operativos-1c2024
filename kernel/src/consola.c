@@ -137,8 +137,8 @@ void ejecutar_comando(char *comando)
     }
     else if (strcmp(consola[0], "PROCESO_ESTADO") == 0)
     {
+        listar_procesos();
     }
-    // proceso_estado();
     else if (strcmp(consola[0], "DETENER_PLANIFICACION") == 0)
     {
     }

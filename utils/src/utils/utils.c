@@ -904,7 +904,7 @@ t_instruccionEnIo *deserializar_instruccion_en_io(t_buffer *buffer){
 	t_instruccionEnIo *instruccion = malloc(sizeof(t_instruccionEnIo));
 	buffer->offset = 0;
 	buffer_read(buffer, &instruccion->pid, sizeof(uint32_t));
-	instruccion->instruccion_io = instruccion_deserializar(buffer, buffer->offset);
+	instruccion->instruccion = instruccion_deserializar(buffer, buffer->offset);
 	return instruccion;
 }
 

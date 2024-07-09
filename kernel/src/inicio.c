@@ -28,6 +28,7 @@ void iniciar_colas_de_estados_procesos()
     cola_procesos_ready = queue_create();
     cola_procesos_new = queue_create();
     cola_procesos_exit = queue_create();
+    cola_ready_plus = queue_create();
 }
 
 void iniciar_listas()
@@ -90,5 +91,4 @@ void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_ini
     sem_init(&semaforo->contador, 0, valor_inicial);
     pthread_mutex_init(&semaforo->mutex_valor_actual, NULL);
     pthread_mutex_init(&semaforo->mutex_valor_maximo, NULL);
-
 }

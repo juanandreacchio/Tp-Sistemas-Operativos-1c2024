@@ -63,3 +63,32 @@ void logear_bloqueo_proceso(uint32_t pid, char* motivo){
 void logear_cambio_estado(uint32_t pid, char* estado_anterior, char * estado_actual){
     log_info(logger_kernel, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pid, estado_anterior, estado_actual);
 }
+
+void listar_procesos(){
+    for (size_t i = 0; i < list_size(procesos_en_sistema); i++)
+    {
+        t_pcb *pcb = list_get(procesos_en_sistema,i);
+        log_info(logger_kernel, "PID: %d - ESTADO: %s", pcb->pid, pcb->estado_actual);
+    }
+    
+}
+
+void listar_procesos_en_ready_plus(){
+    log_info(logger_kernel, "Cola de Ready Prioridad:");
+    for (size_t i = 0; i < queue_size(cola_ready_plus); i++)
+    {
+        t_pcb *pcb = queue_peek(cola_ready_plus);
+        log_info(logger_kernel, "PID: %d ", pcb->pid);
+        queue_push(cola_ready_plus, pcb);
+    }
+}
+
+void listar_procesos_en_ready(){
+    log_info(logger_kernel, "Cola de Ready:");
+    for (size_t i = 0; i < queue_size(cola_procesos_ready); i++)
+    {
+        t_pcb *pcb = queue_peek(cola_procesos_ready);
+        log_info(logger_kernel, "PID: %d ", pcb->pid);
+        queue_push(cola_procesos_ready, pcb);
+    }
+}

@@ -21,6 +21,7 @@ void creacion_de_procesos()
 
         set_add_pcb_cola(pcb_ready, READY, cola_procesos_ready, mutex_cola_de_readys);
         logear_cambio_estado(pcb_ready->pid, "NEW", "READY");
+        listar_procesos_en_ready();
         log_info(logger_kernel, "puse el pcb en ready y lo meti dentro de la cola de ready");
 
         sem_post(&hay_proceso_a_ready);
@@ -48,11 +49,11 @@ void eliminacion_de_procesos()
 
 uint32_t procesos_en_memoria()
 {
-    if (hay_proceso_ejecutandose)
+    if (hay_proceso_ejecutandose())
     {
-        return list_size(cola_procesos_ready) + list_size(cola_ready_plus) + 1;
+        return queue_size(cola_procesos_ready) + queue_size(cola_ready_plus) + 1;
     }
-    return list_size(cola_procesos_ready) + list_size(cola_ready_plus);
+    return queue_size(cola_procesos_ready) + queue_size(cola_ready_plus);
 }
 
 bool hay_proceso_ejecutandose()
@@ -64,9 +65,9 @@ void signal_contador(t_semaforo_contador *semaforo)
 {
     if (semaforo->valor_actual < 0)
     {
-        pthread_mutex_lock(&semaforo->mutex);
+        pthread_mutex_lock(&semaforo->mutex_valor_actual);
         semaforo->valor_actual++;
-        pthread_mutex_unlock(&semaforo->mutex);
+        pthread_mutex_unlock(&semaforo->mutex_valor_actual);
         return;
     }
     else
@@ -107,13 +108,13 @@ void cambiar_grado(uint32_t nuevo_grado)
         {
             signal_contador(semaforo_multi);
         }
-        pthread_mutex_lock(semaforo_multi->mutex_valor_actual);
+        pthread_mutex_lock(&semaforo_multi->mutex_valor_actual);
     }
-    pthread_mutex_lock(semaforo_multi->mutex_valor_maximo);
+    pthread_mutex_lock(&semaforo_multi->mutex_valor_maximo);
     semaforo_multi->valor_maximo = nuevo_grado;
-    pthread_mutex_unlock(semaforo_multi->mutex_valor_maximo);
+    pthread_mutex_unlock(&semaforo_multi->mutex_valor_maximo);
 
-    pthread_mutex_lock(semaforo_multi->mutex_valor_actual);
+    pthread_mutex_lock(&semaforo_multi->mutex_valor_actual);
     semaforo_multi->valor_actual += nuevo_valor_actual;
-    pthread_mutex_unlock(semaforo_multi->mutex_valor_actual);
+    pthread_mutex_unlock(&semaforo_multi->mutex_valor_actual);
 }

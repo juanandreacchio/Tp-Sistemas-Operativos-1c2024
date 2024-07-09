@@ -45,7 +45,7 @@ void *recibir_dispatch()
 
             // 1. La agregamos a la cola de blocks io. Ultima instrucción y PID
             t_instruccionEnIo *instruccion_en_io = malloc(sizeof(t_instruccionEnIo));
-            instruccion_en_io->instruccion_io = utlima_instruccion;
+            instruccion_en_io->instruccion = utlima_instruccion;
             instruccion_en_io->pid = pcb_actualizado->pid;
 
             t_cola_interfaz_io *cola_interfaz = dictionary_get(colas_blocks_io, nombre_io);
@@ -67,6 +67,7 @@ void *recibir_dispatch()
             log_info(logger_kernel, "entre al fin de clock por dispatcher");
 
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
+            listar_procesos_en_ready();
             sem_post(&hay_proceso_a_ready);
 
             logear_cambio_estado(pcb_actualizado->pid, "EXEC", "READY");

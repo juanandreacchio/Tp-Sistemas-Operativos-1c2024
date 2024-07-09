@@ -12,11 +12,7 @@
 #include <../include/utils.h>
 #include <semaphore.h>
 
-typedef struct
-{
-    uint32_t pid;
-    t_instruccion *instruccion;
-} t_instruccionEnIo;
+
 
 
 typedef struct{
@@ -119,6 +115,7 @@ void *atender_cliente(void *socket_cliente);
 void *iniciar_consola_interactiva();
 bool validar_comando(char *comando);
 void ejecutar_comando(char *comandoRecibido);
+void listar_procesos();
 // void ejecutar_script(t_buffer* buffer);
 
 // --------------------- FUNCIONES DE PCB -------------------------
@@ -128,7 +125,9 @@ void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista);
 void agregar_pcb_a_cola_bloqueados_de_recurso(t_pcb *pcb, char *nombre);
 void finalizar_pcb(t_pcb *pcb);
-
+void listar_procesos_en_ready();
+void listar_procesos_en_ready_plus();
+bool hay_proceso_ejecutandose();
 
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------
 void iniciar_planificador_corto_plazo();

@@ -193,6 +193,12 @@ typedef struct
 	u_int32_t desplazamiento_necesario;
 } t_direc_fisica;
 
+typedef struct
+{
+    uint32_t pid;
+    t_instruccion *instruccion;
+} t_instruccionEnIo;
+
 typedef struct{
 	pthread_mutex_t mutex;
 	pthread_mutex_t mutex_cola_recurso;

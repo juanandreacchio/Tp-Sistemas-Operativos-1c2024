@@ -70,7 +70,7 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
 void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO, t_interfaz_en_kernel *conexion_io)
 {
     t_paquete *paquete = crear_paquete(EJECUTAR_IO);
-    paquete->buffer = serializar_instruccion(instruccionEnIO->instruccion_io);
+    paquete->buffer = serializar_instruccion(instruccionEnIO->instruccion);
     enviar_paquete(paquete, conexion_io->conexion);
 }
 
@@ -114,11 +114,13 @@ void atender_interfaz(char *nombre_interfaz)
                     set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
                     logear_cambio_estado(pcb, BLOCKED, READY);
                     procesos_en_ready_plus++;
+                    listar_procesos_en_ready_plus();
                     sem_post(&(semaforos_interfaz->binario_io_libre));
                     break;
                 }
                 set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
                 logear_cambio_estado(pcb, BLOCKED, READY);
+                listar_procesos_en_ready();
                 sem_post(&hay_proceso_a_ready);
             }
 

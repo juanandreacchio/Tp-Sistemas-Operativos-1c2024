@@ -115,7 +115,6 @@ int main(void)
 
     if(strcmp(algoritmo_planificacion, "VRR") == 0){
         log_info(logger_kernel, "iniciando contador de quantum");
-        cola_ready_plus = queue_create();
         tiempo_restante_de_quantum_por_proceso = dictionary_create();
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum_vrr, NULL);
         pthread_detach(hilo_quantum);
@@ -132,65 +131,4 @@ int main(void)
 
     log_info(logger_kernel, "Se cerrará la conexión.");
     terminar_programa(socket_servidor_kernel, logger_kernel, config_kernel);
-}
-
-
-void iniciar_config(void)
-{
-    config_kernel = config_create("config/kernel.config");
-    logger_kernel = iniciar_logger("config/kernel.log", "KERNEL", LOG_LEVEL_INFO);
-    ip_memoria = config_get_string_value(config_kernel, "IP_MEMORIA");
-    ip_cpu = config_get_string_value(config_kernel, "IP_CPU");
-    puerto_dispatch = config_get_string_value(config_kernel, "PUERTO_CPU_DISPATCH");
-    puerto_interrupt = config_get_string_value(config_kernel, "PUERTO_CPU_INTERRUPT");
-    puerto_memoria = config_get_string_value(config_kernel, "PUERTO_MEMORIA");
-    puerto_escucha = config_get_string_value(config_kernel, "PUERTO_ESCUCHA");
-    quantum = config_get_int_value(config_kernel, "QUANTUM");
-    algoritmo_planificacion = config_get_string_value(config_kernel, "ALGORITMO_PLANIFICACION");
-    grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MULTIPROGRAMACION");
-}
-
-void *atender_cliente(void *socket_cliente_ptr)
-{
-    int socket_cliente = *(int *)socket_cliente_ptr;
-    free(socket_cliente_ptr); // Liberamos el puntero ya que no lo necesitamos más
-
-    op_code codigo_operacion = recibir_operacion(socket_cliente);
-
-    switch (codigo_operacion)
-    {
-    case INTERFAZ_GENERICA:
-        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
-
-        crear_interfaz(INTERFAZ_GENERICA, nombre_entrada_salida_conectada, socket_cliente);
-
-        free(nombre_entrada_salida_conectada);
-        break;
-    case INTERFAZ_STDIN:
-        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
-
-        crear_interfaz(INTERFAZ_STDIN, nombre_entrada_salida_conectada, socket_cliente);
-
-        free(nombre_entrada_salida_conectada);
-        break;
-    case INTERFAZ_STDOUT:
-        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
-
-        crear_interfaz(INTERFAZ_STDOUT, nombre_entrada_salida_conectada, socket_cliente);
-
-        free(nombre_entrada_salida_conectada);
-        break;
-    case INTERFAZ_DIALFS:
-        nombre_entrada_salida_conectada = recibir_mensaje_guardar_variable(socket_cliente);
-
-        crear_interfaz(INTERFAZ_DIALFS, nombre_entrada_salida_conectada, socket_cliente);
-
-        free(nombre_entrada_salida_conectada);
-        break;
-    default:
-        log_info(logger_kernel, "Se recibió un mensaje de un módulo desconocido");
-        break;
-    }
-
-    return NULL;
 }
