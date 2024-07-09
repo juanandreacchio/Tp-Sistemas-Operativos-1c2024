@@ -56,7 +56,7 @@ typedef enum
 	OK,
 	MEMORIA_LEIDA,
 	PAGINA_A_MARCO,
-	MARCO
+	MARCO,
 	WAIT_SOLICITADO,
 	SIGNAL_SOLICITADO
 
@@ -203,6 +203,8 @@ typedef struct{
 	char* nombre_recurso;
 	uint32_t instancias_asignadas;
 } t_recurso_asignado_a_proceso;
+
+
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 

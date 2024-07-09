@@ -16,13 +16,21 @@ typedef struct
 {
     uint32_t pid;
     t_instruccion *instruccion;
-} t_instruccion_bloqueada_en_io;
+} t_instruccionEnIo;
 
 
 typedef struct{
     pthread_mutex_t mutex;
     t_queue *cola;
 } t_cola_interfaz_io;
+
+typedef struct{
+    int valor_actual;
+    int valor_maximo;
+    sem_t contador;
+    pthread_mutex_t mutex_valor_actual;
+    pthread_mutex_t mutex_valor_maximo;
+} t_semaforo_contador;
 
 extern t_config *config_kernel;
 
@@ -70,7 +78,7 @@ extern pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 extern pthread_mutex_t mutex_flag_cpu_libre;
 extern pthread_mutex_t mutex_procesos_en_sistema;
 extern pthread_mutex_t mutex_cola_de_ready_plus;
-extern sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
+extern sem_t hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 extern t_queue *cola_procesos_ready;
 extern t_queue *cola_procesos_new;
 extern t_queue *cola_procesos_exit;
@@ -90,6 +98,11 @@ extern sem_t hay_proceso_exit;
 extern sem_t hay_proceso_nuevo;
 extern sem_t hay_proceso_a_ready_plus;
 extern pthread_t planificador_largo;
+extern uint8_t flag_planificar;
+extern pthread_mutex_t mutex_flag_planificar;
+extern pthread_mutex_t mutex_espacio_para_procesos;
+extern uint32_t espacio_para_procesos_disponible;
+extern t_semaforo_contador *semaforo_multi;
 
 // --------------------- FUNCIONES DE INICIO -------------------------
 void iniciar_semaforos();
@@ -125,12 +138,15 @@ void eliminacion_de_procesos();
 void *recibir_dispatch();
 void *verificar_quantum();
 void *verificar_quantum_vrr();
+void signal_contador(t_semaforo_contador *semaforo);
+void wait_contador(t_semaforo_contador *semaforo);
+void cambiar_grado(uint32_t nuevo_grado);
 
 // --------------------- FUNCIONES DE INTERFACES ENTRADA/SALIDA -------------------------
 bool interfaz_conectada(char *nombre_interfaz);
 bool esOperacionValida(t_identificador identificador, cod_interfaz tipo);
 void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion);
-void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io);
+void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO, t_interfaz_en_kernel *conexion_io);
 void atender_interfaz(char *nombre_interfaz);
 
 

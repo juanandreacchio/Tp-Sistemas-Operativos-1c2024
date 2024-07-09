@@ -41,7 +41,7 @@ void *recibir_dispatch()
 
             logear_bloqueo_proceso(pcb_actualizado->pid, nombre_io);
 
-            sem_post(&contador_grado_multiprogramacion);
+            signal_contador(semaforo_multi);
 
             // 1. La agregamos a la cola de blocks io. Ultima instrucción y PID
             t_instruccionEnIo *instruccion_en_io = malloc(sizeof(t_instruccionEnIo));
@@ -118,7 +118,7 @@ void *recibir_dispatch()
                 logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
 
                 sem_post(&cpu_libre);
-                sem_post(&contador_grado_multiprogramacion);
+                signal_contador(semaforo_multi);
             }
             else
             {
@@ -148,7 +148,7 @@ void *recibir_dispatch()
         case KILL_PROCESS:
             liberar_recursos(pcb_actualizado->pid);
 
-            sem_post(&contador_grado_multiprogramacion);
+            signal_contador(semaforo_multi);
             destruir_pcb(pcb_actualizado);
         default:
             break;

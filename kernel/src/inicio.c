@@ -48,7 +48,6 @@ void iniciar_diccionarios()
 
 void iniciar_semaforos()
 {
-    sem_init(&contador_grado_multiprogramacion, 0, 5);
     sem_init(&hay_proceso_a_ready, 0, 0);
     sem_init(&cpu_libre, 0, 1);
     sem_init(&arrancar_quantum, 0, 0);
@@ -68,12 +67,28 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_cola_de_exit, NULL);
     pthread_mutex_init(&mutex_procesos_en_sistema, NULL);
     pthread_mutex_init(&mutex_cola_de_ready_plus, NULL);
+    pthread_mutex_init(&mutex_flag_planificar, NULL);
+    iniciar_semaforo_contador(semaforo_multi, grado_multiprogramacion);
 }
 
-void iniciar_variables(){
+void iniciar_variables()
+{
     contador_pid = 0;
     ultimo_pcb_ejecutado = NULL;
     procesos_en_ready_plus = 0;
     planificar_ready_plus = 0;
+    flag_planificar = 0;
     nombre_entrada_salida_conectada = NULL;
+    espacio_para_procesos_disponible = grado_multiprogramacion;
+    semaforo_multi = malloc(sizeof(t_semaforo_contador));
+}
+
+void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_inicial)
+{
+    semaforo->valor_maximo = valor_inicial;
+    semaforo->valor_actual = valor_inicial;
+    sem_init(&semaforo->contador, 0, valor_inicial);
+    pthread_mutex_init(&semaforo->mutex_valor_actual, NULL);
+    pthread_mutex_init(&semaforo->mutex_valor_maximo, NULL);
+
 }
