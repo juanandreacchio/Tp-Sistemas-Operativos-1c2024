@@ -83,6 +83,7 @@ void iniciar_variables()
     planificar_ready_plus = 0;
     nombre_entrada_salida_conectada = NULL;
     semaforo_multi = malloc(sizeof(t_semaforo_contador));
+    planificacion_detenida = true;
 }
 
 void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_inicial)
@@ -92,4 +93,38 @@ void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_ini
     sem_init(&semaforo->contador, 0, valor_inicial);
     pthread_mutex_init(&semaforo->mutex_valor_actual, NULL);
     pthread_mutex_init(&semaforo->mutex_valor_maximo, NULL);
+}
+
+void destruir_semaforo_contador(t_semaforo_contador *semaforo)
+{
+    pthread_mutex_destroy(&semaforo->mutex_valor_actual);
+    pthread_mutex_destroy(&semaforo->mutex_valor_maximo);
+    free(semaforo);
+}
+
+void destruir_semaforos(){
+    sem_destroy(&hay_proceso_a_ready);
+    sem_destroy(&cpu_libre);
+    sem_destroy(&arrancar_quantum);
+    sem_destroy(&hay_proceso_nuevo);
+    sem_destroy(&hay_proceso_exit);
+    sem_destroy(&podes_revisar_lista_bloqueados);
+    sem_destroy(&podes_planificar_corto_plazo);
+    sem_destroy(&podes_crear_procesos);
+    sem_destroy(&podes_manejar_desalojo);
+    sem_destroy(&podes_eliminar_procesos);
+    pthread_mutex_destroy(&mutex_pid);
+    pthread_mutex_destroy(&mutex_cola_de_readys);
+    pthread_mutex_destroy(&mutex_lista_de_blocked);
+    pthread_mutex_destroy(&mutex_cola_de_new);
+    pthread_mutex_destroy(&mutex_proceso_en_ejecucion);
+    pthread_mutex_destroy(&mutex_interfaces_conectadas);
+    pthread_mutex_destroy(&mutex_cola_interfaces);
+    pthread_mutex_destroy(&mutex_diccionario_interfaces_de_semaforos);
+    pthread_mutex_destroy(&mutex_flag_cpu_libre);
+    pthread_mutex_destroy(&mutex_motivo_ultimo_desalojo);
+    pthread_mutex_destroy(&mutex_cola_de_exit);
+    pthread_mutex_destroy(&mutex_procesos_en_sistema);
+    pthread_mutex_destroy(&mutex_cola_de_ready_plus);
+    destruir_semaforo_contador(semaforo_multi);
 }

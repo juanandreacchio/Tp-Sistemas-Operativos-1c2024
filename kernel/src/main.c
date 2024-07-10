@@ -130,5 +130,7 @@ int main(void)
     }
 
     log_info(logger_kernel, "Se cerrará la conexión.");
+    
+    destruir_semaforos();
     terminar_programa(socket_servidor_kernel, logger_kernel, config_kernel);
 }

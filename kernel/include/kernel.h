@@ -113,6 +113,9 @@ void iniciar_recursos();
 void iniciar_variables();
 
 void *atender_cliente(void *socket_cliente);
+void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_inicial);
+void destruir_semaforo_contador(t_semaforo_contador *semaforo);
+void destruir_semaforos();
 
 // --------------------- FUNCIONES DE CONSOLA INTERACTIVA -------------------------
 void *iniciar_consola_interactiva();
