@@ -41,7 +41,11 @@ pthread_mutex_t mutex_flag_cpu_libre;
 pthread_mutex_t mutex_motivo_ultimo_desalojo;
 pthread_mutex_t mutex_procesos_en_sistema;
 pthread_mutex_t mutex_cola_de_ready_plus;
-sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
+pthread_mutex_t mutex_flag_planificar;
+sem_t podes_planificar_corto_plazo, podes_manejar_desalojo;
+sem_t podes_crear_procesos, podes_eliminar_procesos;
+sem_t hay_proceso_a_ready, cpu_libre, arrancar_quantum;
+sem_t podes_revisar_lista_bloqueados;
 pthread_mutex_t mutex_cola_de_exit;
 sem_t hay_proceso_exit;
 sem_t hay_proceso_nuevo;
@@ -59,8 +63,10 @@ pthread_t hilo_quantum;
 pthread_t planificador_largo_creacion;
 pthread_t planificador_largo_eliminacion;
 op_code motivo_ultimo_desalojo;
+bool planificacion_detenida;
 char **recursos;
 char **instancias_recursos;
+t_semaforo_contador *semaforo_multi;
 
 int grado_multiprogramacion;
 
@@ -109,7 +115,6 @@ int main(void)
 
     if(strcmp(algoritmo_planificacion, "VRR") == 0){
         log_info(logger_kernel, "iniciando contador de quantum");
-        cola_ready_plus = queue_create();
         tiempo_restante_de_quantum_por_proceso = dictionary_create();
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum_vrr, NULL);
         pthread_detach(hilo_quantum);
@@ -125,10 +130,8 @@ int main(void)
     }
 
     log_info(logger_kernel, "Se cerrará la conexión.");
+    
+    destruir_semaforos();
     terminar_programa(socket_servidor_kernel, logger_kernel, config_kernel);
 }
-
-
-
-
 

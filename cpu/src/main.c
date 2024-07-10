@@ -355,7 +355,6 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 {
     t_instruccion *instruccion = NULL;
     input_ouput_flag = 0;
-    interrupcion_recibida = NULL;
     while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1)
     {
         if (instruccion != NULL)
@@ -369,6 +368,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             break;
         }
         decode_y_execute_instruccion(instruccion, pcb);
+        
         if (check_interrupt(pcb->pid))
         {
             log_info(logger_cpu, "el chequeo de interrupcion encontro que hay una interrupcion");

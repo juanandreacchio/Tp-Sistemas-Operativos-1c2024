@@ -7,6 +7,12 @@ void *recibir_dispatch()
         op_code motivo_desalojo = recibir_motivo_desalojo(conexion_dispatch);
         t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
 
+        if (planificacion_detenida)
+        {
+            sem_wait(&podes_manejar_desalojo);
+        }
+        
+
         pthread_mutex_lock(&mutex_motivo_ultimo_desalojo);
         motivo_ultimo_desalojo = motivo_desalojo;
         pthread_mutex_unlock(&mutex_motivo_ultimo_desalojo);
@@ -52,8 +58,8 @@ void *recibir_dispatch()
 
             logear_bloqueo_proceso(pcb_actualizado->pid, nombre_io);
 
-            sem_post(&contador_grado_multiprogramacion);
-
+            signal_contador(semaforo_multi);
+            
             // 1. La agregamos a la cola de blocks io. datos necesarios para ahhacer el io y PID
             t_info_en_io *info_io = malloc(sizeof(t_info_en_io));
             buffer_read(respuesta_kernel->buffer,&info_io->tam_info,sizeof(u_int32_t));
@@ -80,6 +86,7 @@ void *recibir_dispatch()
             log_info(logger_kernel, "entre al fin de clock por dispatcher");
 
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
+            listar_procesos_en_ready();
             sem_post(&hay_proceso_a_ready);
 
             logear_cambio_estado(pcb_actualizado, EXEC, READY);
@@ -111,6 +118,7 @@ void *recibir_dispatch()
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                sem_post(&podes_revisar_lista_bloqueados);
                 sem_post(&cpu_libre);
                 break;
             }
@@ -130,12 +138,14 @@ void *recibir_dispatch()
                 logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
 
                 sem_post(&cpu_libre);
-                sem_post(&contador_grado_multiprogramacion);
+                signal_contador(semaforo_multi);
             }
             else
             {
                 setear_pcb_en_ejecucion(pcb_actualizado);
             }
+            sem_post(&podes_revisar_lista_bloqueados);
+
             break;
         case SIGNAL_SOLICITADO:
             t_paquete *respuesta_signal = recibir_paquete(conexion_dispatch);
@@ -158,7 +168,7 @@ void *recibir_dispatch()
         case KILL_PROCESS:
             liberar_recursos(pcb_actualizado->pid);
 
-            sem_post(&contador_grado_multiprogramacion);
+            signal_contador(semaforo_multi);
             destruir_pcb(pcb_actualizado);
         default:
             break;

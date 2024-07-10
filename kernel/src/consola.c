@@ -54,6 +54,20 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
+        FILE *archivo = fopen(consola[1], "r");
+        if (archivo == NULL)
+        {
+            log_error(logger_kernel, "No se pudo abrir el archivo");
+            exit(EXIT_FAILURE);
+        }
+        while (!feof(archivo))
+        {
+            char *linea = malloc(100);
+            fgets(linea, 100, archivo);
+            ejecutar_comando(linea);
+            free(linea);
+        }
+        fclose(archivo);
     }
     else if (strcmp(consola[0], "INICIAR_PROCESO") == 0)
     {
@@ -113,26 +127,27 @@ void ejecutar_comando(char *comando)
 
         liberar_recursos(pcb->pid);
 
-        sem_post(&contador_grado_multiprogramacion);
+        signal_contador(semaforo_multi);
         destruir_pcb(pcb);
     }
     else if (strcmp(consola[0], "MULTIPROGRAMACION") == 0)
     {
-        buffer_add(buffer, consola[1], string_length(consola[1]) + 1); //[valor]
-        // multiprogramacion(buffer);
+        uint32_t nuevo_grado = atoi(consola[1]);
+        cambiar_grado(nuevo_grado);
     }
     else if (strcmp(consola[0], "PROCESO_ESTADO") == 0)
     {
+        listar_procesos();
     }
-    // proceso_estado();
     else if (strcmp(consola[0], "DETENER_PLANIFICACION") == 0)
     {
+        planificacion_detenida = true;
     }
     // detener_planificacion();
     else if (strcmp(consola[0], "INICIAR_PLANIFICACION") == 0)
     {
+        iniciar_planificacion();
     }
-    // iniciar_planificacion();
     else
     {
         log_error(logger_kernel, "comando no reconocido, a pesar de que entro al while");

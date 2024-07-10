@@ -28,6 +28,7 @@ void iniciar_colas_de_estados_procesos()
     cola_procesos_ready = queue_create();
     cola_procesos_new = queue_create();
     cola_procesos_exit = queue_create();
+    cola_ready_plus = queue_create();
 }
 
 void iniciar_listas()
@@ -48,12 +49,16 @@ void iniciar_diccionarios()
 
 void iniciar_semaforos()
 {
-    sem_init(&contador_grado_multiprogramacion, 0, 5);
     sem_init(&hay_proceso_a_ready, 0, 0);
     sem_init(&cpu_libre, 0, 1);
     sem_init(&arrancar_quantum, 0, 0);
     sem_init(&hay_proceso_nuevo, 0, 0);
     sem_init(&hay_proceso_exit, 0, 0);
+    sem_init(&podes_revisar_lista_bloqueados, 0, 0);
+    sem_init(&podes_planificar_corto_plazo, 0, 0);
+    sem_init(&podes_crear_procesos, 0, 0);
+    sem_init(&podes_manejar_desalojo, 0, 0);
+    sem_init(&podes_eliminar_procesos, 0, 0);
     pthread_mutex_init(&mutex_pid, NULL);
     pthread_mutex_init(&mutex_cola_de_readys, NULL);
     pthread_mutex_init(&mutex_lista_de_blocked, NULL);
@@ -67,12 +72,59 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_cola_de_exit, NULL);
     pthread_mutex_init(&mutex_procesos_en_sistema, NULL);
     pthread_mutex_init(&mutex_cola_de_ready_plus, NULL);
+    iniciar_semaforo_contador(semaforo_multi, grado_multiprogramacion);
 }
 
-void iniciar_variables(){
+void iniciar_variables()
+{
     contador_pid = 0;
     ultimo_pcb_ejecutado = NULL;
     procesos_en_ready_plus = 0;
     planificar_ready_plus = 0;
     nombre_entrada_salida_conectada = NULL;
+    semaforo_multi = malloc(sizeof(t_semaforo_contador));
+    planificacion_detenida = true;
+}
+
+void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_inicial)
+{
+    semaforo->valor_maximo = valor_inicial;
+    semaforo->valor_actual = valor_inicial;
+    sem_init(&semaforo->contador, 0, valor_inicial);
+    pthread_mutex_init(&semaforo->mutex_valor_actual, NULL);
+    pthread_mutex_init(&semaforo->mutex_valor_maximo, NULL);
+}
+
+void destruir_semaforo_contador(t_semaforo_contador *semaforo)
+{
+    pthread_mutex_destroy(&semaforo->mutex_valor_actual);
+    pthread_mutex_destroy(&semaforo->mutex_valor_maximo);
+    free(semaforo);
+}
+
+void destruir_semaforos(){
+    sem_destroy(&hay_proceso_a_ready);
+    sem_destroy(&cpu_libre);
+    sem_destroy(&arrancar_quantum);
+    sem_destroy(&hay_proceso_nuevo);
+    sem_destroy(&hay_proceso_exit);
+    sem_destroy(&podes_revisar_lista_bloqueados);
+    sem_destroy(&podes_planificar_corto_plazo);
+    sem_destroy(&podes_crear_procesos);
+    sem_destroy(&podes_manejar_desalojo);
+    sem_destroy(&podes_eliminar_procesos);
+    pthread_mutex_destroy(&mutex_pid);
+    pthread_mutex_destroy(&mutex_cola_de_readys);
+    pthread_mutex_destroy(&mutex_lista_de_blocked);
+    pthread_mutex_destroy(&mutex_cola_de_new);
+    pthread_mutex_destroy(&mutex_proceso_en_ejecucion);
+    pthread_mutex_destroy(&mutex_interfaces_conectadas);
+    pthread_mutex_destroy(&mutex_cola_interfaces);
+    pthread_mutex_destroy(&mutex_diccionario_interfaces_de_semaforos);
+    pthread_mutex_destroy(&mutex_flag_cpu_libre);
+    pthread_mutex_destroy(&mutex_motivo_ultimo_desalojo);
+    pthread_mutex_destroy(&mutex_cola_de_exit);
+    pthread_mutex_destroy(&mutex_procesos_en_sistema);
+    pthread_mutex_destroy(&mutex_cola_de_ready_plus);
+    destruir_semaforo_contador(semaforo_multi);
 }

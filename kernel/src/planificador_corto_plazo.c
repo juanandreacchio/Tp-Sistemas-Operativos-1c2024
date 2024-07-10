@@ -4,6 +4,11 @@ void iniciar_planificador_corto_plazo()
 {
     while (1)
     {
+        if (planificacion_detenida)
+        {
+            sem_wait(&podes_planificar_corto_plazo);
+        }
+        
         sem_wait(&hay_proceso_a_ready);
         sem_wait(&cpu_libre);
 
@@ -67,6 +72,7 @@ void *verificar_quantum()
 
     while (1)
     {
+        
         sem_wait(&arrancar_quantum);
 
         pthread_mutex_lock(&mutex_flag_cpu_libre);
@@ -165,6 +171,7 @@ void *verificar_quantum_vrr()
                         log_info(logger_kernel, "DESALOJÉ POR IO");
                         break;
                     case WAIT_SOLICITADO:
+                        sem_wait(&podes_revisar_lista_bloqueados);
                         if (buscar_pcb_por_pid(ultimo_pcb_ejecutado->pid, lista_procesos_blocked) != NULL)
                         {
                             ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
@@ -206,6 +213,8 @@ void *verificar_quantum_vrr()
                         log_info(logger_kernel, "DESALOJÉ POR IO");
                         break;
                     case WAIT_SOLICITADO:
+                        sem_wait(&podes_revisar_lista_bloqueados);
+                        // x las dudas, voy a esperar si lo carga o no en la lista de bloqueados
                         if (buscar_pcb_por_pid(ultimo_pcb_ejecutado->pid, lista_procesos_blocked) != NULL)
                         {
                             ultimo_pcb_ejecutado->quantum = quantum - temporal_gettime(tiempo_transcurrido);
@@ -230,4 +239,12 @@ void *verificar_quantum_vrr()
     }
 
     return NULL;
+}
+
+void iniciar_planificacion(){
+    sem_post(&podes_planificar_corto_plazo);
+    sem_post(&podes_eliminar_procesos);
+    sem_post(&podes_manejar_desalojo);
+    sem_post(&podes_crear_procesos);
+    planificacion_detenida = false;
 }

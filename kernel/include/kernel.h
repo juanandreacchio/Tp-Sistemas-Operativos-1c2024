@@ -12,17 +12,21 @@
 #include <../include/utils.h>
 #include <semaphore.h>
 
-typedef struct
-{
-    uint32_t pid;
-    t_instruccion *instruccion;
-} t_instruccion_bloqueada_en_io;
+
 
 
 typedef struct{
     pthread_mutex_t mutex;
     t_queue *cola;
 } t_cola_interfaz_io;
+
+typedef struct{
+    int valor_actual;
+    int valor_maximo;
+    sem_t contador;
+    pthread_mutex_t mutex_valor_actual;
+    pthread_mutex_t mutex_valor_maximo;
+} t_semaforo_contador;
 
 extern t_config *config_kernel;
 
@@ -46,6 +50,8 @@ extern int grado_multiprogramacion;
 extern t_pcb *ultimo_pcb_ejecutado;
 extern uint32_t procesos_en_ready_plus;
 extern uint16_t planificar_ready_plus;
+extern sem_t podes_revisar_lista_bloqueados;
+
 
 
 extern t_dictionary *conexiones_io;
@@ -68,7 +74,7 @@ extern pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 extern pthread_mutex_t mutex_flag_cpu_libre;
 extern pthread_mutex_t mutex_procesos_en_sistema;
 extern pthread_mutex_t mutex_cola_de_ready_plus;
-extern sem_t contador_grado_multiprogramacion, hay_proceso_a_ready, cpu_libre, arrancar_quantum;
+extern sem_t hay_proceso_a_ready, cpu_libre, arrancar_quantum;
 extern t_queue *cola_procesos_ready;
 extern t_queue *cola_procesos_new;
 extern t_queue *cola_procesos_exit;
@@ -88,6 +94,14 @@ extern sem_t hay_proceso_exit;
 extern sem_t hay_proceso_nuevo;
 extern sem_t hay_proceso_a_ready_plus;
 extern pthread_t planificador_largo;
+extern uint8_t flag_planificar;
+extern pthread_mutex_t mutex_flag_planificar;
+extern t_semaforo_contador *semaforo_multi;
+extern sem_t podes_planificar_corto_plazo;
+extern sem_t podes_manejar_desalojo;
+extern sem_t podes_eliminar_procesos; 
+extern sem_t podes_crear_procesos;
+extern bool planificacion_detenida;
 
 // --------------------- FUNCIONES DE INICIO -------------------------
 void iniciar_semaforos();
@@ -99,11 +113,15 @@ void iniciar_recursos();
 void iniciar_variables();
 
 void *atender_cliente(void *socket_cliente);
+void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_inicial);
+void destruir_semaforo_contador(t_semaforo_contador *semaforo);
+void destruir_semaforos();
 
 // --------------------- FUNCIONES DE CONSOLA INTERACTIVA -------------------------
 void *iniciar_consola_interactiva();
 bool validar_comando(char *comando);
 void ejecutar_comando(char *comandoRecibido);
+void listar_procesos();
 // void ejecutar_script(t_buffer* buffer);
 
 // --------------------- FUNCIONES DE PCB -------------------------
@@ -113,7 +131,9 @@ void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista);
 void agregar_pcb_a_cola_bloqueados_de_recurso(t_pcb *pcb, char *nombre);
 void finalizar_pcb(t_pcb *pcb);
-
+void listar_procesos_en_ready();
+void listar_procesos_en_ready_plus();
+bool hay_proceso_ejecutandose();
 
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------
 void iniciar_planificador_corto_plazo();
@@ -123,12 +143,16 @@ void eliminacion_de_procesos();
 void *recibir_dispatch();
 void *verificar_quantum();
 void *verificar_quantum_vrr();
+void signal_contador(t_semaforo_contador *semaforo);
+void wait_contador(t_semaforo_contador *semaforo);
+void cambiar_grado(uint32_t nuevo_grado);
+void iniciar_planificacion();
 
 // --------------------- FUNCIONES DE INTERFACES ENTRADA/SALIDA -------------------------
 bool interfaz_conectada(char *nombre_interfaz);
 bool esOperacionValida(t_identificador identificador, cod_interfaz tipo);
 void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion);
-void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io);
+void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO, t_interfaz_en_kernel *conexion_io);
 void atender_interfaz(char *nombre_interfaz);
 
 

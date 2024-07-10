@@ -194,6 +194,12 @@ typedef struct
 	u_int32_t desplazamiento_necesario;
 } t_direc_fisica;
 
+typedef struct
+{
+    uint32_t pid;
+    t_instruccion *instruccion;
+} t_instruccionEnIo;
+
 typedef struct{
 	pthread_mutex_t mutex;
 	pthread_mutex_t mutex_cola_recurso;
@@ -204,6 +210,8 @@ typedef struct{
 	char* nombre_recurso;
 	uint32_t instancias_asignadas;
 } t_recurso_asignado_a_proceso;
+
+
 
 void terminar_programa(int conexion, t_log *logger, t_config *config);
 
