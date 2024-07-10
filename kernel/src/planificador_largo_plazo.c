@@ -24,9 +24,8 @@ void creacion_de_procesos()
         pthread_mutex_unlock(&mutex_cola_de_new);
 
         set_add_pcb_cola(pcb_ready, READY, cola_procesos_ready, mutex_cola_de_readys);
-        logear_cambio_estado(pcb_ready->pid, "NEW", "READY");
         listar_procesos_en_ready();
-        log_info(logger_kernel, "puse el pcb en ready y lo meti dentro de la cola de ready");
+        logear_cambio_estado(pcb_ready, NEW, READY);
 
         sem_post(&hay_proceso_a_ready);
     }

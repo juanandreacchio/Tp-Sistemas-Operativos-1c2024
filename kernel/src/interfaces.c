@@ -11,7 +11,7 @@ bool interfaz_conectada(char *nombre_interfaz)
     } else{
         return true;
     }
-    FALTA VER BIEN PARTE DE SI SIGUEN CONECTADOS */
+    TODO: FALTA VER BIEN PARTE DE SI SIGUEN CONECTADOS */
     return dictionary_has_key(conexiones_io, nombre_interfaz);
 }
 
@@ -67,11 +67,12 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
     pthread_detach(hilo_IO);
 }
 
-void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO, t_interfaz_en_kernel *conexion_io)
+void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io)
 {
     t_paquete *paquete = crear_paquete(EJECUTAR_IO);
-    paquete->buffer = serializar_instruccion(instruccionEnIO->instruccion);
+    buffer_add(paquete->buffer,info_io->info_necesaria,info_io->tam_info);
     enviar_paquete(paquete, conexion_io->conexion);
+    
 }
 
 void atender_interfaz(char *nombre_interfaz)
@@ -87,20 +88,20 @@ void atender_interfaz(char *nombre_interfaz)
         t_cola_interfaz_io *cola = dictionary_get(colas_blocks_io, nombre_interfaz);
 
         pthread_mutex_lock(&(cola->mutex));
-        t_instruccionEnIo *instruccion = queue_pop(cola->cola);
+        t_info_en_io *info_io = queue_pop(cola->cola);
         pthread_mutex_unlock(&(cola->mutex));
 
         pthread_mutex_unlock(&(semaforos_interfaz->mutex));
 
         t_interfaz_en_kernel *conexion_io = dictionary_get(conexiones_io, nombre_interfaz);
-        ejecutar_instruccion_io(nombre_interfaz, instruccion, conexion_io);
+        ejecutar_instruccion_io(nombre_interfaz, info_io, conexion_io);
 
         op_code resultado_operacion = recibir_operacion(conexion_io->conexion);
         switch (resultado_operacion)
         {
         case IO_SUCCESS:
             log_info(logger_kernel, "llegue a IO_SUCCESS");
-            t_pcb *pcb = buscar_pcb_por_pid(instruccion->pid, lista_procesos_blocked);
+            t_pcb *pcb = buscar_pcb_por_pid(info_io->pid, lista_procesos_blocked);
 
             pthread_mutex_lock(&mutex_lista_de_blocked);
             list_remove_element(lista_procesos_blocked, pcb);
@@ -108,8 +109,9 @@ void atender_interfaz(char *nombre_interfaz)
 
             if (pcb != NULL)
             {
+
                 wait_contador(semaforo_multi);
-                if (pcb->quantum > 0)
+                if (pcb->quantum > 0 && strcmp(algoritmo_planificacion,"VRR") == 0)
                 {
                     set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
                     logear_cambio_estado(pcb, BLOCKED, READY);

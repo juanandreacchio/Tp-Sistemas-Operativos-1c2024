@@ -134,3 +134,4 @@ int main(void)
     destruir_semaforos();
     terminar_programa(socket_servidor_kernel, logger_kernel, config_kernel);
 }
+

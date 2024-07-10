@@ -74,11 +74,14 @@ bool existe_recurso(char *nombre)
 
 void liberar_recursos(uint32_t pid)
 {
-    t_dictionary *recursos_asignados = dictionary_get(recursos_asignados_por_proceso, (void *)(intptr_t)pid);
+
+    t_dictionary *recursos_asignados = dictionary_get(recursos_asignados_por_proceso, number_to_string(pid));
+
     t_list *recursos_asignados_lista = dictionary_elements(recursos_asignados);
     for (int i = 0; i < list_size(recursos_asignados_lista); i++)
     {
         t_recurso_asignado_a_proceso *recurso_asignado = list_get(recursos_asignados_lista, i);
+        log_info(logger_kernel, "Se liberan %d instancias de %s", recurso_asignado->instancias_asignadas, recurso_asignado->nombre_recurso);
         for (size_t i = 0; i < recurso_asignado->instancias_asignadas; i++)
         {
             sumar_instancia_a_recurso(recurso_asignado->nombre_recurso);
@@ -88,7 +91,8 @@ void liberar_recursos(uint32_t pid)
 
 void retener_instancia_de_recurso(char *nombre_recurso, uint32_t pid)
 {
-    t_dictionary *recursos = dictionary_get(recursos_asignados_por_proceso, (void *)(intptr_t)pid);
+
+    t_dictionary *recursos = dictionary_get(recursos_asignados_por_proceso, number_to_string(pid));
     if (!dictionary_has_key(recursos, nombre_recurso))
     {
         dictionary_put(recursos, nombre_recurso, (void *)1);

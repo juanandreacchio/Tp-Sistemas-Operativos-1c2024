@@ -4,7 +4,9 @@
 #include <stdio.h>
 #include <utils/hello.h>
 #include <../include/utils.h>
-
+#include <../include/utils.h>
+#include <sys/time.h>
+#include <time.h>
 
 #ifndef CPU_H_
 #define CPU_H_
@@ -24,6 +26,19 @@ extern t_interrupcion *interrupcion_recibida;
 extern u_int8_t interruption_flag;
 extern u_int8_t end_process_flag;
 extern u_int8_t input_ouput_flag;
+
+typedef struct {
+    u_int32_t id_proceso;
+    u_int32_t numero_pagina;
+    u_int32_t numero_marco;
+    struct timeval tiempo_creacion;
+    struct timeval ultimo_acceso;
+} entrada_tlb;
+
+typedef struct {
+    uint32_t numero_pagina;
+    t_direc_fisica* direc_fisica;
+} t_pagina_direccion;
 
 
 // ------------------------- FUNCIONES DE INICIO ---------------------------
@@ -58,6 +73,17 @@ void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor);
 void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion);
 void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos);
 void copy_string(t_pcb *pcb, size_t tamanio);
+
 //--------------------MMU----------------------------
 t_list *traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio);
+bool comparar_paginas(void* a, void* b);
+
+//-----------------------TLB-----------------------------
+void agregar_entrada_tlb(u_int32_t id_proceso, u_int32_t numero_pagina, u_int32_t numero_marco);
+void liberar_entrada_tlb(entrada_tlb* entrada);
+void reemplazo_tlb(int id_proceso, int numero_pagina, int numero_marco);
+bool comparar_ultimo_acceso(void* primera_entrada, void* segunda_entrada);
+int buscar_en_tlb(int numero_pagina, int id_proceso);
+void reemplazo_fifo();
+void reemplazo_lru();
 #endif
