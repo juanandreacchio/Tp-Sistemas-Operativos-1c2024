@@ -13,6 +13,10 @@ void creacion_de_procesos()
 {
     while (1)
     {
+        if (planificacion_detenida)
+        {
+            sem_wait(&podes_crear_procesos);
+        }
         sem_wait(&hay_proceso_nuevo);
         wait_contador(semaforo_multi);
         pthread_mutex_lock(&mutex_cola_de_new);
@@ -32,6 +36,10 @@ void eliminacion_de_procesos()
 {
     while (1)
     {
+        if (planificacion_detenida)
+        {
+            sem_wait(&podes_eliminar_procesos);
+        }
         sem_wait(&hay_proceso_exit);
         pthread_mutex_lock(&mutex_cola_de_exit);
         t_pcb *pcb_exit = queue_pop(cola_procesos_exit);

@@ -7,6 +7,12 @@ void *recibir_dispatch()
         op_code motivo_desalojo = recibir_motivo_desalojo(conexion_dispatch);
         t_pcb *pcb_actualizado = recibir_pcb(conexion_dispatch);
 
+        if (planificacion_detenida)
+        {
+            sem_wait(&podes_manejar_desalojo);
+        }
+        
+
         pthread_mutex_lock(&mutex_motivo_ultimo_desalojo);
         motivo_ultimo_desalojo = motivo_desalojo;
         pthread_mutex_unlock(&mutex_motivo_ultimo_desalojo);

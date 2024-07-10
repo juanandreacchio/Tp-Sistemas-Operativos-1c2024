@@ -141,12 +141,13 @@ void ejecutar_comando(char *comando)
     }
     else if (strcmp(consola[0], "DETENER_PLANIFICACION") == 0)
     {
+        planificacion_detenida = true;
     }
     // detener_planificacion();
     else if (strcmp(consola[0], "INICIAR_PLANIFICACION") == 0)
     {
+        iniciar_planificacion();
     }
-    // iniciar_planificacion();
     else
     {
         log_error(logger_kernel, "comando no reconocido, a pesar de que entro al while");

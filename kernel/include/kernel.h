@@ -96,9 +96,12 @@ extern sem_t hay_proceso_a_ready_plus;
 extern pthread_t planificador_largo;
 extern uint8_t flag_planificar;
 extern pthread_mutex_t mutex_flag_planificar;
-extern pthread_mutex_t mutex_espacio_para_procesos;
-extern uint32_t espacio_para_procesos_disponible;
 extern t_semaforo_contador *semaforo_multi;
+extern sem_t podes_planificar_corto_plazo;
+extern sem_t podes_manejar_desalojo;
+extern sem_t podes_eliminar_procesos; 
+extern sem_t podes_crear_procesos;
+extern bool planificacion_detenida;
 
 // --------------------- FUNCIONES DE INICIO -------------------------
 void iniciar_semaforos();
@@ -140,6 +143,7 @@ void *verificar_quantum_vrr();
 void signal_contador(t_semaforo_contador *semaforo);
 void wait_contador(t_semaforo_contador *semaforo);
 void cambiar_grado(uint32_t nuevo_grado);
+void iniciar_planificacion();
 
 // --------------------- FUNCIONES DE INTERFACES ENTRADA/SALIDA -------------------------
 bool interfaz_conectada(char *nombre_interfaz);
