@@ -10,23 +10,23 @@ void enviar_tamanio_pagina(int socket)
 // Inicializa la memoria principal con el tamaño de la misma pasado por configuración
 void inicializar_memoria_principal(){
     memoria_principal = malloc(TAM_MEMORIA);
-    inicializar_bitarray(TAM_MEMORIA / TAM_PAGINA);
     if (memoria_principal == NULL) {
         printf("Error: no se pudo asignar memoria para la memoria principal\n");
         exit(1);
     }
+    inicializar_bitarray(TAM_MEMORIA / TAM_PAGINA);
 }
 
 // Funcion para liberar la memoria principal
 void liberar_memoria_principal() {
     free(memoria_principal);
 }
-
+/*
 // Obtener direccion fisica de memoria
 void* obtener_direccion_fisica(int numero_marco) {
     return memoria_principal + numero_marco * TAM_PAGINA;
 }
-
+*/
 // Funcion para obtener el primer marco libre
 int obtener_primer_marco_libre() {
     for (int i = 0; i < TAM_MEMORIA / TAM_PAGINA; i++) {
@@ -39,7 +39,17 @@ int obtener_primer_marco_libre() {
 void inicializar_bitarray(size_t size) {
     int bytes = (size + 7) / 8;  // Convertir el tamaño a bytes
     void *bitarray_mem = malloc(bytes);
+    if (bitarray_mem == NULL) {
+        printf("Error: no se pudo asignar memoria para el bitarray\n");
+        exit(1);
+    }
     marcos_ocupados = bitarray_create_with_mode(bitarray_mem, bytes, LSB_FIRST);
+    if (marcos_ocupados == NULL) {
+        printf("Error: no se pudo crear el bitarray\n");
+        free(bitarray_mem);
+        exit(1);
+    }
+    memset(bitarray_mem, 0, bytes);  // Inicializar todos los bits a 0 (marcos libres)
 }
 
 // Función para destruir el bitarray

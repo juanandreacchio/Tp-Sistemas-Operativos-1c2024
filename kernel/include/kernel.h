@@ -142,6 +142,6 @@ void sumar_instancia_a_recurso(char *nombre);
 
 // ---------------------- FUNCIONES DE LOGS --------------------------
 void logear_bloqueo_proceso(uint32_t pid, char* motivo);
-void logear_cambio_estado(uint32_t pid, char* estado_anterior, char * estado_actual);
+void logear_cambio_estado(t_pcb *pcb, estados estado_anterior, estados estado_actual);
 
 #endif

@@ -163,19 +163,29 @@ void *atender_cliente(void *socket_cliente)
             list_remove(procesos_en_memoria, posicion_proceso(procesos_en_memoria, pid));
             break;
             }
-        case ACCESO_TABLA_PAGINAS: {
-            log_info(logger_memoria, "Se recibio un mensaje para acceder a la tabla de paginas");
-            uint32_t pid, pagina, num_paginas;
+        case ACCESO_TABLA_PAGINAS: 
+            {
+            log_info(logger_memoria, "Se recibió un mensaje para acceder a la tabla de páginas");
+            uint32_t pid, num_paginas;
             buffer_read(buffer, &pid, sizeof(uint32_t));
-            buffer_read(buffer, &pagina, sizeof(uint32_t));
             buffer_read(buffer, &num_paginas, sizeof(uint32_t));
+            
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
             t_paquete *paquete_respuesta = crear_paquete(ACCESO_TABLA_PAGINAS);
 
             for (uint32_t i = 0; i < num_paginas; i++) {
-                t_pagina *pag = list_get(proceso->tabla_paginas, pagina + i);
-                uint32_t nro_marco = pag->numero_marco;
-                buffer_add(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
+                uint32_t numero_pagina;
+                buffer_read(buffer, &numero_pagina, sizeof(uint32_t));
+                
+                t_pagina *pag = list_get(proceso->tabla_paginas, numero_pagina);
+                if (pag == NULL) {
+                    log_error(logger_memoria, "Error: La página solicitada no existe en la tabla de páginas del proceso %d", pid);
+                    uint32_t nro_marco_invalido = -1;
+                    buffer_add(paquete_respuesta->buffer, &nro_marco_invalido, sizeof(uint32_t));
+                } else {
+                    uint32_t nro_marco = pag->numero_marco;
+                    buffer_add(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
+                }
             }
 
             enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
@@ -196,7 +206,7 @@ void *atender_cliente(void *socket_cliente)
                 int paginas_a_agregar = nuevo_tamanio - tamanio_actual;
                 for (int i = 0; i < paginas_a_agregar; i++)
                 {
-                    if (!hay_memoria_disponible()) {
+                    if (obtener_primer_marco_libre()==-1) {
                         enviar_codigo_operacion(OUT_OF_MEMORY, (int)(long int)socket_cliente);
                         break;
                     }
@@ -274,23 +284,4 @@ void *atender_cliente(void *socket_cliente)
 
     log_info(logger_memoria, "SALE DEL WHILE");
     return NULL;
-}
-
-// Funcion para inicializar el bitarray de marcos ocupados
-void inicializar_marcos_ocupados() {
-    int cantidad_marcos = TAM_MEMORIA / TAM_PAGINA;
-    marcos_ocupados = bitarray_create_with_mode(memoria_principal, cantidad_marcos, LSB_FIRST);
-    if (marcos_ocupados == NULL) {
-        printf("Error: no se pudo asignar memoria para el bitarray de marcos ocupados\n");
-        exit(1);
-    }
-}
-
-bool hay_memoria_disponible() {
-    for (int i = 0; i < TAM_MEMORIA / TAM_PAGINA; i++) {
-        if (!bitarray_test_bit(marcos_ocupados, i)) {
-            return true;
-        }
-    }
-    return false;
 }

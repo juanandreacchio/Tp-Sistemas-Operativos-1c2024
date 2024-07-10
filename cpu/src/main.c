@@ -8,11 +8,13 @@ char *ip_memoria;
 char *puerto_memoria;
 char *puerto_dispatch;
 char *puerto_interrupt;
+char *algoritmo_tlb;
 u_int32_t conexion_memoria, conexion_kernel_dispatch, conexion_kernel_interrupt, tamanio_de_pagina;
-int socket_servidor_dispatch, socket_servidor_interrupt;
+int socket_servidor_dispatch, socket_servidor_interrupt,cant_entradas_tlb;
 pthread_t hilo_dispatch, hilo_interrupt;
 t_registros registros_cpu;
 t_interrupcion *interrupcion_recibida = NULL; // Inicializa a NULL
+t_list* TLB;
 
 //------------------------variables globales----------------
 u_int8_t interruption_flag;
@@ -25,6 +27,7 @@ int main(void)
 {
     iniciar_config();
     inicializar_flags();
+    TLB = list_create();
 
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_cpu);
     enviar_mensaje("", conexion_memoria, CPU, logger_cpu);
@@ -51,6 +54,8 @@ void iniciar_config()
     puerto_dispatch = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_DISPATCH");
     puerto_memoria = config_get_string_value(config_cpu, "PUERTO_MEMORIA");
     puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
+    algoritmo_tlb = config_get_string_value(config_cpu, "ALGORITMO_TLB");
+    cant_entradas_tlb = config_get_int_value(config_cpu, "CANTIDAD_ENTRADAS_TLB");
 }
 
 void inicializar_flags()
@@ -171,6 +176,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     {
     case SET:{
         set_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+        
         break;
         }
     case MOV_IN:{
@@ -212,7 +218,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         buffer_add(paquete->buffer,&instruccion->identificador,sizeof(t_identificador));
         buffer_add(paquete->buffer,&instruccion->param1_length,sizeof(u_int32_t));
         buffer_add(paquete->buffer,instruccion->parametros[0],instruccion->param1_length);
-        u_int32_t tam_a_enviar = sizeof(t_direc_fisica)  * list_size(direc_fisicas) + sizeof(u_int32_t)*2;
+        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica)-sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t)*2;
         buffer_add(paquete->buffer,&tam_a_enviar,sizeof(u_int32_t));
         enviar_soli_lectura(paquete,direc_fisicas,tamanio,conexion_kernel_dispatch);
 
@@ -232,7 +238,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         buffer_add(paquete->buffer,&instruccion->identificador,sizeof(t_identificador));
         buffer_add(paquete->buffer,&instruccion->param1_length,sizeof(u_int32_t));
         buffer_add(paquete->buffer,instruccion->parametros[0],instruccion->param1_length);
-        u_int32_t tam_a_enviar = sizeof(t_direc_fisica)  * list_size(direc_fisicas) + sizeof(u_int32_t)*2;
+        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica)-sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t)*2;
         buffer_add(paquete->buffer,&tam_a_enviar,sizeof(u_int32_t));
         enviar_soli_lectura(paquete,direc_fisicas,tamanio,conexion_kernel_dispatch);
 
@@ -294,7 +300,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         copy_string(pcb,tamanio);
         break;
         }
-    case WAIT:
+    case WAIT:{
         enviar_motivo_desalojo(WAIT_SOLICITADO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -302,7 +308,8 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         paquete->buffer = serializar_instruccion(instruccion);
         enviar_paquete(paquete, conexion_kernel_dispatch);
         break;
-    case SIGNAL:
+    }  
+    case SIGNAL:{
         enviar_motivo_desalojo(SIGNAL_SOLICITADO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -310,6 +317,8 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         paquete->buffer = serializar_instruccion(instruccion);
         enviar_paquete(paquete, conexion_kernel_dispatch);
         break;
+    }
+        
     case EXIT:{
         end_process_flag = 1;
         break;
@@ -827,43 +836,164 @@ void copy_string(t_pcb *pcb, size_t tamanio) {
 }
 
 //--------------------MMU----------------------------
-t_list *traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio) {
-    uint32_t numero_pagina = floor(DL / tamanio_de_pagina);
-    uint32_t desplazamiento = DL - numero_pagina * tamanio_de_pagina;
+t_list* traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio) {
+    uint32_t numero_pagina = DL / tamanio_de_pagina;
+    uint32_t desplazamiento = DL % tamanio_de_pagina;
     uint32_t num_paginas = (desplazamiento + tamanio + tamanio_de_pagina - 1) / tamanio_de_pagina;
 
-    t_paquete *paquete_solicitud = crear_paquete(ACCESO_TABLA_PAGINAS);
-    buffer_add(paquete_solicitud->buffer, &pid, sizeof(uint32_t));
-    buffer_add(paquete_solicitud->buffer, &numero_pagina, sizeof(uint32_t));
-    buffer_add(paquete_solicitud->buffer, &num_paginas, sizeof(uint32_t));
-    enviar_paquete(paquete_solicitud, conexion_memoria);
-    eliminar_paquete(paquete_solicitud);
-
-    t_paquete *paquete_respuesta = recibir_paquete(conexion_memoria);
-    if (paquete_respuesta->codigo_operacion != ACCESO_TABLA_PAGINAS) {
-        log_error(logger_cpu, "Error: código de operación inesperado al recibir los marcos de memoria");
-        eliminar_paquete(paquete_respuesta);
-        return NULL;
-    }
-
-    t_list *direcciones_fisicas = list_create();
-    paquete_respuesta->buffer->offset = 0;
+    t_list* direcciones_fisicas = list_create();
     size_t tamanio_restante = tamanio;
 
+    t_list* paginas_a_traducir = list_create();
     for (uint32_t i = 0; i < num_paginas; i++) {
-        uint32_t nro_marco;
-        buffer_read(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
-        log_info(logger_cpu,"nro_marco: %d",nro_marco);
-        t_direc_fisica *direc = malloc(sizeof(t_direc_fisica));
-        direc->direccion_fisica = nro_marco * tamanio_de_pagina + ((i == 0) ? desplazamiento : 0);
+        uint32_t pagina_actual = numero_pagina + i;
+        int marco = buscar_en_tlb(pagina_actual, pid);
+        t_direc_fisica* direc = malloc(sizeof(t_direc_fisica));
+        direc->num_pag = pagina_actual;
+
+        if (marco != -1) {
+            //log_info(logger_cpu, "TLB HIT: Página %d, Marco %d", pagina_actual, marco);
+            direc->direccion_fisica = marco * tamanio_de_pagina + ((i == 0) ? desplazamiento : 0);
+        } else {
+            //log_info(logger_cpu, "TLB MISS: Página %d", pagina_actual);
+            uint32_t* pagina_a_traducir = malloc(sizeof(uint32_t));
+            *pagina_a_traducir = pagina_actual;
+            list_add(paginas_a_traducir, pagina_a_traducir);
+        }
+
         size_t espacio_disponible = (i == 0) ? (tamanio_de_pagina - desplazamiento) : tamanio_de_pagina;
         direc->desplazamiento_necesario = (tamanio_restante < espacio_disponible) ? tamanio_restante : espacio_disponible;
         tamanio_restante -= direc->desplazamiento_necesario;
         list_add(direcciones_fisicas, direc);
     }
 
-    eliminar_paquete(paquete_respuesta);
+    if (list_size(paginas_a_traducir) > 0) {
+        t_paquete* paquete_solicitud = crear_paquete(ACCESO_TABLA_PAGINAS);
+        buffer_add(paquete_solicitud->buffer, &pid, sizeof(uint32_t));
+        uint32_t cantidad_paginas = list_size(paginas_a_traducir);
+        buffer_add(paquete_solicitud->buffer, &cantidad_paginas, sizeof(uint32_t));
+
+        for (int i = 0; i < list_size(paginas_a_traducir); i++) {
+            uint32_t* pagina_actual = (uint32_t*)list_get(paginas_a_traducir, i);
+            buffer_add(paquete_solicitud->buffer, pagina_actual, sizeof(uint32_t));
+        }
+
+        enviar_paquete(paquete_solicitud, conexion_memoria);
+        eliminar_paquete(paquete_solicitud);
+
+        t_paquete* paquete_respuesta = recibir_paquete(conexion_memoria);
+        if (paquete_respuesta->codigo_operacion != ACCESO_TABLA_PAGINAS) {
+            log_error(logger_cpu, "Error: código de operación inesperado al recibir los marcos de memoria");
+            eliminar_paquete(paquete_respuesta);
+            list_destroy_and_destroy_elements(direcciones_fisicas, free);
+            list_destroy_and_destroy_elements(paginas_a_traducir, free);
+            return NULL;
+        }
+
+        paquete_respuesta->buffer->offset = 0;
+        for (int i = 0; i < list_size(paginas_a_traducir); i++) {
+            uint32_t nro_marco;
+            buffer_read(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
+            uint32_t* pagina_actual = (uint32_t*)list_get(paginas_a_traducir, i);
+            reemplazo_tlb(pid, *pagina_actual, nro_marco);
+
+            for (int j = 0; j < list_size(direcciones_fisicas); j++) {
+                t_direc_fisica* direc = (t_direc_fisica*)list_get(direcciones_fisicas, j);
+                if (direc->num_pag == *pagina_actual) {
+                    direc->direccion_fisica = nro_marco * tamanio_de_pagina + ((direc->num_pag == numero_pagina) ? desplazamiento : 0);
+                    break;
+                }
+            }
+        }
+
+        eliminar_paquete(paquete_respuesta);
+    }
+
+    list_destroy_and_destroy_elements(paginas_a_traducir, free);
+
+    list_sort(direcciones_fisicas, (void*) comparar_paginas);
     return direcciones_fisicas;
 }
 
+bool comparar_paginas(void* a, void* b) {
+    t_direc_fisica* direc_a = (t_direc_fisica*)a;
+    t_direc_fisica* direc_b = (t_direc_fisica*)b;
+    return direc_a->num_pag < direc_b->num_pag;
+}
+//-----------------------TLB-----------------------------
+void agregar_entrada_tlb(u_int32_t id_proceso, u_int32_t numero_pagina, u_int32_t numero_marco) {
+    entrada_tlb *nueva_entrada = malloc(sizeof(entrada_tlb));
+    struct timeval tiempo_actual;
+    gettimeofday(&tiempo_actual, NULL);
 
+    nueva_entrada->id_proceso = id_proceso;
+    nueva_entrada->numero_pagina = numero_pagina;
+    nueva_entrada->numero_marco = numero_marco;
+    nueva_entrada->tiempo_creacion = tiempo_actual;
+    nueva_entrada->ultimo_acceso = tiempo_actual;
+
+    list_add(TLB, nueva_entrada);
+    log_info(logger_cpu, "Entrada TLB agregada");
+}
+
+void liberar_entrada_tlb(entrada_tlb* entrada) {
+    free(entrada);
+}
+
+void reemplazo_tlb(int id_proceso, int numero_pagina, int numero_marco) {
+    if (cant_entradas_tlb == 0) {
+        log_info(logger_cpu, "La cantidad de entradas de la TLB es 0");
+        return;
+    }
+    if (list_size(TLB) < cant_entradas_tlb) {
+        agregar_entrada_tlb(id_proceso, numero_pagina, numero_marco);
+        log_info(logger_cpu, "Agrege una entrada a la TLB");
+    } else {
+        if (strcmp(algoritmo_tlb, "FIFO") == 0) {
+            reemplazo_fifo();
+        } else if (strcmp(algoritmo_tlb, "LRU") == 0) {
+            reemplazo_lru();
+        }
+
+        agregar_entrada_tlb(id_proceso, numero_pagina, numero_marco);
+        log_info(logger_cpu, "Remplace una entrada a la TLB");
+    }
+}
+
+bool comparar_ultimo_acceso(void* primera_entrada, void* segunda_entrada) {
+    entrada_tlb* entrada1 = (entrada_tlb*)primera_entrada;
+    entrada_tlb* entrada2 = (entrada_tlb*)segunda_entrada;
+
+    if (entrada1->ultimo_acceso.tv_sec == entrada2->ultimo_acceso.tv_sec) {
+        return (entrada1->ultimo_acceso.tv_usec < entrada2->ultimo_acceso.tv_usec);
+    }
+    return (entrada1->ultimo_acceso.tv_sec < entrada2->ultimo_acceso.tv_sec);
+}
+
+int buscar_en_tlb(int numero_pagina, int id_proceso) {
+    for (int i = 0; i < list_size(TLB); i++) {
+        entrada_tlb* entrada = (entrada_tlb*)list_get(TLB, i);
+
+        if ((entrada->numero_pagina == numero_pagina) && (entrada->id_proceso == id_proceso)) {
+            struct timeval tiempo_actual;
+            gettimeofday(&tiempo_actual, NULL);
+            entrada->ultimo_acceso = tiempo_actual;
+
+            log_info(logger_cpu, "PID: %d - TLB HIT - Pagina: %d", id_proceso, numero_pagina);
+            return entrada->numero_marco;
+        }
+    }
+    log_info(logger_cpu, "PID: %d - TLB MISS - Pagina: %d", id_proceso, numero_pagina);
+    return -1;
+}
+
+// Reemplazo FIFO
+void reemplazo_fifo() {
+    list_remove_and_destroy_element(TLB, 0, (void*)liberar_entrada_tlb);
+}
+
+// Reemplazo LRU
+void reemplazo_lru() {
+    list_sort(TLB, comparar_ultimo_acceso);
+    list_remove_and_destroy_element(TLB, 0, (void*)liberar_entrada_tlb);
+}

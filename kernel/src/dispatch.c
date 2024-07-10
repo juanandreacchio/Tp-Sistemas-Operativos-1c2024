@@ -17,23 +17,34 @@ void *recibir_dispatch()
         {
         case OPERACION_IO:
             t_paquete *respuesta_kernel = recibir_paquete(conexion_dispatch);
-            t_instruccion *utlima_instruccion = instruccion_deserializar(respuesta_kernel->buffer, 0);
+            u_int32_t nombre_length;
+            t_identificador identificador;
+            buffer_read(respuesta_kernel->buffer,&identificador,sizeof(t_identificador));
+            buffer_read(respuesta_kernel->buffer,&nombre_length,sizeof(u_int32_t));
+            char *nombre_io = malloc(nombre_length + 1);
+            buffer_read(respuesta_kernel->buffer, nombre_io, nombre_length);
 
-            char *nombre_io = utlima_instruccion->parametros[0];
             if (!interfaz_conectada(nombre_io))
             {
                 log_error(logger_kernel, "La interfaz %s no está conectada", nombre_io);
                 exit(EXIT_FAILURE);
             }
             t_interfaz_en_kernel *interfaz = dictionary_get(conexiones_io, nombre_io);
-            if (!esOperacionValida(utlima_instruccion->identificador, interfaz->tipo_interfaz))
+            if (!esOperacionValida(identificador, interfaz->tipo_interfaz))
             {
-                log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", utlima_instruccion->identificador, nombre_io);
+                log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", identificador, nombre_io);
                 exit(EXIT_FAILURE);
             }
 
+            //esto va?
+            pthread_mutex_lock(&mutex_proceso_en_ejecucion);
+            pcb_en_ejecucion = NULL;
+            pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
+
+
             pcb_actualizado->estado_actual = BLOCKED;
-            logear_cambio_estado(pcb_actualizado->pid, "EXEC", "BLOCKED");
+            logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
+
 
             pthread_mutex_lock(&mutex_lista_de_blocked);
             list_add(lista_procesos_blocked, pcb_actualizado);
@@ -43,15 +54,17 @@ void *recibir_dispatch()
 
             sem_post(&contador_grado_multiprogramacion);
 
-            // 1. La agregamos a la cola de blocks io. Ultima instrucción y PID
-            t_instruccionEnIo *instruccion_en_io = malloc(sizeof(t_instruccionEnIo));
-            instruccion_en_io->instruccion_io = utlima_instruccion;
-            instruccion_en_io->pid = pcb_actualizado->pid;
+            // 1. La agregamos a la cola de blocks io. datos necesarios para ahhacer el io y PID
+            t_info_en_io *info_io = malloc(sizeof(t_info_en_io));
+            buffer_read(respuesta_kernel->buffer,&info_io->tam_info,sizeof(u_int32_t));
+            info_io->info_necesaria = malloc(info_io->tam_info);
+            buffer_read(respuesta_kernel->buffer,info_io->info_necesaria,info_io->tam_info);
+            info_io->pid = pcb_actualizado->pid;
 
             t_cola_interfaz_io *cola_interfaz = dictionary_get(colas_blocks_io, nombre_io);
 
             pthread_mutex_lock(&cola_interfaz->mutex);
-            queue_push(cola_interfaz->cola, instruccion_en_io);
+            queue_push(cola_interfaz->cola, info_io);
             pthread_mutex_unlock(&cola_interfaz->mutex);
 
             t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_io);
@@ -69,7 +82,7 @@ void *recibir_dispatch()
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             sem_post(&hay_proceso_a_ready);
 
-            logear_cambio_estado(pcb_actualizado->pid, "EXEC", "READY");
+            logear_cambio_estado(pcb_actualizado, EXEC, READY);
 
             sem_post(&cpu_libre);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
@@ -108,7 +121,7 @@ void *recibir_dispatch()
                 agregar_pcb_a_cola_bloqueados_de_recurso(pcb_actualizado, recurso_solicitado);
 
                 pcb_actualizado->estado_actual = BLOCKED;
-                logear_cambio_estado(pcb_actualizado->pid, "EXEC", "BLOCKED");
+                logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
 
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;

@@ -56,7 +56,7 @@ typedef enum
 	OK,
 	MEMORIA_LEIDA,
 	PAGINA_A_MARCO,
-	MARCO
+	MARCO,
 	WAIT_SOLICITADO,
 	SIGNAL_SOLICITADO
 
@@ -189,6 +189,7 @@ typedef struct
 
 typedef struct
 {
+	u_int32_t num_pag;
 	u_int32_t direccion_fisica;
 	u_int32_t desplazamiento_necesario;
 } t_direc_fisica;
@@ -258,4 +259,5 @@ op_code tipo_interfaz_to_cod_op(cod_interfaz tipo);
 void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket);
 void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket);
 char* estado_to_string(estados estado);
+char* number_to_string(int number);
 #endif /* UTILS_H_ */
