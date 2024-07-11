@@ -79,7 +79,7 @@ void *atender_cliente(void *socket_cliente)
     {
 
         paquete = recibir_paquete((int)(long int)socket_cliente);
-        
+
         if (paquete == NULL)
         {
             log_info(logger_memoria, "Se desconecto el cliente");
@@ -98,23 +98,23 @@ void *atender_cliente(void *socket_cliente)
         switch (codigo_operacion)
         {
         case KERNEL:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje del modulo KERNEL");
             break;
-            }
+        }
         case CPU:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje del modulo CPU");
             enviar_tamanio_pagina((int)(long int)socket_cliente);
             break;
-            }
+        }
         case ENTRADA_SALIDA:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje del modulo ENTRADA_SALIDA");
             break;
-            }
+        }
         case SOLICITUD_INSTRUCCION:
-            {
+        {
             log_info(logger_memoria, "Se recibio una solicitud de instruccion");
             t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
 
@@ -127,18 +127,18 @@ void *atender_cliente(void *socket_cliente)
             paquete = crear_paquete(INSTRUCCION);
             agregar_instruccion_a_paquete(paquete, instruccion);
 
-            //t_buffer *buffer_prueba = paquete->buffer;
-            //t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
+            // t_buffer *buffer_prueba = paquete->buffer;
+            // t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
 
-            //enviar_paquete(paquete, (int)(long int)socket_cliente);
+            // enviar_paquete(paquete, (int)(long int)socket_cliente);
             enviar_paquete(paquete, (int)(long int)socket_cliente);
             // Probar mandar algo al cliente
             // sem_post(&semaforo);
             destruir_instruccion(instruccion);
             break;
-            }
+        }
         case CREAR_PROCESO:
-            {
+        {
             // char *path;
 
             t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
@@ -148,12 +148,12 @@ void *atender_cliente(void *socket_cliente)
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
 
             printf("--------------------------PROCESO CREADO-----------------\n");
-            //imprimir_proceso(proceso_creado);
-            // imprimir_lista_de_procesos(procesos_en_memoria);
+            // imprimir_proceso(proceso_creado);
+            //  imprimir_lista_de_procesos(procesos_en_memoria);
             break;
-            }
+        }
         case END_PROCESS:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje para finalizar un proceso");
             uint32_t pid;
             buffer_read(buffer, &pid, sizeof(uint32_t));
@@ -162,27 +162,31 @@ void *atender_cliente(void *socket_cliente)
             liberar_proceso(proceso);
             list_remove(procesos_en_memoria, posicion_proceso(procesos_en_memoria, pid));
             break;
-            }
-        case ACCESO_TABLA_PAGINAS: 
-            {
+        }
+        case ACCESO_TABLA_PAGINAS:
+        {
             log_info(logger_memoria, "Se recibió un mensaje para acceder a la tabla de páginas");
             uint32_t pid, num_paginas;
             buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &num_paginas, sizeof(uint32_t));
-            
+
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
             t_paquete *paquete_respuesta = crear_paquete(ACCESO_TABLA_PAGINAS);
 
-            for (uint32_t i = 0; i < num_paginas; i++) {
+            for (uint32_t i = 0; i < num_paginas; i++)
+            {
                 uint32_t numero_pagina;
                 buffer_read(buffer, &numero_pagina, sizeof(uint32_t));
-                
+
                 t_pagina *pag = list_get(proceso->tabla_paginas, numero_pagina);
-                if (pag == NULL) {
+                if (pag == NULL)
+                {
                     log_error(logger_memoria, "Error: La página solicitada no existe en la tabla de páginas del proceso %d", pid);
                     uint32_t nro_marco_invalido = -1;
                     buffer_add(paquete_respuesta->buffer, &nro_marco_invalido, sizeof(uint32_t));
-                } else {
+                }
+                else
+                {
                     uint32_t nro_marco = pag->numero_marco;
                     buffer_add(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
                 }
@@ -191,13 +195,13 @@ void *atender_cliente(void *socket_cliente)
             enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
             eliminar_paquete(paquete_respuesta);
             break;
-            }
+        }
         case AJUSTAR_TAMANIO_PROCESO:
         {
             log_info(logger_memoria, "Se recibio un mensaje para ajustar el tamaño de un proceso");
             uint32_t pid, nuevo_tamanio;
             buffer_read(buffer, &pid, sizeof(uint32_t));
-            buffer_read(buffer, &nuevo_tamanio, sizeof(uint32_t)); 
+            buffer_read(buffer, &nuevo_tamanio, sizeof(uint32_t));
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
             int tamanio_actual = list_size(proceso->tabla_paginas);
             if (nuevo_tamanio > tamanio_actual)
@@ -206,7 +210,8 @@ void *atender_cliente(void *socket_cliente)
                 int paginas_a_agregar = nuevo_tamanio - tamanio_actual;
                 for (int i = 0; i < paginas_a_agregar; i++)
                 {
-                    if (obtener_primer_marco_libre()==-1) {
+                    if (obtener_primer_marco_libre() == -1)
+                    {
                         enviar_codigo_operacion(OUT_OF_MEMORY, (int)(long int)socket_cliente);
                         break;
                     }
@@ -225,11 +230,11 @@ void *atender_cliente(void *socket_cliente)
                     free(pagina);
                 }
             }
-            enviar_codigo_operacion(OK,(int)(long int)socket_cliente);
+            enviar_codigo_operacion(OK, (int)(long int)socket_cliente);
             break;
         }
         case ESCRITURA_MEMORIA:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje para escribir en memoria");
             // Llegan: cantidad de marcos a escribir, marco, offset, tamanio, buffer_escritura
             uint32_t cantidad_marcos;
@@ -245,14 +250,14 @@ void *atender_cliente(void *socket_cliente)
                 free(buffer_escritura);
             }
 
-            enviar_codigo_operacion(OK,(int)(long int)socket_cliente);
+            enviar_codigo_operacion(OK, (int)(long int)socket_cliente);
             break;
-            }
+        }
         case LECTURA_MEMORIA:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje para leer de memoria");
             // Llegan: cantidad de marcos a leer, marco, offset, tamanio
-            uint32_t cantidad_marcos,total_tamanio;
+            uint32_t cantidad_marcos, total_tamanio;
             buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
             buffer_read(buffer, &total_tamanio, sizeof(uint32_t));
             void *buffer_lectura = malloc(total_tamanio);
@@ -262,8 +267,8 @@ void *atender_cliente(void *socket_cliente)
                 uint32_t direccion_fisica, tamanio;
                 buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
                 buffer_read(buffer, &tamanio, sizeof(uint32_t));
-                memcpy(buffer_lectura + offset,((char *)memoria_principal) + direccion_fisica, tamanio);
-                offset +=tamanio;
+                memcpy(buffer_lectura + offset, ((char *)memoria_principal) + direccion_fisica, tamanio);
+                offset += tamanio;
             }
             t_paquete *paquete_respuesta = crear_paquete(LECTURA_MEMORIA);
             buffer_add(paquete_respuesta->buffer, buffer_lectura, total_tamanio);
@@ -271,13 +276,21 @@ void *atender_cliente(void *socket_cliente)
             free(buffer_lectura);
             eliminar_paquete(paquete_respuesta);
             break;
-            }
+        }
+        case FINALIZAR_PROCESO:
+        {
+            log_info(logger_memoria, "Se recibió un mensaje para finalizar un proceso");
+            uint32_t pid;
+            buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
+            liberar_proceso_por_pid(pid);
+            break;
+        }
         default:
-            {
+        {
             log_info(logger_memoria, "Se recibio un mensaje de un modulo desconocido");
             // TODO: implementar
             break;
-            }
+        }
         }
         eliminar_paquete(paquete);
     }

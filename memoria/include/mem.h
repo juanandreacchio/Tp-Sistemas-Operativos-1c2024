@@ -57,5 +57,6 @@ void liberar_proceso(t_proceso* proceso);
 void liberar_lista_procesos(t_list* lista_procesos);
 void liberar_memoria_principal();
 void liberar_marco_pagina(t_proceso* proceso, int numero_pagina);
+void liberar_proceso_por_pid(uint32_t pid);
 // void liberar_instruccion(t_instruccion* instruccion);//no esta en el mem.c
 #endif

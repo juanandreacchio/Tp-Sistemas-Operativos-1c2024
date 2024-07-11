@@ -134,6 +134,7 @@ void finalizar_pcb(t_pcb *pcb);
 void listar_procesos_en_ready();
 void listar_procesos_en_ready_plus();
 bool hay_proceso_ejecutandose();
+uint32_t tener_index_pid(uint32_t pid);
 
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------
 void iniciar_planificador_corto_plazo();

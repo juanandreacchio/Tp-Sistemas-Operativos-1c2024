@@ -211,6 +211,11 @@ void liberar_proceso(t_proceso* proceso) {
     free(proceso);
 }
 
+void liberar_proceso_por_pid(uint32_t pid){
+    t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
+    liberar_proceso(proceso);
+}
+
 // Funcion que a partir de un path de un archivo y el program counter, devuelve una instruccion
 t_instruccion *leer_instruccion(char* path, uint32_t pc) {
     FILE* archivo = fopen(path, "r");

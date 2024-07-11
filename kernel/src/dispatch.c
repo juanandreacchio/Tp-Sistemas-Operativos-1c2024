@@ -97,7 +97,6 @@ void *recibir_dispatch()
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
         case END_PROCESS:
-            log_info(logger_kernel, "entre al end process por dispatcher");
 
             finalizar_pcb(pcb_actualizado);
 

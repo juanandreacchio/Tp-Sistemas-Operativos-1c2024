@@ -4,13 +4,12 @@ void iniciar_planificador_corto_plazo()
 {
     while (1)
     {
+        sem_wait(&hay_proceso_a_ready);
+        sem_wait(&cpu_libre);
         if (planificacion_detenida)
         {
             sem_wait(&podes_planificar_corto_plazo);
         }
-        
-        sem_wait(&hay_proceso_a_ready);
-        sem_wait(&cpu_libre);
 
         if (strcmp(algoritmo_planificacion, "FIFO") == 0)
         {
@@ -72,7 +71,7 @@ void *verificar_quantum()
 
     while (1)
     {
-        
+
         sem_wait(&arrancar_quantum);
 
         pthread_mutex_lock(&mutex_flag_cpu_libre);
@@ -241,7 +240,8 @@ void *verificar_quantum_vrr()
     return NULL;
 }
 
-void iniciar_planificacion(){
+void iniciar_planificacion()
+{
     planificacion_detenida = false;
     sem_post(&podes_crear_procesos);
     sem_post(&podes_eliminar_procesos);

@@ -51,7 +51,7 @@ t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
 void finalizar_pcb(t_pcb *pcb) // Agrega al proceso a la cola de exits para q sea eliminado
 {
     logear_cambio_estado(pcb, pcb->estado_actual, TERMINATED);
-    set_add_pcb_cola(pcb, EXIT, cola_procesos_exit, mutex_cola_de_exit);
+    set_add_pcb_cola(pcb, TERMINATED, cola_procesos_exit, mutex_cola_de_exit);
 
     sem_post(&hay_proceso_exit);
 }
@@ -63,7 +63,9 @@ void logear_bloqueo_proceso(uint32_t pid, char* motivo){
 void listar_procesos(){
     for (size_t i = 0; i < list_size(procesos_en_sistema); i++)
     {
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
         t_pcb *pcb = list_get(procesos_en_sistema,i);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
         log_info(logger_kernel, "PID: %d - ESTADO: %s", pcb->pid, estado_to_string(pcb->estado_actual));
     }
     
@@ -93,4 +95,17 @@ void logear_cambio_estado(t_pcb *pcb, estados estado_anterior, estados estado_ac
     char *estado_ant = estado_to_string(estado_anterior);
     char *estado_post = estado_to_string(estado_actual);
     log_info(logger_kernel, "PID: %d - Estado Anterior: %s - Estado Actual: %s", pcb->pid, estado_ant, estado_post);
+}
+
+uint32_t tener_index_pid(uint32_t pid){
+    for (size_t i = 0; i < list_size(procesos_en_sistema); i++)
+    {
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
+        t_pcb *pcb = list_get(procesos_en_sistema,i);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
+        if(pcb->pid == pid){
+            return i;
+        }
+    }
+    return -1;
 }

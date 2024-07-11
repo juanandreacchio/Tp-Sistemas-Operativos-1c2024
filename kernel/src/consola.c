@@ -50,7 +50,6 @@ bool validar_comando(char *comando)
 void ejecutar_comando(char *comando)
 {
     char **consola = string_split(comando, " ");
-    t_buffer *buffer = crear_buffer();
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
@@ -107,16 +106,43 @@ void ejecutar_comando(char *comando)
     else if (strcmp(consola[0], "FINALIZAR_PROCESO") == 0)
     {
         uint32_t pid = atoi(consola[1]);
-        t_pcb *pcb = buscar_pcb_por_pid(pid, procesos_en_sistema);
 
-        if (pcb == NULL)
+        t_paquete *paquete = crear_paquete(FINALIZAR_PROCESO);
+        buffer_add(paquete->buffer, &pid, sizeof(uint32_t));
+        enviar_paquete(paquete, conexion_memoria);
+
+
+        uint32_t index = tener_index_pid(pid);
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
+        t_pcb *pcb = list_get(procesos_en_sistema, index);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
+
+        if (index == -1)
         {
             log_error(logger_kernel, "No se encontro el proceso con PID %d en el sistema", pid);
             return;
         }
 
+        switch (pcb->estado_actual)
+        {
+        case NEW:
+            /* code */
+            break;
+        case READY:
+            
+            break;
+        case EXEC:
+            enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_dispatch);
+            break;
+        case BLOCKED:
+            /* code */
+            break;
+        default:
+            break;
+        }
+
         pthread_mutex_lock(&mutex_procesos_en_sistema);
-        list_remove_element(procesos_en_sistema, pcb);
+        list_remove(procesos_en_sistema, index);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);
 
         if (pcb->estado_actual == EXEC)
@@ -127,7 +153,11 @@ void ejecutar_comando(char *comando)
 
         liberar_recursos(pcb->pid);
 
-        signal_contador(semaforo_multi);
+        if (semaforo_multi->valor_maximo != semaforo_multi->valor_actual)
+        {
+            signal_contador(semaforo_multi);
+        }
+
         destruir_pcb(pcb);
     }
     else if (strcmp(consola[0], "MULTIPROGRAMACION") == 0)

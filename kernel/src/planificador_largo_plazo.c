@@ -13,11 +13,12 @@ void creacion_de_procesos()
 {
     while (1)
     {
+        sem_wait(&hay_proceso_nuevo);
         if (planificacion_detenida)
         {
             sem_wait(&podes_crear_procesos);
         }
-        sem_wait(&hay_proceso_nuevo);
+
         wait_contador(semaforo_multi);
         pthread_mutex_lock(&mutex_cola_de_new);
         t_pcb *pcb_ready = queue_pop(cola_procesos_new);
@@ -37,19 +38,30 @@ void eliminacion_de_procesos()
 {
     while (1)
     {
+        sem_wait(&hay_proceso_exit);
         if (planificacion_detenida)
         {
             sem_wait(&podes_eliminar_procesos);
         }
-        sem_wait(&hay_proceso_exit);
+
         pthread_mutex_lock(&mutex_cola_de_exit);
         t_pcb *pcb_exit = queue_pop(cola_procesos_exit);
         pthread_mutex_unlock(&mutex_cola_de_exit);
+        log_info(logger_kernel, "Se va a eliminar el proceso %d", pcb_exit->pid);
+        log_info(logger_kernel, "Estado: %s", estado_to_string(pcb_exit->estado_actual));
+
         liberar_recursos(pcb_exit->pid);
-        // Falta eliminarlo de memoria
-        pthread_mutex_lock(&mutex_procesos_en_sistema);
-        list_remove_element(procesos_en_sistema, pcb_exit);
-        pthread_mutex_unlock(&mutex_procesos_en_sistema);
+        uint32_t index = tener_index_pid(pcb_exit->pid);
+
+        if (index == -1)
+        {
+            log_error(logger_kernel, "No se encontró el proceso con PID %d", pcb_exit->pid);
+        }
+        else
+        {
+            log_info(logger_kernel, "Se elimina el proceso %d de la lista de procesos en sistema", pcb_exit->pid);
+            list_remove(procesos_en_sistema, index);
+        }
 
         signal_contador(semaforo_multi);
         destruir_pcb(pcb_exit);
@@ -86,6 +98,7 @@ void signal_contador(t_semaforo_contador *semaforo)
         semaforo->valor_actual++;
         pthread_mutex_unlock(&semaforo->mutex_valor_actual);
     }
+    log_info(logger_kernel, "Grado de multiprogramacion: %d", semaforo->valor_actual);
 }
 
 void wait_contador(t_semaforo_contador *semaforo)
@@ -94,6 +107,8 @@ void wait_contador(t_semaforo_contador *semaforo)
     pthread_mutex_lock(&semaforo->mutex_valor_actual);
     semaforo->valor_actual--;
     pthread_mutex_unlock(&semaforo->mutex_valor_actual);
+    log_info(logger_kernel, "Grado de multiprogramacion: %d", semaforo->valor_actual);
+
 }
 
 void cambiar_grado(uint32_t nuevo_grado)
