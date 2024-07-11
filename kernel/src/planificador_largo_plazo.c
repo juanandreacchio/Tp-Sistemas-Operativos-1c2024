@@ -22,6 +22,8 @@ void creacion_de_procesos()
         pthread_mutex_lock(&mutex_cola_de_new);
         t_pcb *pcb_ready = queue_pop(cola_procesos_new);
         pthread_mutex_unlock(&mutex_cola_de_new);
+        log_info(logger_kernel, "Se va a pasar el proceso %d a ready", pcb_ready->pid);
+        log_info(logger_kernel, "Grado de multi: %d", semaforo_multi->valor_actual);
 
         set_add_pcb_cola(pcb_ready, READY, cola_procesos_ready, mutex_cola_de_readys);
         listar_procesos_en_ready();

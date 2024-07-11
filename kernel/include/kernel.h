@@ -152,7 +152,7 @@ void iniciar_planificacion();
 bool interfaz_conectada(char *nombre_interfaz);
 bool esOperacionValida(t_identificador identificador, cod_interfaz tipo);
 void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion);
-void ejecutar_instruccion_io(char *nombre_interfaz, t_instruccionEnIo *instruccionEnIO, t_interfaz_en_kernel *conexion_io);
+void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io);
 void atender_interfaz(char *nombre_interfaz);
 
 

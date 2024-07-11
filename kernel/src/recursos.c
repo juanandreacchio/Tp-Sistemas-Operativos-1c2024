@@ -53,13 +53,13 @@ void sumar_instancia_a_recurso(char *nombre)
             if (pcb->quantum >= 0)
             {
                 set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
-                logear_cambio_estado(pcb->pid, estado_to_string(BLOCKED), estado_to_string(READY));
+                logear_cambio_estado(pcb, BLOCKED, READY);
                 procesos_en_ready_plus++;
                 sem_post(&hay_proceso_a_ready);
                 return;
             }
 
-            logear_cambio_estado(pcb->pid, estado_to_string(BLOCKED), estado_to_string(READY));
+            logear_cambio_estado(pcb, BLOCKED, READY);
             set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
             listar_procesos_en_ready();
             sem_post(&hay_proceso_a_ready);

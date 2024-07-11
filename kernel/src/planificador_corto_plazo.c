@@ -242,9 +242,9 @@ void *verificar_quantum_vrr()
 }
 
 void iniciar_planificacion(){
-    sem_post(&podes_planificar_corto_plazo);
-    sem_post(&podes_eliminar_procesos);
-    sem_post(&podes_manejar_desalojo);
-    sem_post(&podes_crear_procesos);
     planificacion_detenida = false;
+    sem_post(&podes_crear_procesos);
+    sem_post(&podes_eliminar_procesos);
+    sem_post(&podes_planificar_corto_plazo);
+    sem_post(&podes_manejar_desalojo);
 }
