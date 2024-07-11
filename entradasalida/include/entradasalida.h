@@ -71,13 +71,14 @@ int verificar_bloques_contiguos_libres(uint32_t bloque_inicial, uint32_t cantida
 void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nuevo);
 archivo_info* listar_archivos(int* cantidad_archivos);
 
-void acortar_archivo(const char* filename, uint32_t tamanio_nuevo);
-void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo);
+int truncar_archivo(const char* filename, uint32_t tamanio_nuevo, char* PID);
+void agrandar_archivo(const char* filename ,const char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual, char* PID);
+void acortar_archivo(const char* filename ,const char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual);
 void borrar_archivo(char* filename);
 int crear_archivo(const char* filename);
-void leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, void* buffer);
+void leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo);
 void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int puntero_archivo);
-void compactar_file_system(const char* archivo_a_mover);
-void mover_bloque(void* mapbloques,uint32_t bloque_origen, uint32_t bloque_destino);
+void compactar_file_system(const char* archivo_a_mover, char* PID);
+void mover_bloque(void* mmap_bloques,uint32_t bloque_origen, uint32_t bloque_destino);
 void actualizar_metadata_bloque_inicial(const char* metadata_path, uint32_t bloque_inicial);
 #endif

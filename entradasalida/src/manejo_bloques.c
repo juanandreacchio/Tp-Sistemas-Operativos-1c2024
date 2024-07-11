@@ -58,9 +58,8 @@ int crear_archivo(const char* filename) {
     asignar_bloque(bloque_libre);
 
     crear_archivo_metadata(filename, bloque_libre);
-    
-    log_info(logger_entradasalida, "Archivo %s creado", filename);
 
+    log_info(logger_entradasalida, "archivo creado correctamente"); 
     return 0;
 }
 
@@ -95,13 +94,22 @@ void borrar_archivo(char* filename) {
     free(metadata_path);
 }
 
-void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo) {
+int truncar_archivo(const char* filename, uint32_t tamanio_nuevo, char* PID){
     char* metadata_path = buscar_archivo(filename);
     if (!metadata_path) {
         log_error(logger_entradasalida, "No se encontró el archivo: %s", filename);
-        return;
-    }  
+        return -1;
+    } 
     uint32_t tamanio_actual = obtener_tamanio_archivo(metadata_path);
+    if(tamanio_actual > tamanio_nuevo){
+        acortar_archivo(filename, metadata_path, tamanio_nuevo, tamanio_actual);
+    } else {
+        agrandar_archivo(filename, metadata_path, tamanio_nuevo, tamanio_actual, PID);
+    }
+    return 0;
+}
+
+void agrandar_archivo(const char* filename ,const char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual, char* PID) {
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
     
     uint32_t bloques_adicionales = calcular_bloques_adicionales(tamanio_actual, tamanio_nuevo);
@@ -109,9 +117,8 @@ void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo) {
     if (bloques_adicionales > 0){
          int bloques_libres = verificar_bloques_contiguos_libres(bloque_inicial + (tamanio_actual / block_size), bloques_adicionales);
         if (bloques_libres == -1) {
-            log_info(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes");
-
-            compactar_file_system(filename);
+            log_info(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes");         
+            compactar_file_system(metadata_path, PID);
             
             bloque_inicial = obtener_bloque_inicial(metadata_path);
             bloques_libres = verificar_bloques_contiguos_libres(bloque_inicial + (tamanio_actual / block_size), bloques_adicionales);
@@ -131,13 +138,7 @@ void agrandar_archivo(const char* filename, uint32_t tamanio_nuevo) {
     log_info(logger_entradasalida, "Archivo %s ampliado a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_adicionales);
 }
 
-void acortar_archivo(const char* filename, uint32_t tamanio_nuevo) {
-    char* metadata_path = buscar_archivo(filename);
-    if (!metadata_path) {
-        log_error(logger_entradasalida, "No se encontró el archivo: %s", filename);
-        return;
-    }  
-    uint32_t tamanio_actual = obtener_tamanio_archivo(metadata_path);
+void acortar_archivo(const char* filename ,const char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual) {
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
 
     uint32_t bloques_a_liberar = calcular_bloques_a_liberar(tamanio_actual, tamanio_nuevo); 
@@ -215,7 +216,8 @@ void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int p
     free(metadata_path);
 }
 
-void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, void* buffer) {
+void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo) {
+    void* buffer;
     char* metadata_path = buscar_archivo(filename);
     if (!metadata_path) {
         printf("Archivo no encontrado\n");
@@ -272,9 +274,9 @@ void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo, 
     return buffer;
 }
 
-void compactar_file_system(const char* archivo_a_mover) {
-    log_info(logger_entradasalida, "Iniciando compactación del sistema de archivos...");
-
+void compactar_file_system(const char* archivo_a_mover, char* PID) {
+    
+    log_info(logger_entradasalida, "PID: %s - Inicio Compactacion", PID); //LOG OBLIGATORIO
     int cantidad_archivos = 0;
     archivo_info* archivos = listar_archivos(&cantidad_archivos);
 
@@ -412,5 +414,5 @@ void compactar_file_system(const char* archivo_a_mover) {
     usleep(retraso_compactacion * 1000); // Convertir milisegundos a microsegundos
 
     free(archivos);
-    log_info(logger_entradasalida, "Compactación del sistema de archivos completada");
+    log_info(logger_entradasalida, "PID: %s - Fin Compactacion", PID); //LOG OBLIGATORIO
 }

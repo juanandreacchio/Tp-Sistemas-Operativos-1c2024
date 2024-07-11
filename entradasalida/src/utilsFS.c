@@ -225,7 +225,7 @@ archivo_info* listar_archivos(int* cantidad_archivos) {
     return archivos;
 }
 
-void mover_bloque(void* mapbloques,uint32_t bloque_origen, uint32_t bloque_destino) {
+void mover_bloque(void* mmap_bloques,uint32_t bloque_origen, uint32_t bloque_destino) {
     void* origen = mmap_bloques + (bloque_origen * block_size);
     void* destino = mmap_bloques + (bloque_destino * block_size);
     memcpy(destino, origen, block_size);
