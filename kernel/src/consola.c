@@ -111,7 +111,6 @@ void ejecutar_comando(char *comando)
         buffer_add(paquete->buffer, &pid, sizeof(uint32_t));
         enviar_paquete(paquete, conexion_memoria);
 
-
         uint32_t index = tener_index_pid(pid);
         pthread_mutex_lock(&mutex_procesos_en_sistema);
         t_pcb *pcb = list_get(procesos_en_sistema, index);
@@ -126,16 +125,55 @@ void ejecutar_comando(char *comando)
         switch (pcb->estado_actual)
         {
         case NEW:
-            /* code */
+            for (size_t i = 0; i < queue_size(cola_procesos_new); i++)
+            {
+                pthread_mutex_lock(&mutex_cola_de_new);
+                t_pcb *pcb = queue_pop(cola_procesos_new);
+                if (pcb->pid != pid)
+                {
+                    queue_push(cola_procesos_new, pcb);
+                }
+                else
+                {
+                    sem_wait(&hay_proceso_nuevo);
+                }
+                pthread_mutex_unlock(&mutex_cola_de_new);
+            }
+
             break;
         case READY:
-            
+            for (size_t i = 0; i < queue_size(cola_procesos_ready); i++)
+            {
+                pthread_mutex_lock(&mutex_cola_de_readys);
+                t_pcb *pcb = queue_pop(cola_procesos_ready);
+                if (pcb->pid != pid)
+                {
+                    queue_push(cola_procesos_ready, pcb);
+                }
+                else
+                {
+                    sem_wait(&hay_proceso_a_ready);
+                }
+                pthread_mutex_unlock(&mutex_cola_de_readys);
+            }
+
             break;
         case EXEC:
             enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_dispatch);
             break;
         case BLOCKED:
-            /* code */
+            for (size_t i = 0; i < list_size(lista_procesos_blocked); i++)
+            {
+                pthread_mutex_lock(&mutex_lista_de_blocked);
+                t_pcb *pcb = list_get(lista_procesos_blocked, i);
+                if (pcb->pid == pid)
+                {
+                    list_remove(lista_procesos_blocked, i);
+                    pthread_mutex_unlock(&mutex_cola_de_readys);
+                    continue;
+                }
+                pthread_mutex_unlock(&mutex_cola_de_readys);
+            }
             break;
         default:
             break;
@@ -145,13 +183,7 @@ void ejecutar_comando(char *comando)
         list_remove(procesos_en_sistema, index);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);
 
-        if (pcb->estado_actual == EXEC)
-        {
-            enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_dispatch);
-            return;
-        }
-
-        liberar_recursos(pcb->pid);
+        liberar_recursos(pid);
 
         if (semaforo_multi->valor_maximo != semaforo_multi->valor_actual)
         {
@@ -159,6 +191,10 @@ void ejecutar_comando(char *comando)
         }
 
         destruir_pcb(pcb);
+
+        log_info(logger_kernel, "------------------------------");
+        log_info(logger_kernel, "Se finaliza el proceso %d", pid);
+        log_info(logger_kernel, "------------------------------");
     }
     else if (strcmp(consola[0], "MULTIPROGRAMACION") == 0)
     {

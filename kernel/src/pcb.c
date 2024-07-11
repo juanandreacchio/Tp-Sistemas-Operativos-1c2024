@@ -82,13 +82,15 @@ void listar_procesos_en_ready_plus(){
 }
 
 void listar_procesos_en_ready(){
+    log_info(logger_kernel, "------------------------------");
     log_info(logger_kernel, "Cola de Ready:");
     for (size_t i = 0; i < queue_size(cola_procesos_ready); i++)
     {
         t_pcb *pcb = queue_pop(cola_procesos_ready);
-        log_info(logger_kernel, "PID: %d ", pcb->pid);
+        log_info(logger_kernel, "+ PID: %d ", pcb->pid);
         queue_push(cola_procesos_ready, pcb);
     }
+    log_info(logger_kernel, "------------------------------");
 }
 
 void logear_cambio_estado(t_pcb *pcb, estados estado_anterior, estados estado_actual){

@@ -207,8 +207,10 @@ t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
 
 // Función para liberar un proceso
 void liberar_proceso(t_proceso* proceso) {
+    uint32_t index = posicion_proceso(procesos_en_memoria, proceso->pid);
     liberar_tabla_paginas(proceso->tabla_paginas);
     free(proceso);
+    list_remove(procesos_en_memoria, index);
 }
 
 void liberar_proceso_por_pid(uint32_t pid){

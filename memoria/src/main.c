@@ -121,7 +121,6 @@ void *atender_cliente(void *socket_cliente)
             buffer_read(buffer, &(soli->pid), sizeof(uint32_t));
             buffer_read(buffer, &(soli->pc), sizeof(uint32_t));
 
-            printf("Busco isntruccion para pid %d y pc %d\n", soli->pid, soli->pc);
             instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
 
             paquete = crear_paquete(INSTRUCCION);
@@ -279,9 +278,10 @@ void *atender_cliente(void *socket_cliente)
         }
         case FINALIZAR_PROCESO:
         {
-            log_info(logger_memoria, "Se recibió un mensaje para finalizar un proceso");
             uint32_t pid;
             buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
+            log_info(logger_memoria, "Se recibió un mensaje para finalizar un proceso");
+            log_info(logger_memoria, "Elimino proceso con PID: %d", pid);
             liberar_proceso_por_pid(pid);
             break;
         }
