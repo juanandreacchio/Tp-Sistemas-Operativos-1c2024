@@ -223,7 +223,7 @@ void *atender_cliente(int socket_cliente)
 
             log_info(logger_entradasalida, "PID: %d - Crear Archivo: %s",PID, nombre_archivo); //LOG OBLIGATORIO
 
-            int resultado_operacion = crear_archivo(nombre_archivo);
+            int resultado_operacion = crear_archivo(nombre_archivo, tamanio_nombre_archivo);
             if(resultado_operacion == -1){
                 // devolver error
             } else {     
@@ -245,7 +245,7 @@ void *atender_cliente(int socket_cliente)
             enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
             break;
         }
-        case IO_FS_TRUNCATE:
+        case IO_FS_TRUNCATE: 
         {
             log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_TRUNCATE", PID);
             u_int32_t tamanio_nombre_archivo;
@@ -253,11 +253,18 @@ void *atender_cliente(int socket_cliente)
             char* nombre_archivo = malloc(tamanio_nombre_archivo);
             u_int32_t tamanio;
             buffer_read(paquete->buffer, nombre_archivo, tamanio_nombre_archivo);
+
+            log_info(logger_entradasalida, "nombre archivo:%s y su long: %d", nombre_archivo, tamanio_nombre_archivo);
+
             buffer_read(paquete->buffer, &tamanio, sizeof(uint32_t));
+
+            log_info(logger_entradasalida, "tamanio nuevo: %d", tamanio);
+
             log_info(logger_entradasalida, "PID: %d - Truncar Archivo: %s - Tamaño: %d",PID, nombre_archivo, tamanio); //LOG OBLIGATORIO
             int resultado_operacion = truncar_archivo(nombre_archivo, tamanio,PID);
             if(resultado_operacion == -1){
                 // devolver error
+                log_error(logger_entradasalida, "error al truncar archivo");
             } else {
                 log_info(logger_entradasalida, "archivo truncado correctamente");
                 enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
@@ -292,7 +299,7 @@ void *atender_cliente(int socket_cliente)
 
             // recibir dato de memoria
             t_paquete *paquete_dato = recibir_paquete(socket_conexion_memoria);
-            char *lectura = malloc(tamanio);
+            void *lectura = malloc(tamanio);
             buffer_read(paquete_dato->buffer, lectura, tamanio);
             eliminar_paquete(paquete_dato);
             
@@ -300,6 +307,7 @@ void *atender_cliente(int socket_cliente)
             escribir_archivo(nombre_archivo, lectura, tamanio, puntero);
             log_info(logger_entradasalida, "se realizo escritura correctamente");   
             free(lectura);
+            enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
             break;
         }
         case IO_FS_READ:
