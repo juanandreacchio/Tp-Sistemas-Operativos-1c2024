@@ -75,9 +75,11 @@ void listar_procesos_en_ready_plus(){
     log_info(logger_kernel, "Cola de Ready Prioridad:");
     for (size_t i = 0; i < queue_size(cola_ready_plus); i++)
     {
-        t_pcb *pcb = queue_peek(cola_ready_plus);
-        log_info(logger_kernel, "PID: %d ", pcb->pid);
+        pthread_mutex_lock(&mutex_cola_de_ready_plus);
+        t_pcb *pcb = queue_pop(cola_ready_plus);
         queue_push(cola_ready_plus, pcb);
+        pthread_mutex_unlock(&mutex_cola_de_ready_plus);
+        log_info(logger_kernel, "PID: %d ", pcb->pid);
     }
 }
 
@@ -86,9 +88,11 @@ void listar_procesos_en_ready(){
     log_info(logger_kernel, "Cola de Ready:");
     for (size_t i = 0; i < queue_size(cola_procesos_ready); i++)
     {
+        pthread_mutex_lock(&mutex_cola_de_readys);
         t_pcb *pcb = queue_pop(cola_procesos_ready);
-        log_info(logger_kernel, "+ PID: %d ", pcb->pid);
         queue_push(cola_procesos_ready, pcb);
+        pthread_mutex_unlock(&mutex_cola_de_readys);
+        log_info(logger_kernel, "+ PID: %d ", pcb->pid);
     }
     log_info(logger_kernel, "------------------------------");
 }
