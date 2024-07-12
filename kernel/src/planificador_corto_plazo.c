@@ -195,7 +195,7 @@ void *verificar_quantum_vrr()
                 if (temporal_gettime(tiempo_transcurrido) >= quantum)
                 {
                     log_info(logger_kernel, "FIN DE QUANTUM: MANDO INTERRUPCION");
-
+                    ultimo_pcb_ejecutado->quantum = 0;
                     pthread_mutex_lock(&mutex_flag_cpu_libre);
                     enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
                     flag_cpu_libre = 1;
