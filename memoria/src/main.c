@@ -93,7 +93,7 @@ void *atender_cliente(void *socket_cliente)
         printf("codigo de operacion: %s\n", cod_op_to_string(codigo_operacion));
 
         // NO SE SI ESTO ESTA BIEN, CREO QUE DA LO MISMO DONDE SE PONGA
-        usleep(RETARDO_RESPUESTA);
+        usleep(RETARDO_RESPUESTA*1000);
 
         switch (codigo_operacion)
         {
@@ -133,7 +133,6 @@ void *atender_cliente(void *socket_cliente)
             enviar_paquete(paquete, (int)(long int)socket_cliente);
             // Probar mandar algo al cliente
             // sem_post(&semaforo);
-            destruir_instruccion(instruccion);
             break;
         }
         case CREAR_PROCESO:
@@ -145,7 +144,7 @@ void *atender_cliente(void *socket_cliente)
             solicitud = deserializar_solicitud_crear_proceso(buffer);
             log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
-            log_info(logger_memoria,"PID: <%d> - Tamaño: <%d>",solicitud->pid,list_size(proceso_creado->tabla_paginas));
+            log_info(logger_memoria,"PID: %d - Tamaño: %d",solicitud->pid,list_size(proceso_creado->tabla_paginas));
             printf("--------------------------PROCESO CREADO-----------------\n");
             // imprimir_proceso(proceso_creado);
             //  imprimir_lista_de_procesos(procesos_en_memoria);
@@ -158,7 +157,7 @@ void *atender_cliente(void *socket_cliente)
             buffer_read(buffer, &pid, sizeof(uint32_t));
             // liberar el proceso y sacarlo de la lista
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
-            log_info(logger_memoria,"PID: <%d> - Tamaño: <%d>",proceso->pid,list_size(proceso->tabla_paginas));
+            log_info(logger_memoria,"PID: %d - Tamaño: %d",proceso->pid,list_size(proceso->tabla_paginas));
             liberar_proceso(proceso);
             list_remove(procesos_en_memoria, posicion_proceso(procesos_en_memoria, pid));
             
@@ -210,7 +209,7 @@ void *atender_cliente(void *socket_cliente)
             if (nuevo_tamanio > tamanio_actual)
             {
                 // Ampliar el tamaño del proceso
-                int paginas_a_agregar = nuevo_tamanio - tamanio_actual;
+                int paginas_a_agregar = nuevo_tamanio - tamanio_actual;//TODO:revisarlo
                 for (int i = 0; i < paginas_a_agregar; i++)
                 {
                     if (obtener_primer_marco_libre() == -1)

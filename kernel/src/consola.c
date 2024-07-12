@@ -53,19 +53,33 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
-        FILE *archivo = fopen(consola[1], "r");
+        char base_path[] = "/home/utnso/";
+        // Calcula el tamaño necesario para la cadena final
+        size_t path_size = strlen(base_path) + strlen(consola[1]) + 1; // +1 para el carácter nulo
+        char *full_path = (char *)malloc(path_size);
+        if (full_path == NULL) {
+            fprintf(stderr, "Error al asignar memoria\n");
+            return;
+        }
+
+        // Construye la cadena completa
+        strcpy(full_path, base_path);
+        strcat(full_path, consola[1]);
+
+        log_info(logger_kernel,"el path es: %s",full_path);
+        FILE *archivo = fopen(full_path, "r");
         if (archivo == NULL)
         {
             log_error(logger_kernel, "No se pudo abrir el archivo");
             exit(EXIT_FAILURE);
         }
-        while (!feof(archivo))
+        char *linea = malloc(100);
+        while (fgets(linea, 100, archivo) != NULL)
         {
-            char *linea = malloc(100);
-            fgets(linea, 100, archivo);
+            linea[strcspn(linea,"\n")] = 0;
             ejecutar_comando(linea);
-            free(linea);
         }
+        free(linea);
         fclose(archivo);
     }
     else if (strcmp(consola[0], "INICIAR_PROCESO") == 0)
@@ -105,7 +119,7 @@ void ejecutar_comando(char *comando)
     }
     else if (strcmp(consola[0], "FINALIZAR_PROCESO") == 0)
     {
-        uint32_t pid = atoi(consola[1]);
+       uint32_t pid = atoi(consola[1]);
 
         t_paquete *paquete = crear_paquete(FINALIZAR_PROCESO);
         buffer_add(paquete->buffer, &pid, sizeof(uint32_t));
@@ -136,6 +150,9 @@ void ejecutar_comando(char *comando)
                 else
                 {
                     sem_wait(&hay_proceso_nuevo);
+                    pthread_mutex_unlock(&mutex_cola_de_new);
+                    break;
+                    ;
                 }
                 pthread_mutex_unlock(&mutex_cola_de_new);
             }
@@ -159,7 +176,9 @@ void ejecutar_comando(char *comando)
 
             break;
         case EXEC:
-            enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_dispatch);
+            enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_interrupt);
+            log_info(logger_kernel, "Mando kill process loko");
+            sem_wait(&podes_eliminar_loko);
             break;
         case BLOCKED:
             for (size_t i = 0; i < list_size(lista_procesos_blocked); i++)
@@ -195,6 +214,12 @@ void ejecutar_comando(char *comando)
         log_info(logger_kernel, "------------------------------");
         log_info(logger_kernel, "Se finaliza el proceso %d", pid);
         log_info(logger_kernel, "------------------------------");
+
+        pthread_mutex_lock(&mutex_flag_cpu_libre);
+        flag_cpu_libre = 1;
+        pthread_mutex_unlock(&mutex_flag_cpu_libre);
+        sem_post(&cpu_libre);
+        return;
     }
     else if (strcmp(consola[0], "MULTIPROGRAMACION") == 0)
     {

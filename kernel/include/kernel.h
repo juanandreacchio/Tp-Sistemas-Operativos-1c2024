@@ -102,6 +102,7 @@ extern sem_t podes_manejar_desalojo;
 extern sem_t podes_eliminar_procesos; 
 extern sem_t podes_crear_procesos;
 extern bool planificacion_detenida;
+extern sem_t podes_eliminar_loko;
 
 // --------------------- FUNCIONES DE INICIO -------------------------
 void iniciar_semaforos();

@@ -59,6 +59,7 @@ void iniciar_semaforos()
     sem_init(&podes_crear_procesos, 0, 0);
     sem_init(&podes_manejar_desalojo, 0, 0);
     sem_init(&podes_eliminar_procesos, 0, 0);
+    sem_init(&podes_eliminar_loko, 0, 0);
     pthread_mutex_init(&mutex_pid, NULL);
     pthread_mutex_init(&mutex_cola_de_readys, NULL);
     pthread_mutex_init(&mutex_lista_de_blocked, NULL);
@@ -113,6 +114,7 @@ void destruir_semaforos(){
     sem_destroy(&podes_crear_procesos);
     sem_destroy(&podes_manejar_desalojo);
     sem_destroy(&podes_eliminar_procesos);
+    sem_destroy(&podes_eliminar_loko);
     pthread_mutex_destroy(&mutex_pid);
     pthread_mutex_destroy(&mutex_cola_de_readys);
     pthread_mutex_destroy(&mutex_lista_de_blocked);

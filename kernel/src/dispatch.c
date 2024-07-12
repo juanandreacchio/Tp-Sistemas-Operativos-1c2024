@@ -165,6 +165,9 @@ void *recibir_dispatch()
             setear_pcb_en_ejecucion(pcb_actualizado);
             break;
         case KILL_PROCESS:
+            sem_post(&podes_eliminar_loko);
+            break;
+        case OUT_OF_MEMORY://TOD0
             liberar_recursos(pcb_actualizado->pid);
 
             signal_contador(semaforo_multi);

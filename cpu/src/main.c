@@ -177,8 +177,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     {
     case SET:
     {
-        set_registro(&registros_cpu, instruccion->parametros[0], atoi(instruccion->parametros[1]));
-        pcb->registros = registros_cpu;
+        set_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
         break;
     }
     case MOV_IN:
@@ -193,32 +192,30 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case SUM:
     {
-        pcb->registros = registros_cpu;
-        sum_registro(&registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
+        sum_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
         break;
     }
 
     case SUB:
     {
-        pcb->registros = registros_cpu;
-        sub_registro(&registros_cpu, instruccion->parametros[0], instruccion->parametros[1]);
+
+        sub_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
         break;
     }
 
     case JNZ:
     {
-        pcb->registros = registros_cpu;
-        JNZ_registro(&registros_cpu, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+
+        JNZ_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
         break;
     }
 
     case IO_FS_TRUNCATE:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
-        u_int32_t tamanio = get_registro_generico(&registros_cpu,instruccion->parametros[2]);
+        u_int32_t tamanio = get_registro_generico(&pcb->registros,instruccion->parametros[2]);
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
@@ -237,11 +234,10 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_STDIN_READ:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
-        u_int32_t direc_logica = get_registro_generico(&registros_cpu, instruccion->parametros[1]);
-        size_t tamanio = (size_t)get_registro_generico(&registros_cpu, instruccion->parametros[2]);
+        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[1]);
+        size_t tamanio = (size_t)get_registro_generico(&pcb->registros, instruccion->parametros[2]);
 
         t_paquete *paquete = crear_paquete(OPERACION_IO);
 
@@ -262,11 +258,10 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_STDOUT_WRITE:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
-        u_int32_t direc_logica = get_registro_generico(&registros_cpu, instruccion->parametros[1]);
-        u_int32_t tamanio = get_registro_generico(&registros_cpu, instruccion->parametros[2]);
+        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[1]);
+        u_int32_t tamanio = get_registro_generico(&pcb->registros, instruccion->parametros[2]);
 
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
@@ -286,7 +281,6 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_GEN_SLEEP:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -305,7 +299,6 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     break;
     case IO_FS_DELETE:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -325,7 +318,6 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_CREATE:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -345,13 +337,12 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_WRITE:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
-        u_int32_t tamanio = get_registro_generico(&registros_cpu,instruccion->parametros[3]);
-        u_int32_t direc_logica = get_registro_generico(&registros_cpu, instruccion->parametros[2]);
-        u_int32_t puntero = get_registro_generico(&registros_cpu, instruccion->parametros[4]);
+        u_int32_t tamanio = get_registro_generico(&pcb->registros,instruccion->parametros[3]);
+        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[2]);
+        u_int32_t puntero = get_registro_generico(&pcb->registros, instruccion->parametros[4]);
         t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
@@ -376,13 +367,12 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_READ:
     {
-        pcb->registros = registros_cpu;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
-        u_int32_t tamanio = get_registro_generico(&registros_cpu,instruccion->parametros[3]);
-        u_int32_t direc_logica = get_registro_generico(&registros_cpu, instruccion->parametros[2]);
-        u_int32_t puntero = get_registro_generico(&registros_cpu, instruccion->parametros[4]);
+        u_int32_t tamanio = get_registro_generico(&pcb->registros,instruccion->parametros[3]);
+        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[2]);
+        u_int32_t puntero = get_registro_generico(&pcb->registros, instruccion->parametros[4]);
         t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
@@ -407,7 +397,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case RESIZE:
     {
-        pcb->registros = registros_cpu;
+
         t_paquete *paquete_a_enviar = crear_paquete(AJUSTAR_TAMANIO_PROCESO);
         buffer_add(paquete_a_enviar->buffer, &pcb->pid, sizeof(u_int32_t));
         u_int32_t tamanio = (u_int32_t)atoi(instruccion->parametros[0]);
@@ -431,9 +421,10 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     case COPY_STRING:
     {
         
-        size_t tamanio = (size_t)get_registro_generico(&registros_cpu,instruccion->parametros[0]);
+        size_t tamanio = (size_t)get_registro_generico(&pcb->registros,instruccion->parametros[0]);
         copy_string(pcb, tamanio);
         break;
+
     }
     case WAIT:
     {
@@ -481,11 +472,11 @@ bool check_interrupt(uint32_t pid)
 
 t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 {
-    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &pcb->pc, socket);
-    log_info(logger_cpu,"PID: %d - FETCH - Program Counter: %d",pcb->pid,pcb->pc);
+    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &pcb->registros.PC, socket);
+    log_info(logger_cpu,"PID: %d - FETCH - Program Counter: %d",pcb->pid, pcb->registros.PC);
     if (instruccion != NULL)
     {
-        pcb->pc += 1;
+        pcb->registros.PC+= 1;
     }
     return instruccion;
 }
@@ -848,20 +839,20 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
         char *nombre;
         void *direccion;
     } mapa[] = {
-        {"AX", &(registros_cpu.AX)},
-        {"BX", &(registros_cpu.BX)},
-        {"CX", &(registros_cpu.CX)},
-        {"DX", &(registros_cpu.DX)},
-        {"EAX", &(registros_cpu.EAX)},
-        {"EBX", &(registros_cpu.EBX)},
-        {"ECX", &(registros_cpu.ECX)},
-        {"EDX", &(registros_cpu.EDX)},
-        {"SI", &(registros_cpu.SI)},
-        {"DI", &(registros_cpu.DI)},
-        {"PC", &(registros_cpu.PC)}};
+        {"AX", &(pcb->registros.AX)},
+        {"BX", &(pcb->registros.BX)},
+        {"CX", &(pcb->registros.CX)},
+        {"DX", &(pcb->registros.DX)},
+        {"EAX", &(pcb->registros.EAX)},
+        {"EBX", &(pcb->registros.EBX)},
+        {"ECX", &(pcb->registros.ECX)},
+        {"EDX", &(pcb->registros.EDX)},
+        {"SI", &(pcb->registros.SI)},
+        {"DI", &(pcb->registros.DI)},
+        {"PC", &(pcb->registros.PC)}};
 
     int encontrado = 0;
-    uint32_t direccion_logica = get_registro_generico(&(registros_cpu), registro_direccion);
+    uint32_t direccion_logica = get_registro_generico(&(pcb->registros), registro_direccion);
     for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++)
     {
         if (strcasecmp(registro_datos, mapa[i].nombre) == 0)
@@ -903,7 +894,7 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
 
 void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
 {
-    uint32_t direc_logica = get_registro_generico(&registros_cpu, registro_direccion);
+    uint32_t direc_logica = get_registro_generico(&pcb->registros, registro_direccion);
     t_paquete *paquete = crear_paquete(ESCRITURA_MEMORIA);
     size_t size_of_element;
     void *valor_registro;
@@ -914,7 +905,7 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
     {
 
         size_of_element = sizeof(uint8_t);
-        uint8_t valor = get_registro_generico(&registros_cpu, registro_datos);
+        uint8_t valor = get_registro_generico(&pcb->registros, registro_datos);
         valor_registro = &valor;
         direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, size_of_element);
     }
@@ -925,7 +916,7 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
     {
 
         size_of_element = sizeof(uint32_t);
-        uint32_t valor = get_registro_generico(&registros_cpu, registro_datos);
+        uint32_t valor = get_registro_generico(&pcb->registros, registro_datos);
         valor_registro = &valor;
         direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, size_of_element);
     }
@@ -950,8 +941,8 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
 
 void copy_string(t_pcb *pcb, size_t tamanio)
 {
-    uint32_t direc_logica_si = get_registro_generico(&registros_cpu, "SI");
-    uint32_t direc_logica_di = get_registro_generico(&registros_cpu, "DI");
+    uint32_t direc_logica_si = get_registro_generico(&pcb->registros, "SI");
+    uint32_t direc_logica_di = get_registro_generico(&pcb->registros, "DI");
 
     // Obtener las direcciones físicas para el origen (SI)
     t_list *direc_fisicas_si = traducir_DL_a_DF_generico(direc_logica_si, pcb->pid, tamanio);

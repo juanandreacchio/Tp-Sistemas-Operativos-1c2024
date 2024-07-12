@@ -83,6 +83,7 @@ void *verificar_quantum()
         while (1)
         {
             usleep(1000);
+            
 
             if (temporal_gettime(tiempo_transcurrido) >= quantum)
             {

@@ -67,6 +67,7 @@ bool planificacion_detenida;
 char **recursos;
 char **instancias_recursos;
 t_semaforo_contador *semaforo_multi;
+sem_t podes_eliminar_loko;
 
 int grado_multiprogramacion;
 
