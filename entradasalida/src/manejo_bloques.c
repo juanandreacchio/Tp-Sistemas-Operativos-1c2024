@@ -94,7 +94,7 @@ void borrar_archivo(char* filename) {
     free(metadata_path);
 }
 
-int truncar_archivo(const char* filename, uint32_t tamanio_nuevo, char* PID){
+int truncar_archivo(const char* filename, uint32_t tamanio_nuevo, u_int32_t PID){
     char* metadata_path = buscar_archivo(filename);
     if (!metadata_path) {
         log_error(logger_entradasalida, "No se encontró el archivo: %s", filename);
@@ -109,7 +109,7 @@ int truncar_archivo(const char* filename, uint32_t tamanio_nuevo, char* PID){
     return 0;
 }
 
-void agrandar_archivo(const char* filename ,const char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual, char* PID) {
+void agrandar_archivo(const char* filename , char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual, u_int32_t PID) {
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
     
     uint32_t bloques_adicionales = calcular_bloques_adicionales(tamanio_actual, tamanio_nuevo);
@@ -138,7 +138,7 @@ void agrandar_archivo(const char* filename ,const char* metadata_path, uint32_t 
     log_info(logger_entradasalida, "Archivo %s ampliado a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_adicionales);
 }
 
-void acortar_archivo(const char* filename ,const char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual) {
+void acortar_archivo(const char* filename , char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual) {
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
 
     uint32_t bloques_a_liberar = calcular_bloques_a_liberar(tamanio_actual, tamanio_nuevo); 
@@ -217,25 +217,25 @@ void escribir_archivo(char* filename, char* datos, uint32_t tamanio_datos, int p
 }
 
 void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo) {
-    void* buffer;
+    void* buffer = malloc(tamanio_datos);
     char* metadata_path = buscar_archivo(filename);
     if (!metadata_path) {
         printf("Archivo no encontrado\n");
-        return;
+        return NULL;
     }
 
     uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
     if (puntero_archivo + tamanio_datos > tamanio_archivo) {
         printf("El tamaño de datos a leer excede el tamaño del archivo\n");
         free(metadata_path);
-        return;
+        return NULL;
     }
 
     int archivo_fd = open(path_archivo_bloques, O_RDONLY);
     if (archivo_fd == -1) {
         printf("Error al abrir el archivo de bloques\n");
         free(metadata_path);
-        return;
+        return NULL;
     }
 
     void* mmap_bloques = mmap(NULL, block_size * block_count, PROT_READ, MAP_SHARED, archivo_fd, 0);
@@ -243,7 +243,7 @@ void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo) 
         printf("Error al mapear el archivo de bloques en memoria\n");
         close(archivo_fd);
         free(metadata_path);
-        return;
+        return NULL;
     }
 
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
@@ -274,9 +274,9 @@ void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo) 
     return buffer;
 }
 
-void compactar_file_system(const char* archivo_a_mover, char* PID) {
+void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
     
-    log_info(logger_entradasalida, "PID: %s - Inicio Compactacion", PID); //LOG OBLIGATORIO
+    log_info(logger_entradasalida, "PID: %d - Inicio Compactacion", PID); //LOG OBLIGATORIO
     int cantidad_archivos = 0;
     archivo_info* archivos = listar_archivos(&cantidad_archivos);
 
@@ -414,5 +414,5 @@ void compactar_file_system(const char* archivo_a_mover, char* PID) {
     usleep(retraso_compactacion * 1000); // Convertir milisegundos a microsegundos
 
     free(archivos);
-    log_info(logger_entradasalida, "PID: %s - Fin Compactacion", PID); //LOG OBLIGATORIO
+    log_info(logger_entradasalida, "PID: %d - Fin Compactacion", PID); //LOG OBLIGATORIO
 }

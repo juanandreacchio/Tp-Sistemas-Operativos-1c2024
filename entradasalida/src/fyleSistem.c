@@ -1,9 +1,9 @@
 #include <../include/entradasalida.h>
-
+char* path_archivo_bloques = "bloques.dat"; // Ruta del archivo de bloques
+char* path_bitmap = "bitmap.dat"; // Ruta del archivo de bitmap
 void levantarFileSystem(){
-    char* path_archivo_bloques = "bloques.dat"; // Ruta del archivo de bloques
+     
     create_archivos_bloques();
-    char* path_bitmap = "bitmap.dat"; // Ruta del archivo de bitmap
     crear_bitmap();
 }
 
@@ -17,8 +17,9 @@ void crear_archivo_metadata(const char* filename, int initial_block) {
         log_error(logger_entradasalida,"Error al crear el archivo de metadata");
         exit(EXIT_FAILURE);
     }
-
-    config_set_value(config, "BLOQUE_INICIAL", itoa(initial_block));
+    char buffer[10];
+    sprintf(buffer, "%u", initial_block);
+    config_set_value(config, "BLOQUE_INICIAL",buffer);
     config_set_value(config, "TAMANIO_ARCHIVO", "0");
     
     if (!config_save(config)) {

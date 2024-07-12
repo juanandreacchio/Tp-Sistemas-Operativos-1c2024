@@ -70,8 +70,10 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
 void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io)
 {
     t_paquete *paquete = crear_paquete(EJECUTAR_IO);
+    buffer_add(paquete->buffer,&info_io->pid,sizeof(u_int32_t));
     buffer_add(paquete->buffer,info_io->info_necesaria,info_io->tam_info);
     enviar_paquete(paquete, conexion_io->conexion);
+    log_info(logger_kernel,"le mande a IO");
     
 }
 

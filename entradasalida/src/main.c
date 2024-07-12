@@ -41,16 +41,15 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
     enviar_mensaje(interfaz_creada->nombre, socket_conexion_memoria, ENTRADA_SALIDA, logger_entradasalida);
     }
 
+    log_info(logger_entradasalida,"tipo de interfaz es: %d",tipo_interfaz);
+
     if((int)(long int)tipo_interfaz == DIALFS){
         levantarFileSystem();
     }
 
     pthread_create(&thread_kernel, NULL, iniciar_conexion_kernel, interfaz_creada);
     pthread_join(thread_kernel, NULL);
-
-    log_info(logger_entradasalida,"tipo de interfaz es: %d",tipo_interfaz);
     
-
     log_info(logger_entradasalida, "I/O %s terminada", interfaz_creada->nombre);
     config_destroy(config_entradasalida);
     log_destroy(logger_entradasalida);
@@ -72,7 +71,7 @@ void iniciar_config(char *ruta)
     ip_memoria = config_get_string_value(config_entradasalida, "IP_MEMORIA");
     puerto_memoria = config_get_string_value(config_entradasalida, "PUERTO_MEMORIA");
 
-    tiempo_unidad_trabajo = config_get_string_value(config_entradasalida, "TIEMPO_UNIDAD_TRABAJO");
+    tiempo_unidad_trabajo = config_get_int_value(config_entradasalida, "TIEMPO_UNIDAD_TRABAJO");
 
     char *tipo_interfaz_str = config_get_string_value(config_entradasalida, "TIPO_INTERFAZ");
     if (strcmp(tipo_interfaz_str, "GENERICA") == 0)
@@ -87,13 +86,13 @@ void iniciar_config(char *ruta)
     {
         tipo_interfaz = STDOUT;
     }
-    else if (strcmp(tipo_interfaz_str, "DialFS") == 0)
+    else if (strcmp(tipo_interfaz_str, "DIALFS") == 0)
     {
         tipo_interfaz = DIALFS;
-        block_size = atoi(config_get_string_value(config_entradasalida, "BLOCK_SIZE"));
-        block_count = atoi(config_get_string_value(config_entradasalida, "BLOCK_COUNT"));
+        block_size = config_get_int_value(config_entradasalida, "BLOCK_SIZE");
+        block_count = config_get_int_value(config_entradasalida, "BLOCK_COUNT");
         path_fs = config_get_string_value(config_entradasalida, "PATH_BASE_DIALFS");
-        retraso_compactacion = atoi(config_get_string_value(config_entradasalida, "RETRASO_COMPACTACION"));
+        retraso_compactacion = config_get_int_value(config_entradasalida, "RETRASO_COMPACTACION");
     }
     else
     {
@@ -125,13 +124,14 @@ void *iniciar_conexion_kernel(void *arg)
 
 void *atender_cliente(int socket_cliente)
 {
+    log_info(logger_entradasalida, "esperando cliente");
     t_paquete *paquete = recibir_paquete(socket_cliente);
-    char* PID; //obtener
-    
+    u_int32_t PID; 
+    buffer_read(paquete->buffer, &PID, sizeof(uint32_t));
     switch (tipo_interfaz)
     {
     case GENERICA:{
-        log_info(logger_entradasalida, "PID: %d - Operacion: IO_GEN_SLEEP", PID); // LOG OBLIGATORIO: falta obtener PID y operacion
+        log_info(logger_entradasalida, "PID: %d - Operacion: IO_GEN_SLEEP", PID); // LOG OBLIGATORIO
         u_int32_t unidad_de_trabajo;
         buffer_read(paquete->buffer,&unidad_de_trabajo,sizeof(u_int32_t));
 
@@ -142,8 +142,9 @@ void *atender_cliente(int socket_cliente)
         break;
         }
     case STDIN:{
-        log_info(logger_entradasalida, "PID: %d - Operacion: IO_STDIN_READ", PID); // LOG OBLIGATORIO: falta obtener PID
-        u_int32_t cantidad_marcos,total_tamanio;
+        log_info(logger_entradasalida, "PID: %d - Operacion: IO_STDIN_READ", PID); // LOG OBLIGATORIO
+        u_int32_t cantidad_marcos,total_tamanio,pid;
+        buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
         buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
         buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
         t_list *direcciones_fisicas = list_create();
@@ -165,7 +166,7 @@ void *atender_cliente(int socket_cliente)
         }
 
         t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
-        enviar_soli_escritura(paquete_escritura, direcciones_fisicas,total_tamanio,dato,socket_conexion_memoria,pid);
+        enviar_soli_escritura(paquete_escritura, direcciones_fisicas,total_tamanio,dato,socket_conexion_memoria,PID);
 
         // recibir confirmacion de memoria
 
@@ -181,8 +182,9 @@ void *atender_cliente(int socket_cliente)
         break;
         }
     case STDOUT:{
-        log_info(logger_entradasalida, "PID: %d - Operacion: IO_STDOUT_WRITE", PID); // LOG OBLIGATORIO: falta obtener PID 
-        u_int32_t cantidad_marcos,total_tamanio;
+        log_info(logger_entradasalida, "PID: %d - Operacion: IO_STDOUT_WRITE", PID); // LOG OBLIGATORIO 
+        u_int32_t cantidad_marcos,total_tamanio,pid;
+        buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
         buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
         buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
         t_list *direcciones_fisicas = list_create();
@@ -194,7 +196,7 @@ void *atender_cliente(int socket_cliente)
             list_add(direcciones_fisicas,direc_fisica);
         }
         t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
-        enviar_soli_lectura(paquete_lectura,direcciones_fisicas,total_tamanio,socket_conexion_memoria,pid);
+        enviar_soli_lectura(paquete_lectura,direcciones_fisicas,total_tamanio,socket_conexion_memoria,PID);
         
 
         // recibir dato de memoria
@@ -209,15 +211,19 @@ void *atender_cliente(int socket_cliente)
         break;
         }
     case DIALFS:
-
+        log_info(logger_entradasalida,"entre al case dialfs");
         t_identificador identificador;
         buffer_read(paquete->buffer,&identificador, sizeof(t_identificador));
+        log_info(logger_entradasalida,"me lleog indetificador: %d",identificador);
         switch (identificador)
         {
         case IO_FS_CREATE:
-            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_CREATE", PID);// LOG OBLIGATORIO: falta obtener PID
-            char* nombre_archivo [256];
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(nombre_archivo));
+        {         
+            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_CREATE", PID);// LOG OBLIGATORIO
+            u_int32_t tamanio_nombre_archivo;
+            buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
+            char* nombre_archivo = malloc(tamanio_nombre_archivo);
+            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
 
             log_info(logger_entradasalida, "PID: %d - Crear Archivo: %s",PID, nombre_archivo); //LOG OBLIGATORIO
 
@@ -228,24 +234,32 @@ void *atender_cliente(int socket_cliente)
                 enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
             }         
             break;
+        }
         case IO_FS_DELETE:
-            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_DELETE", PID);// LOG OBLIGATORIO: falta obtener PID
-            char* nombre_archivo [256];
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(nombre_archivo));
+        {
+            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_DELETE", PID);// LOG OBLIGATORIO
+            u_int32_t tamanio_nombre_archivo;
+            buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
+            char* nombre_archivo = malloc(tamanio_nombre_archivo);
+            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
             log_info(logger_entradasalida, "PID: %d - Eliminar Archivo: %s",PID, nombre_archivo); //LOG OBLIGATORIO
             
             borrar_archivo(nombre_archivo);
 
             enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
             break;
+        }
         case IO_FS_TRUNCATE:
-            log_info(logger_entradasalida, "Se recibio una instruccion IO_FS_TRUNCATE");
-            char* nombre_archivo [256];
+        {
+            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_TRUNCATE", PID);
+            u_int32_t tamanio_nombre_archivo;
+            buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
+            char* nombre_archivo = malloc(tamanio_nombre_archivo);
             u_int32_t tamanio;
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(nombre_archivo));
-            buffer_read(paquete->buffer, tamanio, sizeof(uint32_t));
+            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
+            buffer_read(paquete->buffer, &tamanio, sizeof(uint32_t));
             log_info(logger_entradasalida, "PID: %d - Truncar Archivo: %s - Tamaño: %d",PID, nombre_archivo, tamanio); //LOG OBLIGATORIO
-            int resultado_operacion = truncar_archivo(nombre_archivo, tamanio);
+            int resultado_operacion = truncar_archivo(nombre_archivo, tamanio,PID);
             if(resultado_operacion == -1){
                 // devolver error
             } else {
@@ -253,11 +267,15 @@ void *atender_cliente(int socket_cliente)
                 enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
             }  
             break;
+        }
         case IO_FS_WRITE:
-            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_WRITE", PID);// LOG OBLIGATORIO: falta obtener PID
-            char* nombre_archivo [256];
+        {
+            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_WRITE", PID);// LOG OBLIGATORIO
+            u_int32_t tamanio_nombre_archivo;
+            buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
+            char* nombre_archivo = malloc(tamanio_nombre_archivo);
             uint32_t cantidad_marcos, tamanio, puntero;
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(nombre_archivo));
+            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
             buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
             buffer_read(paquete->buffer, &tamanio, sizeof(uint32_t));
 
@@ -274,7 +292,7 @@ void *atender_cliente(int socket_cliente)
             log_info(logger_entradasalida, "PID: %d - Escribir Archivo: %s - Tamaño a Escribir: %d - Puntero Archivo: %d",PID, nombre_archivo, tamanio, puntero); //LOG OBLIGATORIO
             
             t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
-            enviar_soli_lectura(paquete_lectura, direcciones_fisicas, tamanio, socket_conexion_memoria);
+            enviar_soli_lectura(paquete_lectura, direcciones_fisicas, tamanio, socket_conexion_memoria, PID);
 
             // recibir dato de memoria
             t_paquete *paquete_dato = recibir_paquete(socket_conexion_memoria);
@@ -287,10 +305,14 @@ void *atender_cliente(int socket_cliente)
             log_info(logger_entradasalida, "se realizo escritura correctamente");   
             free(lectura);
             break;
+        }
         case IO_FS_READ:
-            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_READ", PID);// LOG OBLIGATORIO: falta obtener PID
-            char* nombre_archivo [256];
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(nombre_archivo));
+        {
+            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_READ", PID);// LOG OBLIGATORIO:
+            u_int32_t tamanio_nombre_archivo,puntero;
+            buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
+            char* nombre_archivo= malloc(tamanio_nombre_archivo);
+            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
 
             u_int32_t cantidad_marcos,tamanio;
             buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
@@ -310,10 +332,10 @@ void *atender_cliente(int socket_cliente)
             
             
             // leer archivo
-            void* lectura = leer_archivo(nombre_archivo, tamanio, puntero, lectura);
+            void* lectura = leer_archivo(nombre_archivo, tamanio, puntero);
             
             t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
-            enviar_soli_escritura(paquete_escritura, direcciones_fisicas, tamanio, lectura, socket_conexion_memoria);
+            enviar_soli_escritura(paquete_escritura, direcciones_fisicas, tamanio, lectura, socket_conexion_memoria,PID);
             op_code operacion = recibir_operacion(socket_conexion_memoria);
             if(operacion==OK) {
                 enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
@@ -323,9 +345,12 @@ void *atender_cliente(int socket_cliente)
             }
             free(lectura);
             break;
+        }
         default:
+        {
             log_info(logger_entradasalida, "No se puede procesar la instruccion");
             break;
+        }
         }
         break;
     }

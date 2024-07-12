@@ -138,7 +138,7 @@ uint32_t obtener_bloque_inicial(const char* metadata_path){
         log_error(logger_entradasalida, "Error al abrir el archivo de metadata: %s", metadata_path);
         return (uint32_t)-1;
     }
-    uint32_t bloque_inicial = atoi(config_get_string_value(config_metadata, "BLOQUE_INICIAL"));
+    uint32_t bloque_inicial = config_get_int_value(config_metadata, "BLOQUE_INICIAL");
     config_destroy(config_metadata);
     return bloque_inicial;
 }

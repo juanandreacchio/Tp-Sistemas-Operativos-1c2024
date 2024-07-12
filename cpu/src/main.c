@@ -214,6 +214,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
 
     case IO_FS_TRUNCATE:
     {
+
         break;
     }
     case IO_STDIN_READ:
@@ -286,6 +287,22 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_CREATE:
     {
+        pcb->registros = registros_cpu;
+        enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
+
+        t_paquete *paquete = crear_paquete(OPERACION_IO);
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
+        u_int32_t tam_a_enviar = instruccion->param2_length + sizeof(t_identificador);
+        buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param2_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[1], instruccion->param2_length);
+        enviar_paquete(paquete, conexion_kernel_dispatch);
+        input_ouput_flag = 1;
+        eliminar_paquete(paquete);
         break;
     }
     case IO_FS_WRITE:
