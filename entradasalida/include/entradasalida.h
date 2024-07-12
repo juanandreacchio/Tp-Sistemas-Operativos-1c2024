@@ -64,11 +64,11 @@ uint32_t buscar_bloque_libre();
 char* buscar_archivo(const char* archivo_buscar);
 uint32_t calcular_bloques_adicionales(uint32_t tamanio_actual,uint32_t tamanio_nuevo);
 uint32_t calcular_bloques_a_liberar(uint32_t tamanio_actual, uint32_t tamanio_nuevo);
-uint32_t obtener_tamanio_archivo(const char* metadata_path);
-uint32_t obtener_bloque_inicial(const char* metadata_path);
+uint32_t obtener_tamanio_archivo( char* metadata_path);
+uint32_t obtener_bloque_inicial( char* metadata_path);
 uint32_t obtener_ultimo_bloque(uint32_t bloque_inicial, uint32_t tamanio_actual);
 int verificar_bloques_contiguos_libres(uint32_t bloque_inicial, uint32_t cantidad_bloques);
-void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nuevo);
+void actualizar_metadata_tamanio(char* metadata_path, uint32_t tamanio_nuevo);
 archivo_info* listar_archivos(int* cantidad_archivos);
 
 int truncar_archivo(const char* filename, uint32_t tamanio_nuevo, uint32_t PID);

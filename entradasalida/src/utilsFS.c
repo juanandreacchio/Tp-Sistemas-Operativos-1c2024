@@ -56,7 +56,7 @@ void asignar_bloque(uint32_t bloque_libre) {
         log_error(logger_entradasalida, "Error al sincronizar el archivo de bitmap");
     }
 
-    log_info(logger_entradasalida, "Bloque %d asignado al archivo %s", bloque_libre);
+    log_info(logger_entradasalida, "Bloque %d asignado al archivo ", bloque_libre);//TODO: aca al final ponian el nombre del archivo pero no estaba y como no c que va se los dejo asi.
 }
 
 void liberar_bloque(uint32_t bloque) {
@@ -116,7 +116,7 @@ uint32_t calcular_bloques_a_liberar(uint32_t tamanio_actual, uint32_t tamanio_nu
     return bloques_actuales - bloques_nuevos;
 }
 
-uint32_t obtener_tamanio_archivo(const char* metadata_path){
+uint32_t obtener_tamanio_archivo(char* metadata_path){
     
     t_config* config_metadata = config_create(metadata_path);
 
@@ -130,7 +130,7 @@ uint32_t obtener_tamanio_archivo(const char* metadata_path){
     return tamanio_archivo;
 }
 
-uint32_t obtener_bloque_inicial(const char* metadata_path){
+uint32_t obtener_bloque_inicial(char* metadata_path){
     
     t_config* config_metadata = config_create(metadata_path);
     
@@ -148,7 +148,7 @@ uint32_t obtener_ultimo_bloque(uint32_t bloque_inicial, uint32_t tamanio_actual)
     return bloque_inicial + bloques_actuales - 1;
 }
 
-void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nuevo) {
+void actualizar_metadata_tamanio(char* metadata_path, uint32_t tamanio_nuevo) {
     t_config* config = config_create(metadata_path);
     
     if (config == NULL) {
@@ -167,7 +167,7 @@ void actualizar_metadata_tamanio(const char* metadata_path, uint32_t tamanio_nue
     config_destroy(config);
 }
 
-void actualizar_metadata_bloque_inicial(const char* metadata_path, uint32_t bloque_inicial) {
+void actualizar_metadata_bloque_inicial( char* metadata_path, uint32_t bloque_inicial) {
     t_config* config = config_create(metadata_path);
     
     if (config == NULL) {
@@ -199,7 +199,7 @@ archivo_info* listar_archivos(int* cantidad_archivos) {
     struct dirent* entry;
     // Contar la cantidad de archivos 
     while ((entry = readdir(dir)) != NULL) { 
-        *cantidad_archivos++;
+        (*cantidad_archivos)++;
     }
 
     if (*cantidad_archivos > 0) {
@@ -212,7 +212,7 @@ archivo_info* listar_archivos(int* cantidad_archivos) {
                 snprintf(info->nombre_archivo, sizeof(info->nombre_archivo), "%s", entry->d_name);
 
                 char metadata_path[256];
-                snprintf(metadata_path, sizeof(metadata_path), "%s/%s", path_fs, entry->d_name);
+                snprintf(metadata_path, sizeof(metadata_path), "%s/%s", path_fs, entry->d_name);//TODO: hay que revisar esto porque mepa que harcodear el tamanio de el metadata_path esta mal.
 
                 info->bloque_inicial = obtener_bloque_inicial(metadata_path);
                 uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);

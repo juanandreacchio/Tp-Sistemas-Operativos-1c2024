@@ -41,7 +41,6 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
     enviar_mensaje(interfaz_creada->nombre, socket_conexion_memoria, ENTRADA_SALIDA, logger_entradasalida);
     }
 
-    log_info(logger_entradasalida,"tipo de interfaz es: %d",tipo_interfaz);
 
     if((int)(long int)tipo_interfaz == DIALFS){
         levantarFileSystem();
@@ -124,8 +123,8 @@ void *iniciar_conexion_kernel(void *arg)
 
 void *atender_cliente(int socket_cliente)
 {
-    log_info(logger_entradasalida, "esperando cliente");
     t_paquete *paquete = recibir_paquete(socket_cliente);
+    paquete->buffer->offset =0;
     u_int32_t PID; 
     buffer_read(paquete->buffer, &PID, sizeof(uint32_t));
     switch (tipo_interfaz)
@@ -143,8 +142,7 @@ void *atender_cliente(int socket_cliente)
         }
     case STDIN:{
         log_info(logger_entradasalida, "PID: %d - Operacion: IO_STDIN_READ", PID); // LOG OBLIGATORIO
-        u_int32_t cantidad_marcos,total_tamanio,pid;
-        buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
+        u_int32_t cantidad_marcos,total_tamanio;
         buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
         buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
         t_list *direcciones_fisicas = list_create();
@@ -183,8 +181,7 @@ void *atender_cliente(int socket_cliente)
         }
     case STDOUT:{
         log_info(logger_entradasalida, "PID: %d - Operacion: IO_STDOUT_WRITE", PID); // LOG OBLIGATORIO 
-        u_int32_t cantidad_marcos,total_tamanio,pid;
-        buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
+        u_int32_t cantidad_marcos,total_tamanio;
         buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
         buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
         t_list *direcciones_fisicas = list_create();
@@ -214,7 +211,6 @@ void *atender_cliente(int socket_cliente)
         log_info(logger_entradasalida,"entre al case dialfs");
         t_identificador identificador;
         buffer_read(paquete->buffer,&identificador, sizeof(t_identificador));
-        log_info(logger_entradasalida,"me lleog indetificador: %d",identificador);
         switch (identificador)
         {
         case IO_FS_CREATE:
@@ -223,7 +219,7 @@ void *atender_cliente(int socket_cliente)
             u_int32_t tamanio_nombre_archivo;
             buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
             char* nombre_archivo = malloc(tamanio_nombre_archivo);
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
+            buffer_read(paquete->buffer, nombre_archivo, tamanio_nombre_archivo);
 
             log_info(logger_entradasalida, "PID: %d - Crear Archivo: %s",PID, nombre_archivo); //LOG OBLIGATORIO
 
@@ -241,7 +237,7 @@ void *atender_cliente(int socket_cliente)
             u_int32_t tamanio_nombre_archivo;
             buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
             char* nombre_archivo = malloc(tamanio_nombre_archivo);
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
+            buffer_read(paquete->buffer, nombre_archivo, tamanio_nombre_archivo);
             log_info(logger_entradasalida, "PID: %d - Eliminar Archivo: %s",PID, nombre_archivo); //LOG OBLIGATORIO
             
             borrar_archivo(nombre_archivo);
@@ -256,7 +252,7 @@ void *atender_cliente(int socket_cliente)
             buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
             char* nombre_archivo = malloc(tamanio_nombre_archivo);
             u_int32_t tamanio;
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
+            buffer_read(paquete->buffer, nombre_archivo, tamanio_nombre_archivo);
             buffer_read(paquete->buffer, &tamanio, sizeof(uint32_t));
             log_info(logger_entradasalida, "PID: %d - Truncar Archivo: %s - Tamaño: %d",PID, nombre_archivo, tamanio); //LOG OBLIGATORIO
             int resultado_operacion = truncar_archivo(nombre_archivo, tamanio,PID);
@@ -275,7 +271,7 @@ void *atender_cliente(int socket_cliente)
             buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
             char* nombre_archivo = malloc(tamanio_nombre_archivo);
             uint32_t cantidad_marcos, tamanio, puntero;
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
+            buffer_read(paquete->buffer, nombre_archivo, tamanio_nombre_archivo);
             buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
             buffer_read(paquete->buffer, &tamanio, sizeof(uint32_t));
 
@@ -312,7 +308,7 @@ void *atender_cliente(int socket_cliente)
             u_int32_t tamanio_nombre_archivo,puntero;
             buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
             char* nombre_archivo= malloc(tamanio_nombre_archivo);
-            buffer_read(paquete->buffer, nombre_archivo, sizeof(tamanio_nombre_archivo));
+            buffer_read(paquete->buffer, nombre_archivo, tamanio_nombre_archivo);
 
             u_int32_t cantidad_marcos,tamanio;
             buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));

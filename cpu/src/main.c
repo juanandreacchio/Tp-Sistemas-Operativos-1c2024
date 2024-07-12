@@ -214,7 +214,25 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
 
     case IO_FS_TRUNCATE:
     {
+        pcb->registros = registros_cpu;
+        enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
 
+        u_int32_t tamanio = get_registro_generico(&registros_cpu,instruccion->parametros[2]);
+        t_paquete *paquete = crear_paquete(OPERACION_IO);
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
+
+        u_int32_t tam_a_enviar = instruccion->param2_length + sizeof(t_identificador)+ sizeof(u_int32_t)*2;
+        buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param2_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[1], instruccion->param2_length);
+        buffer_add(paquete->buffer, &tamanio,sizeof(u_int32_t));
+        enviar_paquete(paquete, conexion_kernel_dispatch);
+        input_ouput_flag = 1;
+        eliminar_paquete(paquete);
         break;
     }
     case IO_STDIN_READ:
@@ -231,11 +249,13 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
         buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
-        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 3;
+        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 2;
         buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
-        enviar_soli_lectura(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch,pcb->pid);
+        enviar_soli_lectura_sin_pid(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch);
 
+        enviar_paquete(paquete, conexion_kernel_dispatch);
         input_ouput_flag = 1;
+        eliminar_paquete(paquete);
 
         list_destroy_and_destroy_elements(direc_fisicas, free);
         break;
@@ -253,11 +273,13 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
         buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
-        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 3;
+        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 2;
         buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
-        enviar_soli_lectura(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch,pcb->pid);
+        enviar_soli_lectura_sin_pid(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch);
 
+        enviar_paquete(paquete, conexion_kernel_dispatch);
         input_ouput_flag = 1;
+        eliminar_paquete(paquete);
 
         list_destroy_and_destroy_elements(direc_fisicas, free);
         break;
@@ -283,6 +305,22 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     break;
     case IO_FS_DELETE:
     {
+        pcb->registros = registros_cpu;
+        enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
+
+        t_paquete *paquete = crear_paquete(OPERACION_IO);
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
+        u_int32_t tam_a_enviar = instruccion->param2_length + sizeof(t_identificador)+ sizeof(u_int32_t);
+        buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param2_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[1], instruccion->param2_length);
+        enviar_paquete(paquete, conexion_kernel_dispatch);
+        input_ouput_flag = 1;
+        eliminar_paquete(paquete);
         break;
     }
     case IO_FS_CREATE:
@@ -295,7 +333,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
         buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
-        u_int32_t tam_a_enviar = instruccion->param2_length + sizeof(t_identificador);
+        u_int32_t tam_a_enviar = instruccion->param2_length + sizeof(t_identificador)+sizeof(u_int32_t);
         buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param2_length, sizeof(u_int32_t));
@@ -307,10 +345,64 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_WRITE:
     {
+        pcb->registros = registros_cpu;
+        enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
+
+        u_int32_t tamanio = get_registro_generico(&registros_cpu,instruccion->parametros[3]);
+        u_int32_t direc_logica = get_registro_generico(&registros_cpu, instruccion->parametros[2]);
+        u_int32_t puntero = get_registro_generico(&registros_cpu, instruccion->parametros[4]);
+        t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
+        t_paquete *paquete = crear_paquete(OPERACION_IO);
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
+        u_int32_t tam_a_enviar = instruccion->param2_length + sizeof(t_identificador) + sizeof(u_int32_t) +//esto es el tamanio de identificador+tamamnio_param+param
+                                 (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) +sizeof(u_int32_t)*2+//esto es el tamanio de lo qe amnda en enviar_soli_lectura_sin_pid
+                                 sizeof(u_int32_t);//puntero
+        buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param2_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[1], instruccion->param2_length);
+        enviar_soli_lectura_sin_pid(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch);
+        buffer_add(paquete->buffer, &puntero, sizeof(u_int32_t));
+
+        enviar_paquete(paquete, conexion_kernel_dispatch);
+        input_ouput_flag = 1;
+        eliminar_paquete(paquete);
+
+        list_destroy_and_destroy_elements(direc_fisicas, free);
         break;
     }
     case IO_FS_READ:
     {
+        pcb->registros = registros_cpu;
+        enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
+
+        u_int32_t tamanio = get_registro_generico(&registros_cpu,instruccion->parametros[3]);
+        u_int32_t direc_logica = get_registro_generico(&registros_cpu, instruccion->parametros[2]);
+        u_int32_t puntero = get_registro_generico(&registros_cpu, instruccion->parametros[4]);
+        t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
+        t_paquete *paquete = crear_paquete(OPERACION_IO);
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
+        u_int32_t tam_a_enviar = instruccion->param2_length + sizeof(t_identificador) + sizeof(u_int32_t)+//esto es el tamanio de identificador+tamamnio_param+param
+                                 (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) +sizeof(u_int32_t)*2+//esto es el tamanio de lo qe amnda en enviar_soli_lectura_sin_pid
+                                 sizeof(u_int32_t);//puntero
+        buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
+        buffer_add(paquete->buffer, &instruccion->param2_length, sizeof(u_int32_t));
+        buffer_add(paquete->buffer, instruccion->parametros[1], instruccion->param2_length);
+        enviar_soli_lectura_sin_pid(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch);
+        buffer_add(paquete->buffer, &puntero, sizeof(u_int32_t));
+
+        enviar_paquete(paquete, conexion_kernel_dispatch);
+        input_ouput_flag = 1;
+        eliminar_paquete(paquete);
+
+        list_destroy_and_destroy_elements(direc_fisicas, free);
         break;
     }
     case RESIZE:

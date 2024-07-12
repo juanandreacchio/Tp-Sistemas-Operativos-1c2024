@@ -902,7 +902,38 @@ void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t taman
     enviar_paquete(paquete, socket);
     eliminar_paquete(paquete);
 }
+void enviar_soli_lectura_sin_pid(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket)
+{
+    uint32_t num_direcciones = (uint32_t)list_size(direcciones_fisicas);
+    buffer_add(paquete_enviado->buffer, &num_direcciones, sizeof(uint32_t));
+    buffer_add(paquete_enviado->buffer, &tamanio_de_lectura, sizeof(uint32_t));
+    
+    for (size_t j = 0; j < list_size(direcciones_fisicas); j++) {
+        t_direc_fisica *direccion_fisica = list_get(direcciones_fisicas, j);
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->direccion_fisica), sizeof(uint32_t));
+        buffer_add(paquete_enviado->buffer, &(direccion_fisica->desplazamiento_necesario), sizeof(uint32_t));
+    }
 
+}
+
+void enviar_soli_escritura_sin_pid(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket)
+{
+    uint32_t num_direcciones = (uint32_t)list_size(direc_fisicas);
+    buffer_add(paquete->buffer, &num_direcciones, sizeof(uint32_t));
+
+    uint32_t offset = 0;
+    for (size_t i = 0; i < list_size(direc_fisicas); i++) {
+        t_direc_fisica *direc = list_get(direc_fisicas, i);
+        size_t size_to_copy = (i == list_size(direc_fisicas) - 1) ? tamanio - offset : direc->desplazamiento_necesario;
+
+        buffer_add(paquete->buffer, &(direc->direccion_fisica), sizeof(uint32_t));
+        buffer_add(paquete->buffer, &(direc->desplazamiento_necesario), sizeof(uint32_t));
+        buffer_add(paquete->buffer, ((char *)valor) + offset, size_to_copy);
+        
+        offset += direc->desplazamiento_necesario;
+    }
+
+}
 char* estado_to_string(estados estado)
 {
 	switch (estado){
