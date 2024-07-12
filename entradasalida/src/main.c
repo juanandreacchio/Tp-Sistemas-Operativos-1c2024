@@ -130,7 +130,8 @@ void *atender_cliente(int socket_cliente)
         }
     case STDIN:{
 
-        u_int32_t cantidad_marcos,total_tamanio;
+        u_int32_t cantidad_marcos,total_tamanio,pid;
+        buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
         buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
         buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
         t_list *direcciones_fisicas = list_create();
@@ -152,7 +153,7 @@ void *atender_cliente(int socket_cliente)
         }
 
         t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
-        enviar_soli_escritura(paquete_escritura, direcciones_fisicas,total_tamanio,dato,socket_conexion_memoria);
+        enviar_soli_escritura(paquete_escritura, direcciones_fisicas,total_tamanio,dato,socket_conexion_memoria,pid);
 
         // recibir confirmacion de memoria
 
@@ -172,7 +173,8 @@ void *atender_cliente(int socket_cliente)
         }
     case STDOUT:{
 
-        u_int32_t cantidad_marcos,total_tamanio;
+        u_int32_t cantidad_marcos,total_tamanio,pid;
+        buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
         buffer_read(paquete->buffer, &cantidad_marcos, sizeof(uint32_t));
         buffer_read(paquete->buffer, &total_tamanio, sizeof(uint32_t));
         t_list *direcciones_fisicas = list_create();
@@ -184,7 +186,7 @@ void *atender_cliente(int socket_cliente)
             list_add(direcciones_fisicas,direc_fisica);
         }
         t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
-        enviar_soli_lectura(paquete_lectura,direcciones_fisicas,total_tamanio,socket_conexion_memoria);
+        enviar_soli_lectura(paquete_lectura,direcciones_fisicas,total_tamanio,socket_conexion_memoria,pid);
         
 
         // recibir dato de memoria

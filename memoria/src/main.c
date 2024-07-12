@@ -145,7 +145,7 @@ void *atender_cliente(void *socket_cliente)
             solicitud = deserializar_solicitud_crear_proceso(buffer);
             log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
-
+            log_info(logger_memoria,"PID: <%d> - Tamaño: <%d>",solicitud->pid,list_size(proceso_creado->tabla_paginas));
             printf("--------------------------PROCESO CREADO-----------------\n");
             // imprimir_proceso(proceso_creado);
             //  imprimir_lista_de_procesos(procesos_en_memoria);
@@ -158,8 +158,10 @@ void *atender_cliente(void *socket_cliente)
             buffer_read(buffer, &pid, sizeof(uint32_t));
             // liberar el proceso y sacarlo de la lista
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
+            log_info(logger_memoria,"PID: <%d> - Tamaño: <%d>",proceso->pid,list_size(proceso->tabla_paginas));
             liberar_proceso(proceso);
             list_remove(procesos_en_memoria, posicion_proceso(procesos_en_memoria, pid));
+            
             break;
         }
         case ACCESO_TABLA_PAGINAS:
@@ -188,7 +190,9 @@ void *atender_cliente(void *socket_cliente)
                 {
                     uint32_t nro_marco = pag->numero_marco;
                     buffer_add(paquete_respuesta->buffer, &nro_marco, sizeof(uint32_t));
+                    log_info(logger_memoria,"PID: %d - Pagina: %d - Marco: %d",pid,numero_pagina,nro_marco);
                 }
+                
             }
 
             enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
@@ -217,6 +221,7 @@ void *atender_cliente(void *socket_cliente)
                     t_pagina *pagina = inicializar_pagina(obtener_primer_marco_libre());
                     list_add(proceso->tabla_paginas, pagina);
                 }
+                log_info(logger_memoria,"PID: %d - Tamaño Actual: %d - Tamaño a Ampliar: %d",pid,tamanio_actual,paginas_a_agregar);
             }
             else if (nuevo_tamanio < tamanio_actual)
             {
@@ -228,6 +233,7 @@ void *atender_cliente(void *socket_cliente)
                     liberar_marco_pagina(proceso, list_size(proceso->tabla_paginas));
                     free(pagina);
                 }
+                log_info(logger_memoria,"PID: %d - Tamaño Actual: %d - Tamaño a Reducir: %d",pid,tamanio_actual,paginas_a_eliminar);
             }
             enviar_codigo_operacion(OK, (int)(long int)socket_cliente);
             break;
@@ -237,26 +243,33 @@ void *atender_cliente(void *socket_cliente)
             log_info(logger_memoria, "Se recibio un mensaje para escribir en memoria");
             // Llegan: cantidad de marcos a escribir, marco, offset, tamanio, buffer_escritura
             uint32_t cantidad_marcos;
+            u_int32_t primer_direccion_fisica;
+            u_int32_t tamanio_total;
+            u_int32_t pid;
+            buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
             for (int i = 0; i < cantidad_marcos; i++)
             {
                 uint32_t direccion_fisica, tamanio;
                 buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
+                if(i==0)primer_direccion_fisica=direccion_fisica;
                 buffer_read(buffer, &tamanio, sizeof(uint32_t));
+                tamanio_total +=tamanio;
                 void *buffer_escritura = malloc(tamanio);
                 buffer_read(buffer, buffer_escritura, tamanio);
                 memcpy(((char *)memoria_principal) + direccion_fisica, buffer_escritura, tamanio);
                 free(buffer_escritura);
             }
-
-            enviar_codigo_operacion(OK, (int)(long int)socket_cliente);
+            log_info(logger_memoria,"PID: %d - Accion: ESCRIBIR - Direccion fisica: %d - Tamaño %d",pid,primer_direccion_fisica,tamanio_total);//algo del tamanioo anda mal en esto
+            enviar_codigo_operacion(OK,(int)(long int)socket_cliente);
             break;
         }
         case LECTURA_MEMORIA:
         {
             log_info(logger_memoria, "Se recibio un mensaje para leer de memoria");
             // Llegan: cantidad de marcos a leer, marco, offset, tamanio
-            uint32_t cantidad_marcos, total_tamanio;
+            uint32_t cantidad_marcos,total_tamanio,primer_direccion_fisica,pid;
+            buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));
             buffer_read(buffer, &total_tamanio, sizeof(uint32_t));
             void *buffer_lectura = malloc(total_tamanio);
@@ -265,12 +278,14 @@ void *atender_cliente(void *socket_cliente)
             {
                 uint32_t direccion_fisica, tamanio;
                 buffer_read(buffer, &direccion_fisica, sizeof(uint32_t));
+                if(i==0)primer_direccion_fisica = direccion_fisica;
                 buffer_read(buffer, &tamanio, sizeof(uint32_t));
                 memcpy(buffer_lectura + offset, ((char *)memoria_principal) + direccion_fisica, tamanio);
                 offset += tamanio;
             }
             t_paquete *paquete_respuesta = crear_paquete(LECTURA_MEMORIA);
             buffer_add(paquete_respuesta->buffer, buffer_lectura, total_tamanio);
+            log_info(logger_memoria,"PID: %d - Accion: LEER - Direccion fisica: %d - Tamaño %d",pid,primer_direccion_fisica,total_tamanio);
             enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
             free(buffer_lectura);
             eliminar_paquete(paquete_respuesta);

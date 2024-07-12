@@ -145,7 +145,7 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
 
     enviar_paquete(paquete, conexionParam);
 
-    log_info(logger_cpu, "PID: %d - FETCH - Program Counter pc: %d", pid, *pc);
+    //log_info(logger_cpu, "PID: %d - FETCH - Program Counter pc: %d", pid, *pc);
 
     t_paquete *respuesta_memoria = recibir_paquete(conexionParam);
 
@@ -222,7 +222,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
         u_int32_t direc_logica = get_registro_generico(&registros_cpu, instruccion->parametros[1]);
-        u_int32_t tamanio = get_registro_generico(&registros_cpu, instruccion->parametros[2]);
+        size_t tamanio = (size_t)get_registro_generico(&registros_cpu, instruccion->parametros[2]);
 
         t_paquete *paquete = crear_paquete(OPERACION_IO);
 
@@ -230,9 +230,9 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
         buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
-        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 2;
+        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 3;
         buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
-        enviar_soli_lectura(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch);
+        enviar_soli_lectura(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch,pcb->pid);
 
         input_ouput_flag = 1;
 
@@ -252,9 +252,9 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
         buffer_add(paquete->buffer, instruccion->parametros[0], instruccion->param1_length);
-        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 2;
+        u_int32_t tam_a_enviar = (sizeof(t_direc_fisica) - sizeof(u_int32_t)) * list_size(direc_fisicas) + sizeof(u_int32_t) * 3;
         buffer_add(paquete->buffer, &tam_a_enviar, sizeof(u_int32_t));
-        enviar_soli_lectura(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch);
+        enviar_soli_lectura(paquete, direc_fisicas, tamanio, conexion_kernel_dispatch,pcb->pid);
 
         input_ouput_flag = 1;
 
@@ -321,7 +321,8 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case COPY_STRING:
     {
-        size_t tamanio = (size_t)atoi(instruccion->parametros[0]);
+        
+        size_t tamanio = (size_t)get_registro_generico(&registros_cpu,instruccion->parametros[0]);
         copy_string(pcb, tamanio);
         break;
     }
@@ -354,7 +355,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     default:
         break;
     }
-    log_info(logger_cpu, "PID: %d - EJECUTANDO ", pcb->pid);
+    //log_info(logger_cpu, "PID: %d - EJECUTANDO ", pcb->pid);
     imprimir_instruccion(instruccion);
 }
 
@@ -372,6 +373,7 @@ bool check_interrupt(uint32_t pid)
 t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 {
     t_instruccion *instruccion = fetch_instruccion(pcb->pid, &pcb->pc, socket);
+    log_info(logger_cpu,"PID: %d - FETCH - Program Counter: %d",pcb->pid,pcb->pc);
     if (instruccion != NULL)
     {
         pcb->pc += 1;
@@ -402,8 +404,8 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             log_info(logger_cpu, "el chequeo de interrupcion encontro que hay una interrupcion");
             interruption_flag = 1;
         }
-
-        usleep(500000);
+        log_instruccion(pcb->pid,instruccion);
+        //usleep(500000); este es el que no iba
     }
 
     imprimir_registros_por_pantalla(pcb->registros);
@@ -760,7 +762,7 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
 
             t_list *direcciones_fisicas = traducir_DL_a_DF_generico(direccion_logica, pcb->pid, size_of_element);
             t_paquete *paquete_enviado = crear_paquete(LECTURA_MEMORIA);
-            enviar_soli_lectura(paquete_enviado, direcciones_fisicas, size_of_element, conexion_memoria);
+            enviar_soli_lectura(paquete_enviado, direcciones_fisicas, size_of_element, conexion_memoria,pcb->pid);
 
             t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
             if (paquete_recibido->codigo_operacion != LECTURA_MEMORIA)
@@ -774,6 +776,10 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
             void *buffer = malloc(size_of_element);
             buffer_read(paquete_recibido->buffer, buffer, size_of_element);
             memcpy(mapa[i].direccion, buffer, size_of_element);
+            u_int32_t valor;
+            memcpy(&valor, buffer, sizeof(uint32_t));
+            t_direc_fisica *primer_direc_fisica = list_get(direcciones_fisicas,0);
+            log_info(logger_cpu,"PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d",pcb->pid,primer_direc_fisica->direccion_fisica,valor);
             free(buffer);
             eliminar_paquete(paquete_recibido);
 
@@ -820,12 +826,16 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
         eliminar_paquete(paquete);
         return;
     }
-    enviar_soli_escritura(paquete, direc_fisicas, size_of_element, valor_registro, conexion_memoria);
+    enviar_soli_escritura(paquete, direc_fisicas, size_of_element, valor_registro, conexion_memoria,pcb->pid);
     op_code cod_op = recibir_operacion(conexion_memoria);
     if (cod_op != OK)
     {
         log_error(logger_cpu, "error: codigo de operacion inesperado al recibir la escritura de memoria");
     }
+    u_int32_t valor_escrito;
+    t_direc_fisica *primer_direc_fisica = list_get(direc_fisicas,0);
+    memcpy(&valor_escrito, valor_registro, sizeof(uint32_t));
+    log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d",pcb->pid,primer_direc_fisica->direccion_fisica,valor_escrito);
     list_destroy_and_destroy_elements(direc_fisicas, free);
 }
 
@@ -836,13 +846,13 @@ void copy_string(t_pcb *pcb, size_t tamanio)
 
     // Obtener las direcciones físicas para el origen (SI)
     t_list *direc_fisicas_si = traducir_DL_a_DF_generico(direc_logica_si, pcb->pid, tamanio);
-
+    
     // Obtener las direcciones físicas para el destino (DI)
     t_list *direc_fisicas_di = traducir_DL_a_DF_generico(direc_logica_di, pcb->pid, tamanio);
 
     // Leer el string desde la memoria apuntada por SI
     t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
-    enviar_soli_lectura(paquete_lectura, direc_fisicas_si, tamanio, conexion_memoria);
+    enviar_soli_lectura(paquete_lectura, direc_fisicas_si, tamanio, conexion_memoria,pcb->pid);
 
     t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
     if (paquete_recibido->codigo_operacion != LECTURA_MEMORIA)
@@ -858,16 +868,22 @@ void copy_string(t_pcb *pcb, size_t tamanio)
     void *buffer = malloc(tamanio);
     buffer_read(paquete_recibido->buffer, buffer, tamanio); // por ahie sto lo tena que cambiar
     eliminar_paquete(paquete_recibido);
+    char *valor = malloc(tamanio);
+    memcpy(valor, buffer, tamanio);
+    t_direc_fisica *primer_direc_fisica_si = list_get(direc_fisicas_si,0);
+    log_info(logger_cpu,"PID: %d - Acción: LEER - Dirección Física: %d - Valor: %s",pcb->pid,primer_direc_fisica_si->direccion_fisica,valor);
 
     // Escribir el string a la memoria apuntada por DI
     t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
-    enviar_soli_escritura(paquete_escritura, direc_fisicas_di, tamanio, buffer, conexion_memoria);
+    enviar_soli_escritura(paquete_escritura, direc_fisicas_di, tamanio, buffer, conexion_memoria,pcb->pid);
 
     op_code cod_op = recibir_operacion(conexion_memoria);
     if (cod_op != OK)
     {
         log_error(logger_cpu, "error: codigo de operacion inesperado al recibir la escritura de memoria");
     }
+    t_direc_fisica *primer_direc_fisica_di = list_get(direc_fisicas_di,0);
+    log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s",pcb->pid,primer_direc_fisica_di->direccion_fisica,valor);
 
     free(buffer);
     list_destroy_and_destroy_elements(direc_fisicas_si, free);
@@ -896,6 +912,7 @@ t_list *traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio)
         {
             // log_info(logger_cpu, "TLB HIT: Página %d, Marco %d", pagina_actual, marco);
             direc->direccion_fisica = marco * tamanio_de_pagina + ((i == 0) ? desplazamiento : 0);
+            log_info(logger_cpu,"PID: %d - OBTENER MARCO - Página: %d - Marco: %d ",pid,pagina_actual,marco);
         }
         else
         {
@@ -951,6 +968,7 @@ t_list *traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio)
                 if (direc->num_pag == *pagina_actual)
                 {
                     direc->direccion_fisica = nro_marco * tamanio_de_pagina + ((direc->num_pag == numero_pagina) ? desplazamiento : 0);
+                    log_info(logger_cpu,"PID: %d - OBTENER MARCO - Página: %d - Marco: %d ",pid,*pagina_actual,nro_marco);
                     break;
                 }
             }
@@ -1064,4 +1082,59 @@ void reemplazo_lru()
 {
     list_sort(TLB, comparar_ultimo_acceso);
     list_remove_and_destroy_element(TLB, 0, (void *)liberar_entrada_tlb);
+}
+//------------------------funciones extra-------------------------
+
+
+size_t calcular_tamano_mensaje(int pid, const t_instruccion *instruccion) {
+    // Tamaño inicial con el PID y el identificador
+    size_t size = snprintf(NULL, 0, "PID: %d - Ejecutando: %s - ", pid, identificador_to_string(instruccion->identificador));
+
+    // Array con las longitudes de los parámetros
+    uint32_t param_lengths[] = {
+        instruccion->param1_length,
+        instruccion->param2_length,
+        instruccion->param3_length,
+        instruccion->param4_length,
+        instruccion->param5_length
+    };
+
+    // Tamaño de todos los parámetros usando las longitudes conocidas
+    for (uint32_t i = 0; i < instruccion->cant_parametros; ++i) {
+        size += param_lengths[i];
+        if (i < instruccion->cant_parametros - 1) {
+            size += 2; // Para la coma y el espacio
+        }
+    }
+
+    return size + 1; // +1 para el terminador nulo
+}
+
+// Función para loguear una instrucción
+void log_instruccion(int pid, const t_instruccion *instruccion) {
+    // Calcular el tamaño necesario para el mensaje
+    size_t message_size = calcular_tamano_mensaje(pid, instruccion);
+    char *message = malloc(message_size);
+
+    if (!message) {
+        fprintf(stderr, "Error al asignar memoria para el mensaje de log\n");
+        return;
+    }
+
+    // Formatear el mensaje
+    snprintf(message, message_size, "PID: %d - Ejecutando: %s - ", pid, identificador_to_string(instruccion->identificador));
+
+    // Concatenar los parámetros
+    for (uint32_t i = 0; i < instruccion->cant_parametros; ++i) {
+        strncat(message, instruccion->parametros[i], message_size - strlen(message) - 1);
+        if (i < instruccion->cant_parametros - 1) {
+            strncat(message, " - ", message_size - strlen(message) - 1);
+        }
+    }
+
+    // Loguear el mensaje
+    log_info(logger_cpu,message);
+
+    // Liberar la memoria asignada
+    free(message);
 }

@@ -861,9 +861,10 @@ cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op){
 
 
 // FUNCIONES PARA ESCRIBIR O LEER EN MEMORIA
-void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket)
+void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket,u_int32_t pid)
 {
     uint32_t num_direcciones = (uint32_t)list_size(direcciones_fisicas);
+	buffer_add(paquete_enviado->buffer, &pid, sizeof(uint32_t));
     buffer_add(paquete_enviado->buffer, &num_direcciones, sizeof(uint32_t));
     buffer_add(paquete_enviado->buffer, &tamanio_de_lectura, sizeof(uint32_t));
     
@@ -879,9 +880,10 @@ void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,
 
 }
 
-void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket)
+void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket,u_int32_t pid)
 {
     uint32_t num_direcciones = (uint32_t)list_size(direc_fisicas);
+	buffer_add(paquete->buffer, &pid, sizeof(uint32_t));
     buffer_add(paquete->buffer, &num_direcciones, sizeof(uint32_t));
 
     uint32_t offset = 0;
@@ -925,4 +927,36 @@ char* number_to_string(int number) {
         return NULL; // Manejo de error si asprintf falla
     }
     return buffer;
+}
+
+
+const char* identificador_to_string(t_identificador id) {
+    switch (id) {
+        // 5 PARÁMETROS
+        case IO_FS_WRITE: return "IO_FS_WRITE";
+        case IO_FS_READ: return "IO_FS_READ";
+        // 3 PARAMETROS
+        case IO_FS_TRUNCATE: return "IO_FS_TRUNCATE";
+        case IO_STDOUT_WRITE: return "IO_STDOUT_WRITE";
+        case IO_STDIN_READ: return "IO_STDIN_READ";
+        // 2 PARAMETROS
+        case SET: return "SET";
+        case MOV_IN: return "MOV_IN";
+        case MOV_OUT: return "MOV_OUT";
+        case SUM: return "SUM";
+        case SUB: return "SUB";
+        case JNZ: return "JNZ";
+        case IO_GEN_SLEEP: return "IO_GEN_SLEEP";
+        case IO_FS_DELETE: return "IO_FS_DELETE";
+        case IO_FS_CREATE: return "IO_FS_CREATE";
+        // 1 PARAMETRO
+        case RESIZE: return "RESIZE";
+        case COPY_STRING: return "COPY_STRING";
+        case WAIT: return "WAIT";
+        case SIGNAL: return "SIGNAL";
+        // 0 PARAMETROS
+        case EXIT: return "EXIT";
+        // Manejo de caso por defecto
+        default: return "UNKNOWN_IDENTIFIER";
+    }
 }

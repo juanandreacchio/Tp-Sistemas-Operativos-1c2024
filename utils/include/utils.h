@@ -265,8 +265,9 @@ op_code recibir_motivo_desalojo(uint32_t socket_cliente);
 void enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socket);
 cod_interfaz cod_op_to_tipo_interfaz(op_code cod_op);
 op_code tipo_interfaz_to_cod_op(cod_interfaz tipo);
-void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket);
-void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket);
+void enviar_soli_lectura(t_paquete *paquete_enviado,t_list *direcciones_fisicas,size_t tamanio_de_lectura,u_int32_t socket,u_int32_t pid);
+void enviar_soli_escritura(t_paquete *paquete,t_list *direc_fisicas,size_t tamanio,void *valor,u_int32_t socket,u_int32_t pid);
 char* estado_to_string(estados estado);
 char* number_to_string(int number);
+const char* identificador_to_string(t_identificador id);
 #endif /* UTILS_H_ */

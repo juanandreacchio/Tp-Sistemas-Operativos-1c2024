@@ -86,4 +86,7 @@ bool comparar_ultimo_acceso(void* primera_entrada, void* segunda_entrada);
 int buscar_en_tlb(int numero_pagina, int id_proceso);
 void reemplazo_fifo();
 void reemplazo_lru();
+//------------------------funciones extra-------------------------
+size_t calcular_tamano_mensaje(int pid, const t_instruccion *instruccion);
+void log_instruccion(int pid, const t_instruccion *instruccion);
 #endif
