@@ -20,6 +20,7 @@ t_list *TLB;
 u_int8_t interruption_flag;
 u_int8_t end_process_flag;
 u_int8_t input_ouput_flag;
+uint8_t flag_bloqueado_por_resource;
 
 // ------------------------- MAIN---------------------------
 
@@ -64,6 +65,7 @@ void inicializar_flags()
     interruption_flag = 0;
     end_process_flag = 0;
     input_ouput_flag = 0;
+    flag_bloqueado_por_resource = 0;
 }
 //--------------------------RECIBIR TAMAÑO "handshake"---------------------------
 u_int32_t recibir_tamanio(u_int32_t socket_cliente)
@@ -454,7 +456,11 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         if(estado_operacion == RESOURCE_FAIL)
         {
           end_process_flag = 1;
+        } else if (estado_operacion == RESOURCE_BLOCKED)
+        {
+            flag_bloqueado_por_resource = 1;
         }
+        
         break;
     }
     case SIGNAL:
@@ -513,7 +519,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 {
     t_instruccion *instruccion = NULL;
     input_ouput_flag = 0;
-    while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1)
+    while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1 && flag_bloqueado_por_resource != 1)
     {
         if (instruccion != NULL)
             free(instruccion);
@@ -551,13 +557,19 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
         enviar_motivo_desalojo(END_PROCESS, socket_Kernel);
         enviar_pcb(pcb, socket_Kernel);
         log_info(logger_cpu, "Se envio el pcb al kernel con motivo de desalojo END_PROCESS");
+        return;
     }
     if (interruption_flag == 1)
     {
         accion_interrupt(pcb, interrupcion_recibida->motivo, socket_Kernel);
-        // interruption_flag = 0; no es necesario esta dentro del accion_interrupt
     }
-    // input_ouput_flag = 0;
+    if (flag_bloqueado_por_resource == 1)
+    {
+        flag_bloqueado_por_resource = 0;
+        enviar_motivo_desalojo(RESOURCE_BLOCKED, socket_Kernel);
+        enviar_pcb(pcb, socket_Kernel);
+    }
+    
 }
 //------------------------FUNCIONES DE OPERACIONES------------------------------
 

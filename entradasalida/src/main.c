@@ -358,7 +358,6 @@ void *atender_cliente(int socket_cliente)
         }
         break;
     }
-    usleep(tiempo_unidad_trabajo * 1000); // consumir unidad de trabajo
     eliminar_paquete(paquete);
 
     return NULL;

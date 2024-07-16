@@ -145,6 +145,11 @@ void listar_procesos_en_ready();
 void listar_procesos_en_ready_plus();
 bool hay_proceso_ejecutandose();
 uint32_t tener_index_pid(uint32_t pid);
+void bloquear_pcb(t_pcb *pcb);
+void logear_lista_blocked();
+t_pcb *buscar_pcb_en_procesos_del_sistema(uint32_t pid);
+void actualizar_pcb_en_procesos_del_sistema(t_pcb *pcb_actualizado);
+uint32_t buscar_index_pid_bloqueado(uint32_t pid);
 
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------
 void iniciar_planificador_corto_plazo();
@@ -174,7 +179,8 @@ void liberar_recursos(uint32_t pid);
 void retener_instancia_de_recurso(char *nombre_recurso, uint32_t pid);
 int32_t restar_instancia_a_recurso(char *nombre);
 void sumar_instancia_a_recurso(char *nombre);
-
+void logear_recursos_por_proceso(uint32_t pid);
+void eliminar_pcb_de_cola_bloqueados_de_recurso(uint32_t pid, char *nombre);
 // ---------------------- FUNCIONES DE LOGS --------------------------
 void logear_bloqueo_proceso(uint32_t pid, char* motivo);
 void logear_cambio_estado(t_pcb *pcb, estados estado_anterior, estados estado_actual);

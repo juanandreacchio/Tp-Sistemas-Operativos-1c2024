@@ -17,6 +17,7 @@ void iniciar_planificador_corto_plazo()
 
             pthread_mutex_lock(&mutex_cola_de_readys);
             t_pcb *pcb_a_ejecutar = queue_pop(cola_procesos_ready);
+            log_info(logger_kernel, "PID: %d - EJECUTANDO", pcb_a_ejecutar->pid);
             pthread_mutex_unlock(&mutex_cola_de_readys);
 
             ejecutar_PCB(pcb_a_ejecutar);

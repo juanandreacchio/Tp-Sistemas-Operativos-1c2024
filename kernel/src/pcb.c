@@ -48,9 +48,12 @@ t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
     return pcb;
 }
 
-void finalizar_pcb(t_pcb *pcb, op_code motivo) // Agrega al proceso a la cola de exits para q sea eliminado
+void finalizar_pcb(t_pcb *pcb, op_code motivo) 
 {
     logear_cambio_estado(pcb, pcb->estado_actual, TERMINATED);
+    pcb->estado_actual = TERMINATED;
+    actualizar_pcb_en_procesos_del_sistema(pcb);
+    
     t_proceso_en_exit *proceso = malloc(sizeof(t_proceso_en_exit));
     proceso->pcb = pcb;
     proceso->motivo = motivo;
@@ -121,3 +124,62 @@ uint32_t tener_index_pid(uint32_t pid){
     return -1;
 }
 
+void bloquear_pcb(t_pcb *pcb){
+    
+
+    pcb->estado_actual = BLOCKED;
+
+    pthread_mutex_lock(&mutex_lista_de_blocked);
+    list_add(lista_procesos_blocked, pcb);
+    pthread_mutex_unlock(&mutex_lista_de_blocked);
+    actualizar_pcb_en_procesos_del_sistema(pcb);
+
+    logear_lista_blocked();
+}
+
+void logear_lista_blocked(){
+    log_info(logger_kernel, "Procesos en cola de Blocked:");
+    for (size_t i = 0; i < list_size(lista_procesos_blocked); i++)
+    {
+        pthread_mutex_lock(&mutex_lista_de_blocked);
+        t_pcb *pcb = list_get(lista_procesos_blocked,i);
+        pthread_mutex_unlock(&mutex_lista_de_blocked);
+        log_info(logger_kernel, "PID: %d - ESTADO: %s", pcb->pid, estado_to_string(pcb->estado_actual));
+    }
+}
+
+t_pcb *buscar_pcb_en_procesos_del_sistema(uint32_t pid){
+    for (size_t i = 0; i < list_size(procesos_en_sistema); i++)
+    {
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
+        t_pcb *pcb = list_get(procesos_en_sistema,i);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
+        if(pcb->pid == pid){
+            return pcb;
+        }
+    }
+    return NULL;
+}
+
+void actualizar_pcb_en_procesos_del_sistema(t_pcb *pcb_actualizado){
+    t_pcb *old = buscar_pcb_en_procesos_del_sistema(pcb_actualizado->pid);
+    if(old != NULL){
+        uint32_t index = tener_index_pid(pcb_actualizado->pid);
+        pthread_mutex_lock(&mutex_procesos_en_sistema);
+        list_replace(procesos_en_sistema, index, pcb_actualizado);
+        pthread_mutex_unlock(&mutex_procesos_en_sistema);
+    }
+}
+
+uint32_t buscar_index_pid_bloqueado(uint32_t pid){
+    for (size_t i = 0; i < list_size(lista_procesos_blocked); i++)
+    {
+        pthread_mutex_lock(&mutex_lista_de_blocked);
+        t_pcb *pcb = list_get(lista_procesos_blocked,i);
+        pthread_mutex_unlock(&mutex_lista_de_blocked);
+        if(pcb->pid == pid){
+            return i;
+        }
+    }
+    return -1;
+}

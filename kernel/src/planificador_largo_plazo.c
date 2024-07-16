@@ -23,8 +23,6 @@ void creacion_de_procesos()
         pthread_mutex_lock(&mutex_cola_de_new);
         t_pcb *pcb_ready = queue_pop(cola_procesos_new);
         pthread_mutex_unlock(&mutex_cola_de_new);
-        log_info(logger_kernel, "Se va a pasar el proceso %d a ready", pcb_ready->pid);
-        log_info(logger_kernel, "Grado de multi: %d", semaforo_multi->valor_actual);
 
         set_add_pcb_cola(pcb_ready, READY, cola_procesos_ready, mutex_cola_de_readys);
         listar_procesos_en_ready();
@@ -48,8 +46,6 @@ void eliminacion_de_procesos()
         t_proceso_en_exit *proceso_exit = queue_pop(cola_procesos_exit);
         pthread_mutex_unlock(&mutex_cola_de_exit);
         t_pcb *pcb_exit = proceso_exit->pcb;
-        log_info(logger_kernel, "Se va a eliminar el proceso %d", pcb_exit->pid);
-        log_info(logger_kernel, "Estado: %s", estado_to_string(pcb_exit->estado_actual));
 
         liberar_recursos(pcb_exit->pid);
         uint32_t index = tener_index_pid(pcb_exit->pid);
@@ -94,12 +90,16 @@ void signal_contador(t_semaforo_contador *semaforo)
     }
     else
     {
+        if (semaforo->valor_actual < semaforo->valor_maximo)
+        {
         sem_post(&semaforo->contador);
         pthread_mutex_lock(&semaforo->mutex_valor_actual);
         semaforo->valor_actual++;
         pthread_mutex_unlock(&semaforo->mutex_valor_actual);
+        }
+        
     }
-    log_info(logger_kernel, "Grado de multiprogramacion: %d", semaforo->valor_actual);
+
 }
 
 void wait_contador(t_semaforo_contador *semaforo)

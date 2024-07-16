@@ -53,7 +53,7 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
-        char base_path[] = "/home/utnso";
+        char base_path[] = "/home/ubuntu";
         // Calcula el tamaño necesario para la cadena final
         size_t path_size = strlen(base_path) + strlen(consola[1]) + 1; // +1 para el carácter nulo
         char *full_path = (char *)malloc(path_size);
@@ -96,7 +96,7 @@ void ejecutar_comando(char *comando)
         ptr_solicitud->path_length = strlen(path) + 1;
         ptr_solicitud->path = path;
 
-        dictionary_put(recursos_asignados_por_proceso, string_itoa(contador_pid), dictionary_create());
+        dictionary_put(recursos_asignados_por_proceso, string_itoa(contador_pid), list_create());
 
         t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
         paquete->buffer = buffer;
@@ -155,7 +155,6 @@ void ejecutar_comando(char *comando)
                     sem_wait(&hay_proceso_nuevo);
                     pthread_mutex_unlock(&mutex_cola_de_new);
                     break;
-                    ;
                 }
                 pthread_mutex_unlock(&mutex_cola_de_new);
             }
@@ -180,7 +179,6 @@ void ejecutar_comando(char *comando)
             break;
         case EXEC:
             enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_interrupt);
-            log_info(logger_kernel, "Mando kill process loko");
             sem_wait(&podes_eliminar_loko);
             break;
         case BLOCKED:
@@ -191,10 +189,10 @@ void ejecutar_comando(char *comando)
                 if (pcb->pid == pid)
                 {
                     list_remove(lista_procesos_blocked, i);
-                    pthread_mutex_unlock(&mutex_cola_de_readys);
-                    continue;
+                    pthread_mutex_unlock(&mutex_lista_de_blocked);
+                    break;
                 }
-                pthread_mutex_unlock(&mutex_cola_de_readys);
+                pthread_mutex_unlock(&mutex_lista_de_blocked);
             }
             break;
         default:
@@ -204,8 +202,9 @@ void ejecutar_comando(char *comando)
         pthread_mutex_lock(&mutex_procesos_en_sistema);
         list_remove(procesos_en_sistema, index);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);
-
         liberar_recursos(pid);
+
+        log_info(logger_kernel, "Se liberaron los recursos del proceso %d", pid);
 
         if (semaforo_multi->valor_maximo != semaforo_multi->valor_actual)
         {
@@ -218,9 +217,7 @@ void ejecutar_comando(char *comando)
         log_info(logger_kernel, "Se finaliza el proceso %d", pid);
         log_info(logger_kernel, "------------------------------");
 
-        pthread_mutex_lock(&mutex_flag_cpu_libre);
-        flag_cpu_libre = 1;
-        pthread_mutex_unlock(&mutex_flag_cpu_libre);
+
         sem_post(&cpu_libre);
         return;
     }
