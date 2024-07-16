@@ -92,9 +92,8 @@ int obtener_marco_pagina(t_proceso* proceso, int numero_pagina) {
 }
 
 // Funcion para liberar marco de una pagina
-void liberar_marco_pagina(t_proceso* proceso, int numero_pagina) {
-    t_pagina* pagina = list_get(proceso->tabla_paginas, numero_pagina);
-    bitarray_clean_bit(marcos_ocupados, pagina->numero_marco);
+void liberar_marco_pagina(t_proceso* proceso, int numero_marco) {
+    bitarray_clean_bit(marcos_ocupados, numero_marco);
 }
 
 // --------------------- FUNCIONES DE PROCESO ---------------------
@@ -192,6 +191,10 @@ t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
     //     exit(1);
     // }
     proceso->lista_instrucciones = parsear_instrucciones(archivo_instrucciones);
+    if(list_size(proceso->lista_instrucciones)== 0)
+    {
+        log_info(logger_memoria,"estoy creando el proceso y al parsear las istrucciones devolvi 00");
+    }
     fclose(archivo_instrucciones);
     // t_instruccion* instruccion = list_get(proceso->lista_instrucciones, 0);
     // imprimir_instruccion(instruccion);
@@ -273,8 +276,12 @@ t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t
         printf("Error: no se encontró el proceso con PID %d\n", pid);
         exit(1);
     }
+    if(list_size(proceso->lista_instrucciones) == 0){
+        log_info(logger_memoria,"La lista de instrucciones del proceso estan en 0 ojo que voy a dar error");
+    }
     if(pc >= list_size(proceso->lista_instrucciones)){
         return NULL;
+        log_info(logger_memoria,"error: el PC es mayor al tamanio de la lista de instrucciones");
     }
     return list_get(proceso->lista_instrucciones, pc);
 }

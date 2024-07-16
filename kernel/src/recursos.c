@@ -54,7 +54,6 @@ void sumar_instancia_a_recurso(char *nombre)
             {
                 set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
                 logear_cambio_estado(pcb, BLOCKED, READY);
-                procesos_en_ready_plus++;
                 sem_post(&hay_proceso_a_ready);
                 return;
             }
@@ -75,7 +74,7 @@ bool existe_recurso(char *nombre)
 void liberar_recursos(uint32_t pid)
 {
 
-    t_dictionary *recursos_asignados = dictionary_get(recursos_asignados_por_proceso, number_to_string(pid));
+    t_dictionary *recursos_asignados = dictionary_get(recursos_asignados_por_proceso, string_itoa(pid));
 
     t_list *recursos_asignados_lista = dictionary_elements(recursos_asignados);
     for (int i = 0; i < list_size(recursos_asignados_lista); i++)
@@ -92,7 +91,7 @@ void liberar_recursos(uint32_t pid)
 void retener_instancia_de_recurso(char *nombre_recurso, uint32_t pid)
 {
 
-    t_dictionary *recursos = dictionary_get(recursos_asignados_por_proceso, number_to_string(pid));
+    t_dictionary *recursos = dictionary_get(recursos_asignados_por_proceso, string_itoa(pid));
     if (!dictionary_has_key(recursos, nombre_recurso))
     {
         dictionary_put(recursos, nombre_recurso, (void *)1);

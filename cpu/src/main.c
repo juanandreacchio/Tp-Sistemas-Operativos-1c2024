@@ -83,7 +83,8 @@ void *iniciar_servidor_dispatch(void *arg)
     while (1)
     {
         t_pcb *pcb = recibir_pcb(conexion_kernel_dispatch);
-        // printf("recibi el proceso:%d", pcb->pid);
+        registros_cpu = pcb->registros;
+        registros_cpu.PC = pcb->pc;
         comenzar_proceso(pcb, conexion_memoria, conexion_kernel_dispatch);
     }
     return NULL;
@@ -137,11 +138,9 @@ void accion_interrupt(t_pcb *pcb, op_code motivo, int socket)
 t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionParam)
 {
     t_paquete *paquete = crear_paquete(SOLICITUD_INSTRUCCION);
-    t_buffer *buffer = crear_buffer();
 
-    buffer_add(buffer, &pid, sizeof(uint32_t));
-    buffer_add(buffer, pc, sizeof(uint32_t));
-    paquete->buffer = buffer;
+    buffer_add(paquete->buffer, &pid, sizeof(uint32_t));
+    buffer_add(paquete->buffer, pc, sizeof(uint32_t));
 
     enviar_paquete(paquete, conexionParam);
 
@@ -151,14 +150,14 @@ t_instruccion *fetch_instruccion(uint32_t pid, uint32_t *pc, uint32_t conexionPa
 
     if (respuesta_memoria == NULL)
     {
-        log_error(logger_cpu, "Error al recibir instruccion de memoria");
+        log_error(logger_cpu, "Error al recibir instruccion de memoria por null");
         eliminar_paquete(paquete);
         return NULL;
     }
 
     if (respuesta_memoria->codigo_operacion != INSTRUCCION)
     {
-        log_error(logger_cpu, "Error al recibir instruccion de memoria");
+        log_error(logger_cpu, "Error al recibir instruccion de memoria por cod_op");
         eliminar_paquete(paquete);
         eliminar_paquete(respuesta_memoria);
         return NULL;
@@ -177,45 +176,45 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     {
     case SET:
     {
-        set_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+        set_registro(instruccion->parametros[0], atoi(instruccion->parametros[1]));
         break;
     }
     case MOV_IN:
     {
-        mov_in(pcb, instruccion->parametros[0], instruccion->parametros[1]);
+        mov_in(pcb->pid, instruccion->parametros[0], instruccion->parametros[1]);
         break;
     }
     case MOV_OUT:
     {
-        mov_out(pcb, instruccion->parametros[0], instruccion->parametros[1]);
+        mov_out(pcb->pid, instruccion->parametros[0], instruccion->parametros[1]);
         break;
     }
     case SUM:
     {
-        sum_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
+        sum_registro(instruccion->parametros[0], instruccion->parametros[1]);
         break;
     }
 
     case SUB:
     {
-
-        sub_registro(&pcb->registros, instruccion->parametros[0], instruccion->parametros[1]);
+        sub_registro(instruccion->parametros[0], instruccion->parametros[1]);
         break;
     }
 
     case JNZ:
     {
-
-        JNZ_registro(&pcb->registros, instruccion->parametros[0], atoi(instruccion->parametros[1]));
+        JNZ_registro(instruccion->parametros[0], atoi(instruccion->parametros[1]));
         break;
     }
 
     case IO_FS_TRUNCATE:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
-        u_int32_t tamanio = get_registro_generico(&pcb->registros,instruccion->parametros[2]);
+        u_int32_t tamanio = get_registro_generico(instruccion->parametros[2]);
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
         buffer_add(paquete->buffer, &instruccion->param1_length, sizeof(u_int32_t));
@@ -234,10 +233,13 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_STDIN_READ:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
-        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[1]);
-        size_t tamanio = (size_t)get_registro_generico(&pcb->registros, instruccion->parametros[2]);
+
+        u_int32_t direc_logica = get_registro_generico( instruccion->parametros[1]);
+        size_t tamanio = (size_t)get_registro_generico( instruccion->parametros[2]);
 
         t_paquete *paquete = crear_paquete(OPERACION_IO);
 
@@ -258,10 +260,13 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_STDOUT_WRITE:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
-        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[1]);
-        u_int32_t tamanio = get_registro_generico(&pcb->registros, instruccion->parametros[2]);
+
+        u_int32_t direc_logica = get_registro_generico( instruccion->parametros[1]);
+        u_int32_t tamanio = get_registro_generico( instruccion->parametros[2]);
 
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
@@ -281,6 +286,8 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_GEN_SLEEP:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -299,6 +306,8 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     break;
     case IO_FS_DELETE:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -318,6 +327,8 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_CREATE:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
@@ -337,12 +348,14 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_WRITE:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
-        u_int32_t tamanio = get_registro_generico(&pcb->registros,instruccion->parametros[3]);
-        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[2]);
-        u_int32_t puntero = get_registro_generico(&pcb->registros, instruccion->parametros[4]);
+        u_int32_t tamanio = get_registro_generico(instruccion->parametros[3]);
+        u_int32_t direc_logica = get_registro_generico( instruccion->parametros[2]);
+        u_int32_t puntero = get_registro_generico( instruccion->parametros[4]);
         t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
@@ -367,12 +380,14 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case IO_FS_READ:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OPERACION_IO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
-        u_int32_t tamanio = get_registro_generico(&pcb->registros,instruccion->parametros[3]);
-        u_int32_t direc_logica = get_registro_generico(&pcb->registros, instruccion->parametros[2]);
-        u_int32_t puntero = get_registro_generico(&pcb->registros, instruccion->parametros[4]);
+        u_int32_t tamanio = get_registro_generico(instruccion->parametros[3]);
+        u_int32_t direc_logica = get_registro_generico( instruccion->parametros[2]);
+        u_int32_t puntero = get_registro_generico( instruccion->parametros[4]);
         t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         buffer_add(paquete->buffer, &instruccion->identificador, sizeof(t_identificador));
@@ -397,53 +412,66 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     }
     case RESIZE:
     {
-
-        t_paquete *paquete_a_enviar = crear_paquete(AJUSTAR_TAMANIO_PROCESO);
-        buffer_add(paquete_a_enviar->buffer, &pcb->pid, sizeof(u_int32_t));
-        u_int32_t tamanio = (u_int32_t)atoi(instruccion->parametros[0]);
-        buffer_add(paquete_a_enviar->buffer, &tamanio, sizeof(u_int32_t));
-        enviar_paquete(paquete_a_enviar, conexion_memoria);
-        eliminar_paquete(paquete_a_enviar);
-        op_code operacion = recibir_operacion(conexion_memoria);
-        if (operacion == OUT_OF_MEMORY)
-        {
-            enviar_motivo_desalojo(OUT_OF_MEMORY, conexion_kernel_dispatch);
-            enviar_pcb(pcb, conexion_kernel_dispatch);
-        }
-        else if (operacion != OK)
-        {
-            log_error(logger_cpu, "error:recibi un codigo de operacion desconocido dentro de RESIZE");
-        }
-        if (operacion == OK)
-            log_info(logger_cpu, "RESIZE hecho");
-        break;
+    t_paquete *paquete_a_enviar = crear_paquete(AJUSTAR_TAMANIO_PROCESO);
+    buffer_add(paquete_a_enviar->buffer, &pcb->pid, sizeof(u_int32_t));
+    u_int32_t tamanio = (u_int32_t)atoi(instruccion->parametros[0]);
+    buffer_add(paquete_a_enviar->buffer, &tamanio, sizeof(u_int32_t));
+    enviar_paquete(paquete_a_enviar, conexion_memoria);
+    eliminar_paquete(paquete_a_enviar);
+    op_code operacion = recibir_operacion(conexion_memoria);
+    if (operacion == OUT_OF_MEMORY)
+    {
+        enviar_motivo_desalojo(OUT_OF_MEMORY, conexion_kernel_dispatch);
+        enviar_pcb(pcb, conexion_kernel_dispatch);
     }
+    else if (operacion != OK)
+    {
+        log_error(logger_cpu, "error: recibi un codigo de operacion desconocido dentro de RESIZE");
+    }
+    else if (operacion == OK)
+        log_info(logger_cpu, "RESIZE hecho");
+    break;
+}
     case COPY_STRING:
     {
         
-        size_t tamanio = (size_t)get_registro_generico(&pcb->registros,instruccion->parametros[0]);
-        copy_string(pcb, tamanio);
+        size_t tamanio = (size_t)get_registro_generico(instruccion->parametros[0]);
+        copy_string(pcb->pid, tamanio);
         break;
 
     }
     case WAIT:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(WAIT_SOLICITADO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
         t_paquete *paquete = crear_paquete(WAIT_SOLICITADO);
         paquete->buffer = serializar_instruccion(instruccion);
         enviar_paquete(paquete, conexion_kernel_dispatch);
+        op_code estado_operacion =  recibir_operacion(conexion_kernel_dispatch);
+        if(estado_operacion == RESOURCE_FAIL)
+        {
+          end_process_flag = 1;
+        }
         break;
     }
     case SIGNAL:
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(SIGNAL_SOLICITADO, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
         t_paquete *paquete = crear_paquete(SIGNAL_SOLICITADO);
         paquete->buffer = serializar_instruccion(instruccion);
         enviar_paquete(paquete, conexion_kernel_dispatch);
+        op_code estado_operacion =  recibir_operacion(conexion_kernel_dispatch);
+        if(estado_operacion == RESOURCE_FAIL)
+        {
+          end_process_flag = 1;
+        }
         break;
     }
 
@@ -472,11 +500,11 @@ bool check_interrupt(uint32_t pid)
 
 t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 {
-    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &pcb->registros.PC, socket);
-    log_info(logger_cpu,"PID: %d - FETCH - Program Counter: %d",pcb->pid, pcb->registros.PC);
+    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &registros_cpu.PC, socket);
+    log_info(logger_cpu,"PID: %d - FETCH - Program Counter: %d",pcb->pid, registros_cpu.PC);
     if (instruccion != NULL)
     {
-        pcb->registros.PC+= 1;
+        registros_cpu.PC+= 1;
     }
     return instruccion;
 }
@@ -508,7 +536,10 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
         //usleep(500000); este es el que no iba
     }
 
-    imprimir_registros_por_pantalla(pcb->registros);
+    imprimir_registros_por_pantalla(registros_cpu);
+    pcb->registros = registros_cpu;
+    pcb->pc = registros_cpu.PC;
+    
 
     if (instruccion != NULL)
         free(instruccion);
@@ -530,260 +561,260 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 }
 //------------------------FUNCIONES DE OPERACIONES------------------------------
 
-void set_registro(t_registros *registros, char *registro, u_int32_t valor)
+void set_registro( char *registro, u_int32_t valor)
 {
     if (strcasecmp(registro, "AX") == 0)
     {
         u_int8_t valor8 = (u_int8_t)valor;
-        registros->AX = valor8;
+        registros_cpu.AX = valor8;
     }
 
     if (strcasecmp(registro, "BX") == 0)
     {
         u_int8_t valor8 = (u_int8_t)valor;
-        registros->BX = valor8;
+        registros_cpu.BX = valor8;
     }
     if (strcasecmp(registro, "CX") == 0)
     {
         u_int8_t valor8 = (u_int8_t)valor;
-        registros->CX = valor8;
+        registros_cpu.CX = valor8;
     }
     if (strcasecmp(registro, "DX") == 0)
     {
         u_int8_t valor8 = (u_int8_t)valor;
-        registros->DX = valor8;
+        registros_cpu.DX = valor8;
     }
     if (strcasecmp(registro, "EAX") == 0)
     {
-        registros->EAX = valor;
+        registros_cpu.EAX = valor;
     }
     if (strcasecmp(registro, "EBX") == 0)
     {
-        registros->EBX = valor;
+        registros_cpu.EBX = valor;
     }
     if (strcasecmp(registro, "ECX") == 0)
     {
-        registros->ECX = valor;
+        registros_cpu.ECX = valor;
     }
     if (strcasecmp(registro, "EDX") == 0)
     {
-        registros->EDX = valor;
+        registros_cpu.EDX = valor;
     }
     if (strcasecmp(registro, "PC") == 0)
     {
-        registros->PC = valor;
+        registros_cpu.PC = valor;
     }
     if (strcasecmp(registro, "SI") == 0)
     {
-        registros->SI = valor;
+        registros_cpu.SI = valor;
     }
     if (strcasecmp(registro, "DI") == 0)
     {
-        registros->DI = valor;
+        registros_cpu.DI = valor;
     }
 }
 
-u_int8_t get_registro_int8(t_registros *registros, char *registro)
+u_int8_t get_registro_int8(char *registro)
 {
     if (strcasecmp(registro, "AX") == 0)
     {
-        return registros->AX;
+        return registros_cpu.AX;
     }
     else if (strcasecmp(registro, "BX") == 0)
     {
-        return registros->BX;
+        return registros_cpu.BX;
     }
     else if (strcasecmp(registro, "CX") == 0)
     {
-        return registros->CX;
+        return registros_cpu.CX;
     }
     else if (strcasecmp(registro, "DX") == 0)
     {
-        return registros->DX;
+        return registros_cpu.DX;
     }
     return -1;
 }
 
-u_int32_t get_registro_int32(t_registros *registros, char *registro)
+u_int32_t get_registro_int32(char *registro)
 {
     if (strcasecmp(registro, "EAX") == 0)
     {
-        return registros->EAX;
+        return registros_cpu.EAX;
     }
     else if (strcasecmp(registro, "EBX") == 0)
     {
-        return registros->EBX;
+        return registros_cpu.EBX;
     }
     else if (strcasecmp(registro, "ECX") == 0)
     {
-        return registros->ECX;
+        return registros_cpu.ECX;
     }
     else if (strcasecmp(registro, "EDX") == 0)
     {
-        return registros->EDX;
+        return registros_cpu.EDX;
     }
     else if (strcasecmp(registro, "PC") == 0)
     {
-        return registros->PC;
+        return registros_cpu.PC;
     }
     else if (strcasecmp(registro, "SI") == 0)
     {
-        return registros->SI;
+        return registros_cpu.SI;
     }
     else if (strcasecmp(registro, "DI") == 0)
     {
-        return registros->DI;
+        return registros_cpu.DI;
     }
     return -1;
 }
 
-u_int32_t get_registro_generico(t_registros *registros, char *registro)
+u_int32_t get_registro_generico(char *registro)
 {
     if (strcasecmp(registro, "AX") == 0)
     {
-        return registros->AX;
+        return registros_cpu.AX;
     }
     else if (strcasecmp(registro, "BX") == 0)
     {
-        return registros->BX;
+        return registros_cpu.BX;
     }
     else if (strcasecmp(registro, "CX") == 0)
     {
-        return registros->CX;
+        return registros_cpu.CX;
     }
     else if (strcasecmp(registro, "DX") == 0)
     {
-        return registros->DX;
+        return registros_cpu.DX;
     }
     else if (strcasecmp(registro, "EAX") == 0)
     {
-        return registros->EAX;
+        return registros_cpu.EAX;
     }
     else if (strcasecmp(registro, "EBX") == 0)
     {
-        return registros->EBX;
+        return registros_cpu.EBX;
     }
     else if (strcasecmp(registro, "ECX") == 0)
     {
-        return registros->ECX;
+        return registros_cpu.ECX;
     }
     else if (strcasecmp(registro, "EDX") == 0)
     {
-        return registros->EDX;
+        return registros_cpu.EDX;
     }
     else if (strcasecmp(registro, "PC") == 0)
     {
-        return registros->PC;
+        return registros_cpu.PC;
     }
     else if (strcasecmp(registro, "SI") == 0)
     {
-        return registros->SI;
+        return registros_cpu.SI;
     }
     else if (strcasecmp(registro, "DI") == 0)
     {
-        return registros->DI;
+        return registros_cpu.DI;
     }
     return -1;
 }
 
-void sum_registro(t_registros *registros, char *registroDestino, char *registroOrigen)
+void sum_registro(char *registroDestino, char *registroOrigen)
 {
 
     if (strcasecmp(registroDestino, "AX") == 0)
     {
-        registros->AX += get_registro_int8(registros, registroOrigen);
+        registros_cpu.AX += get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "BX") == 0)
     {
-        registros->BX += get_registro_int8(registros, registroOrigen);
+        registros_cpu.BX += get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "CX") == 0)
     {
-        registros->CX += get_registro_int8(registros, registroOrigen);
+        registros_cpu.CX += get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "DX") == 0)
     {
-        registros->DX += get_registro_int8(registros, registroOrigen);
+        registros_cpu.DX += get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "EAX") == 0)
     {
-        registros->EAX += get_registro_int32(registros, registroOrigen);
+        registros_cpu.EAX += get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "EBX") == 0)
     {
-        registros->EBX += get_registro_int32(registros, registroOrigen);
+        registros_cpu.EBX += get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "ECX") == 0)
     {
-        registros->ECX += get_registro_int32(registros, registroOrigen);
+        registros_cpu.ECX += get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "EDX") == 0)
     {
-        registros->EDX += get_registro_int32(registros, registroOrigen);
+        registros_cpu.EDX += get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "PC") == 0)
     {
-        registros->PC += get_registro_int32(registros, registroOrigen);
+        registros_cpu.PC += get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "SI") == 0)
     {
-        registros->SI += get_registro_int32(registros, registroOrigen);
+        registros_cpu.SI += get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "DI") == 0)
     {
-        registros->DI += get_registro_int32(registros, registroOrigen);
+        registros_cpu.DI += get_registro_int32(registroOrigen);
     }
 }
 
-void sub_registro(t_registros *registros, char *registroOrigen, char *registroDestino)
+void sub_registro(char *registroOrigen, char *registroDestino)
 {
 
     if (strcasecmp(registroDestino, "AX") == 0)
     {
-        registros->AX -= get_registro_int8(registros, registroOrigen);
+        registros_cpu.AX -= get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "BX") == 0)
     {
-        registros->BX -= get_registro_int8(registros, registroOrigen);
+        registros_cpu.BX -= get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "CX") == 0)
     {
-        registros->CX -= get_registro_int8(registros, registroOrigen);
+        registros_cpu.CX -= get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "DX") == 0)
     {
-        registros->DX -= get_registro_int8(registros, registroOrigen);
+        registros_cpu.DX -= get_registro_int8(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "EAX") == 0)
     {
-        registros->EAX -= get_registro_int32(registros, registroOrigen);
+        registros_cpu.EAX -= get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "EBX") == 0)
     {
-        registros->EBX -= get_registro_int32(registros, registroOrigen);
+        registros_cpu.EBX -= get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "ECX") == 0)
     {
-        registros->ECX -= get_registro_int32(registros, registroOrigen);
+        registros_cpu.ECX -= get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "EDX") == 0)
     {
-        registros->EDX -= get_registro_int32(registros, registroOrigen);
+        registros_cpu.EDX -= get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "PC") == 0)
     {
-        registros->PC -= get_registro_int32(registros, registroOrigen);
+        registros_cpu.PC -= get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "SI") == 0)
     {
-        registros->SI += get_registro_int32(registros, registroOrigen);
+        registros_cpu.SI += get_registro_int32(registroOrigen);
     }
     else if (strcasecmp(registroDestino, "DI") == 0)
     {
-        registros->DI += get_registro_int32(registros, registroOrigen);
+        registros_cpu.DI += get_registro_int32(registroOrigen);
     }
 }
-void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor)
+void JNZ_registro(char *registro, u_int32_t valor)
 {
     u_int8_t valoregistroInt8 = 0;
     u_int32_t valoregistroInt32 = 0;
@@ -791,15 +822,15 @@ void JNZ_registro(t_registros *registros, char *registro, u_int32_t valor)
     if (strcasecmp(registro, "AX") == 0 || strcasecmp(registro, "BX") == 0 || strcasecmp(registro, "CX") == 0 || strcasecmp(registro, "DX") == 0)
     {
 
-        valoregistroInt8 = get_registro_int8(registros, registro);
+        valoregistroInt8 = get_registro_int8(registro);
         if (valoregistroInt8 != 0)
-            registros->PC = valor;
+            registros_cpu.PC = valor;
     }
     if (strcasecmp(registro, "EAX") == 0 || strcasecmp(registro, "EBX") == 0 || strcasecmp(registro, "ECX") == 0 || strcasecmp(registro, "EDX") == 0 || strcasecmp(registro, "PC") == 0)
     {
-        valoregistroInt32 = get_registro_int32(registros, registro);
+        valoregistroInt32 = get_registro_int32(registro);
         if (valoregistroInt32 != 0)
-            registros->PC = valor;
+            registros_cpu.PC = valor;
     }
 }
 /*--------------esta es otra opcion para despues vemos cual preferimos -------------------
@@ -832,27 +863,27 @@ void get_registro(t_registros *registros, char *registro, void *valor) {
 }
 */
 
-void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
+void mov_in(u_int32_t pid, char *registro_datos, char *registro_direccion)
 {
     struct
     {
         char *nombre;
         void *direccion;
     } mapa[] = {
-        {"AX", &(pcb->registros.AX)},
-        {"BX", &(pcb->registros.BX)},
-        {"CX", &(pcb->registros.CX)},
-        {"DX", &(pcb->registros.DX)},
-        {"EAX", &(pcb->registros.EAX)},
-        {"EBX", &(pcb->registros.EBX)},
-        {"ECX", &(pcb->registros.ECX)},
-        {"EDX", &(pcb->registros.EDX)},
-        {"SI", &(pcb->registros.SI)},
-        {"DI", &(pcb->registros.DI)},
-        {"PC", &(pcb->registros.PC)}};
+        {"AX", &(registros_cpu.AX)},
+        {"BX", &(registros_cpu.BX)},
+        {"CX", &(registros_cpu.CX)},
+        {"DX", &(registros_cpu.DX)},
+        {"EAX", &(registros_cpu.EAX)},
+        {"EBX", &(registros_cpu.EBX)},
+        {"ECX", &(registros_cpu.ECX)},
+        {"EDX", &(registros_cpu.EDX)},
+        {"SI", &(registros_cpu.SI)},
+        {"DI", &(registros_cpu.DI)},
+        {"PC", &(registros_cpu.PC)}};
 
     int encontrado = 0;
-    uint32_t direccion_logica = get_registro_generico(&(pcb->registros), registro_direccion);
+    uint32_t direccion_logica = get_registro_generico(registro_direccion);
     for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++)
     {
         if (strcasecmp(registro_datos, mapa[i].nombre) == 0)
@@ -860,9 +891,9 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
             encontrado = 1;
             size_t size_of_element = (i < 4) ? sizeof(uint8_t) : sizeof(uint32_t);
 
-            t_list *direcciones_fisicas = traducir_DL_a_DF_generico(direccion_logica, pcb->pid, size_of_element);
+            t_list *direcciones_fisicas = traducir_DL_a_DF_generico(direccion_logica,pid, size_of_element);
             t_paquete *paquete_enviado = crear_paquete(LECTURA_MEMORIA);
-            enviar_soli_lectura(paquete_enviado, direcciones_fisicas, size_of_element, conexion_memoria,pcb->pid);
+            enviar_soli_lectura(paquete_enviado, direcciones_fisicas, size_of_element, conexion_memoria,pid);
 
             t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
             if (paquete_recibido->codigo_operacion != LECTURA_MEMORIA)
@@ -879,7 +910,7 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
             u_int32_t valor;
             memcpy(&valor, buffer, sizeof(uint32_t));
             t_direc_fisica *primer_direc_fisica = list_get(direcciones_fisicas,0);
-            log_info(logger_cpu,"PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d",pcb->pid,primer_direc_fisica->direccion_fisica,valor);
+            log_info(logger_cpu,"PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d",pid,primer_direc_fisica->direccion_fisica,valor);
             free(buffer);
             eliminar_paquete(paquete_recibido);
 
@@ -892,9 +923,9 @@ void mov_in(t_pcb *pcb, char *registro_datos, char *registro_direccion)
     }
 }
 
-void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
+void mov_out(u_int32_t pid, char *registro_direccion, char *registro_datos)
 {
-    uint32_t direc_logica = get_registro_generico(&pcb->registros, registro_direccion);
+    uint32_t direc_logica = get_registro_generico(registro_direccion);
     t_paquete *paquete = crear_paquete(ESCRITURA_MEMORIA);
     size_t size_of_element;
     void *valor_registro;
@@ -905,9 +936,9 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
     {
 
         size_of_element = sizeof(uint8_t);
-        uint8_t valor = get_registro_generico(&pcb->registros, registro_datos);
+        uint8_t valor = get_registro_generico(registro_datos);
         valor_registro = &valor;
-        direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, size_of_element);
+        direc_fisicas = traducir_DL_a_DF_generico(direc_logica,pid, size_of_element);
     }
     else if (strcasecmp(registro_datos, "EAX") == 0 || strcasecmp(registro_datos, "EBX") == 0 ||
              strcasecmp(registro_datos, "ECX") == 0 || strcasecmp(registro_datos, "EDX") == 0 ||
@@ -916,9 +947,9 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
     {
 
         size_of_element = sizeof(uint32_t);
-        uint32_t valor = get_registro_generico(&pcb->registros, registro_datos);
+        uint32_t valor = get_registro_generico(registro_datos);
         valor_registro = &valor;
-        direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, size_of_element);
+        direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pid, size_of_element);
     }
     else
     {
@@ -926,7 +957,7 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
         eliminar_paquete(paquete);
         return;
     }
-    enviar_soli_escritura(paquete, direc_fisicas, size_of_element, valor_registro, conexion_memoria,pcb->pid);
+    enviar_soli_escritura(paquete, direc_fisicas, size_of_element, valor_registro, conexion_memoria,pid);
     op_code cod_op = recibir_operacion(conexion_memoria);
     if (cod_op != OK)
     {
@@ -935,24 +966,24 @@ void mov_out(t_pcb *pcb, char *registro_direccion, char *registro_datos)
     u_int32_t valor_escrito;
     t_direc_fisica *primer_direc_fisica = list_get(direc_fisicas,0);
     memcpy(&valor_escrito, valor_registro, sizeof(uint32_t));
-    log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d",pcb->pid,primer_direc_fisica->direccion_fisica,valor_escrito);
+    log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d",pid,primer_direc_fisica->direccion_fisica,valor_escrito);
     list_destroy_and_destroy_elements(direc_fisicas, free);
 }
 
-void copy_string(t_pcb *pcb, size_t tamanio)
+void copy_string(u_int32_t pid, size_t tamanio)
 {
-    uint32_t direc_logica_si = get_registro_generico(&pcb->registros, "SI");
-    uint32_t direc_logica_di = get_registro_generico(&pcb->registros, "DI");
+    uint32_t direc_logica_si = get_registro_generico("SI");
+    uint32_t direc_logica_di = get_registro_generico("DI");
 
     // Obtener las direcciones físicas para el origen (SI)
-    t_list *direc_fisicas_si = traducir_DL_a_DF_generico(direc_logica_si, pcb->pid, tamanio);
+    t_list *direc_fisicas_si = traducir_DL_a_DF_generico(direc_logica_si, pid, tamanio);
     
     // Obtener las direcciones físicas para el destino (DI)
-    t_list *direc_fisicas_di = traducir_DL_a_DF_generico(direc_logica_di, pcb->pid, tamanio);
+    t_list *direc_fisicas_di = traducir_DL_a_DF_generico(direc_logica_di, pid, tamanio);
 
     // Leer el string desde la memoria apuntada por SI
     t_paquete *paquete_lectura = crear_paquete(LECTURA_MEMORIA);
-    enviar_soli_lectura(paquete_lectura, direc_fisicas_si, tamanio, conexion_memoria,pcb->pid);
+    enviar_soli_lectura(paquete_lectura, direc_fisicas_si, tamanio, conexion_memoria,pid);
 
     t_paquete *paquete_recibido = recibir_paquete(conexion_memoria);
     if (paquete_recibido->codigo_operacion != LECTURA_MEMORIA)
@@ -971,11 +1002,11 @@ void copy_string(t_pcb *pcb, size_t tamanio)
     char *valor = malloc(tamanio);
     memcpy(valor, buffer, tamanio);
     t_direc_fisica *primer_direc_fisica_si = list_get(direc_fisicas_si,0);
-    log_info(logger_cpu,"PID: %d - Acción: LEER - Dirección Física: %d - Valor: %s",pcb->pid,primer_direc_fisica_si->direccion_fisica,valor);
+    log_info(logger_cpu,"PID: %d - Acción: LEER - Dirección Física: %d - Valor: %s",pid,primer_direc_fisica_si->direccion_fisica,valor);
 
     // Escribir el string a la memoria apuntada por DI
     t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
-    enviar_soli_escritura(paquete_escritura, direc_fisicas_di, tamanio, buffer, conexion_memoria,pcb->pid);
+    enviar_soli_escritura(paquete_escritura, direc_fisicas_di, tamanio, buffer, conexion_memoria,pid);
 
     op_code cod_op = recibir_operacion(conexion_memoria);
     if (cod_op != OK)
@@ -983,7 +1014,7 @@ void copy_string(t_pcb *pcb, size_t tamanio)
         log_error(logger_cpu, "error: codigo de operacion inesperado al recibir la escritura de memoria");
     }
     t_direc_fisica *primer_direc_fisica_di = list_get(direc_fisicas_di,0);
-    log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s",pcb->pid,primer_direc_fisica_di->direccion_fisica,valor);
+    log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s",pid,primer_direc_fisica_di->direccion_fisica,valor);
 
     free(buffer);
     list_destroy_and_destroy_elements(direc_fisicas_si, free);

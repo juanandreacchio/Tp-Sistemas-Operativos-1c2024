@@ -21,6 +21,11 @@ typedef struct{
 } t_cola_interfaz_io;
 
 typedef struct{
+    t_pcb *pcb;
+    op_code motivo;
+} t_proceso_en_exit;
+
+typedef struct{
     int valor_actual;
     int valor_maximo;
     sem_t contador;
@@ -103,6 +108,10 @@ extern sem_t podes_eliminar_procesos;
 extern sem_t podes_crear_procesos;
 extern bool planificacion_detenida;
 extern sem_t podes_eliminar_loko;
+extern pthread_mutex_t mutex_ultimo_pcb;
+extern pthread_mutex_t mutex_flag_planificar_plus;
+extern char* interfaz_causante_bloqueo;
+extern pthread_mutex_t mutex_nombre_interfaz_bloqueante;
 
 // --------------------- FUNCIONES DE INICIO -------------------------
 void iniciar_semaforos();
@@ -131,7 +140,7 @@ void setear_pcb_en_ejecucion(t_pcb *pcb);
 void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t mutex);
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista);
 void agregar_pcb_a_cola_bloqueados_de_recurso(t_pcb *pcb, char *nombre);
-void finalizar_pcb(t_pcb *pcb);
+void finalizar_pcb(t_pcb *pcb, op_code motivo);
 void listar_procesos_en_ready();
 void listar_procesos_en_ready_plus();
 bool hay_proceso_ejecutandose();

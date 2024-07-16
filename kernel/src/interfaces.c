@@ -101,7 +101,6 @@ void atender_interfaz(char *nombre_interfaz)
         switch (resultado_operacion)
         {
         case IO_SUCCESS:
-            log_info(logger_kernel, "llegue a IO_SUCCESS");
             t_pcb *pcb = buscar_pcb_por_pid(info_io->pid, lista_procesos_blocked);
 
             pthread_mutex_lock(&mutex_lista_de_blocked);
@@ -116,7 +115,6 @@ void atender_interfaz(char *nombre_interfaz)
                 {
                     set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
                     logear_cambio_estado(pcb, BLOCKED, READY);
-                    procesos_en_ready_plus++;
                     listar_procesos_en_ready_plus();
                     sem_post(&(semaforos_interfaz->binario_io_libre));
                     break;

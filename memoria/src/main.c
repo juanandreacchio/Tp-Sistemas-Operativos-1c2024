@@ -120,7 +120,7 @@ void *atender_cliente(void *socket_cliente)
 
             buffer_read(buffer, &(soli->pid), sizeof(uint32_t));
             buffer_read(buffer, &(soli->pc), sizeof(uint32_t));
-
+            //  quiza hay que poner un semaforo para esperar a que las instruccione esten cargadas en el proceso
             instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
 
             paquete = crear_paquete(INSTRUCCION);
@@ -146,8 +146,7 @@ void *atender_cliente(void *socket_cliente)
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
             log_info(logger_memoria,"PID: %d - Tamaño: %d",solicitud->pid,list_size(proceso_creado->tabla_paginas));
             printf("--------------------------PROCESO CREADO-----------------\n");
-            // imprimir_proceso(proceso_creado);
-            //  imprimir_lista_de_procesos(procesos_en_memoria);
+            enviar_codigo_operacion(CREAR_PROCESO,(int)(long int)socket_cliente);
             break;
         }
         case END_PROCESS:
@@ -205,11 +204,12 @@ void *atender_cliente(void *socket_cliente)
             buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &nuevo_tamanio, sizeof(uint32_t));
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
-            int tamanio_actual = list_size(proceso->tabla_paginas);
+            int tamanio_actual = list_size(proceso->tabla_paginas)*TAM_PAGINA;
             if (nuevo_tamanio > tamanio_actual)
             {
                 // Ampliar el tamaño del proceso
-                int paginas_a_agregar = nuevo_tamanio - tamanio_actual;//TODO:revisarlo
+                u_int32_t tam_a_ampliar = nuevo_tamanio - tamanio_actual;
+                int paginas_a_agregar = (tam_a_ampliar+TAM_PAGINA-1)/TAM_PAGINA;
                 for (int i = 0; i < paginas_a_agregar; i++)
                 {
                     if (obtener_primer_marco_libre() == -1)
@@ -220,21 +220,24 @@ void *atender_cliente(void *socket_cliente)
                     t_pagina *pagina = inicializar_pagina(obtener_primer_marco_libre());
                     list_add(proceso->tabla_paginas, pagina);
                 }
-                log_info(logger_memoria,"PID: %d - Tamaño Actual: %d - Tamaño a Ampliar: %d",pid,tamanio_actual,paginas_a_agregar);
+                log_info(logger_memoria,"PID: %d - Tamaño Actual: %d - Tamaño a Ampliar: %d",pid,tamanio_actual,tam_a_ampliar);
             }
             else if (nuevo_tamanio < tamanio_actual)
             {
                 // Reducir el tamaño del proceso
-                int paginas_a_eliminar = tamanio_actual - nuevo_tamanio;
+                u_int32_t tam_a_reducir = tamanio_actual - nuevo_tamanio;
+                int paginas_a_eliminar = tam_a_reducir/TAM_PAGINA;
                 for (int i = 0; i < paginas_a_eliminar; i++)
                 {
                     t_pagina *pagina = list_remove(proceso->tabla_paginas, list_size(proceso->tabla_paginas) - 1);
-                    liberar_marco_pagina(proceso, list_size(proceso->tabla_paginas));
+                    liberar_marco_pagina(proceso, pagina->numero_marco);
                     free(pagina);
                 }
-                log_info(logger_memoria,"PID: %d - Tamaño Actual: %d - Tamaño a Reducir: %d",pid,tamanio_actual,paginas_a_eliminar);
+                log_info(logger_memoria,"PID: %d - Tamaño Actual: %d - Tamaño a Reducir: %d",pid,tamanio_actual,tam_a_reducir);
             }
+
             enviar_codigo_operacion(OK, (int)(long int)socket_cliente);
+            log_info(logger_memoria,"mande el OK");
             break;
         }
         case ESCRITURA_MEMORIA:

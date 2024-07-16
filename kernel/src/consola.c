@@ -53,7 +53,7 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
-        char base_path[] = "/home/utnso/";
+        char base_path[] = "/home/utnso";
         // Calcula el tamaño necesario para la cadena final
         size_t path_size = strlen(base_path) + strlen(consola[1]) + 1; // +1 para el carácter nulo
         char *full_path = (char *)malloc(path_size);
@@ -66,7 +66,7 @@ void ejecutar_comando(char *comando)
         strcpy(full_path, base_path);
         strcat(full_path, consola[1]);
 
-        log_info(logger_kernel,"el path es: %s",full_path);
+        //log_info(logger_kernel,"el path es: %s",full_path);
         FILE *archivo = fopen(full_path, "r");
         if (archivo == NULL)
         {
@@ -102,7 +102,10 @@ void ejecutar_comando(char *comando)
         paquete->buffer = buffer;
 
         enviar_paquete(paquete, conexion_memoria);
+        if(recibir_operacion(conexion_memoria)!= CREAR_PROCESO)
+            log_error(logger_kernel,"error: no c recibio correctamente la respuesta de creacion de proceso de memoria");
         set_add_pcb_cola(pcb_creado, NEW, cola_procesos_new, mutex_cola_de_new);
+
         sem_post(&hay_proceso_nuevo);
 
         log_info(logger_kernel, "Se crea el proceso %d en NEW", pcb_creado->pid);

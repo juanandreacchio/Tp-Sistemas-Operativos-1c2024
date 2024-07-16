@@ -12,12 +12,13 @@ void *recibir_dispatch()
             sem_wait(&podes_manejar_desalojo);
         }
         
-
         pthread_mutex_lock(&mutex_motivo_ultimo_desalojo);
         motivo_ultimo_desalojo = motivo_desalojo;
         pthread_mutex_unlock(&mutex_motivo_ultimo_desalojo);
 
-        ultimo_pcb_ejecutado = pcb_actualizado; // poner mutex
+        pthread_mutex_lock(&mutex_ultimo_pcb);
+        ultimo_pcb_ejecutado = pcb_actualizado;
+        pthread_mutex_unlock(&mutex_ultimo_pcb);
 
         switch (motivo_desalojo)
         {
@@ -33,6 +34,7 @@ void *recibir_dispatch()
             if (!interfaz_conectada(nombre_io))
             {
                 log_error(logger_kernel, "La interfaz %s no está conectada", nombre_io);
+                finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
                 exit(EXIT_FAILURE);
             }
             t_interfaz_en_kernel *interfaz = dictionary_get(conexiones_io, nombre_io);
@@ -50,6 +52,10 @@ void *recibir_dispatch()
 
             pcb_actualizado->estado_actual = BLOCKED;
             logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
+
+            pthread_mutex_lock(&mutex_nombre_interfaz_bloqueante);
+            interfaz_causante_bloqueo = nombre_io;
+            pthread_mutex_unlock(&mutex_nombre_interfaz_bloqueante);
 
 
             pthread_mutex_lock(&mutex_lista_de_blocked);
@@ -76,29 +82,34 @@ void *recibir_dispatch()
             t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_io);
             sem_post(&semaforos_interfaz->instruccion_en_cola);
 
-            sem_post(&cpu_libre);
+
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
+            sem_post(&cpu_libre);
+
+
             break;
         case FIN_CLOCK:
             log_info(logger_kernel, "entre al fin de clock por dispatcher");
-
+            pcb_actualizado->quantum = 0;
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             listar_procesos_en_ready();
             sem_post(&hay_proceso_a_ready);
 
             logear_cambio_estado(pcb_actualizado, EXEC, READY);
 
-            sem_post(&cpu_libre);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
+            
+            sem_post(&cpu_libre);
+
             break;
         case END_PROCESS:
 
-            finalizar_pcb(pcb_actualizado);
+            finalizar_pcb(pcb_actualizado, SUCCESS);
 
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
@@ -112,13 +123,13 @@ void *recibir_dispatch()
 
             if (!existe_recurso(recurso_solicitado))
             {
-                finalizar_pcb(pcb_actualizado);
-
+                enviar_codigo_operacion(RESOURCE_FAIL, conexion_dispatch);
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 sem_post(&podes_revisar_lista_bloqueados);
                 sem_post(&cpu_libre);
+                finalizar_pcb(pcb_actualizado, INVALID_RESOURCE);
                 break;
             }
             int32_t instancias_restantes = restar_instancia_a_recurso(recurso_solicitado);
@@ -153,7 +164,7 @@ void *recibir_dispatch()
 
             if (!existe_recurso(recurso_signal))
             {
-                finalizar_pcb(pcb_actualizado);
+                finalizar_pcb(pcb_actualizado, INVALID_RESOURCE);
 
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
@@ -167,11 +178,9 @@ void *recibir_dispatch()
         case KILL_PROCESS:
             sem_post(&podes_eliminar_loko);
             break;
-        case OUT_OF_MEMORY://TOD0
-            liberar_recursos(pcb_actualizado->pid);
-
-            signal_contador(semaforo_multi);
-            destruir_pcb(pcb_actualizado);
+        case OUT_OF_MEMORY:
+            finalizar_pcb(pcb_actualizado, OUT_OF_MEMORY);
+            sem_post(&cpu_libre);
         default:
             break;
         }

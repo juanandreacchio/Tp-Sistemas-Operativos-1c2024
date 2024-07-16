@@ -48,10 +48,15 @@ t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
     return pcb;
 }
 
-void finalizar_pcb(t_pcb *pcb) // Agrega al proceso a la cola de exits para q sea eliminado
+void finalizar_pcb(t_pcb *pcb, op_code motivo) // Agrega al proceso a la cola de exits para q sea eliminado
 {
     logear_cambio_estado(pcb, pcb->estado_actual, TERMINATED);
-    set_add_pcb_cola(pcb, TERMINATED, cola_procesos_exit, mutex_cola_de_exit);
+    t_proceso_en_exit *proceso = malloc(sizeof(t_proceso_en_exit));
+    proceso->pcb = pcb;
+    proceso->motivo = motivo;
+    pthread_mutex_lock(&mutex_cola_de_exit);
+    queue_push(cola_procesos_exit, proceso);
+    pthread_mutex_unlock(&mutex_cola_de_exit);
 
     sem_post(&hay_proceso_exit);
 }
@@ -115,3 +120,4 @@ uint32_t tener_index_pid(uint32_t pid){
     }
     return -1;
 }
+

@@ -43,10 +43,11 @@ void eliminacion_de_procesos()
         {
             sem_wait(&podes_eliminar_procesos);
         }
-
+        
         pthread_mutex_lock(&mutex_cola_de_exit);
-        t_pcb *pcb_exit = queue_pop(cola_procesos_exit);
+        t_proceso_en_exit *proceso_exit = queue_pop(cola_procesos_exit);
         pthread_mutex_unlock(&mutex_cola_de_exit);
+        t_pcb *pcb_exit = proceso_exit->pcb;
         log_info(logger_kernel, "Se va a eliminar el proceso %d", pcb_exit->pid);
         log_info(logger_kernel, "Estado: %s", estado_to_string(pcb_exit->estado_actual));
 

@@ -16,7 +16,6 @@ int socket_servidor_kernel;
 int contador_pcbs;
 uint32_t contador_pid;
 t_pcb *ultimo_pcb_ejecutado;
-uint32_t procesos_en_ready_plus;
 int quantum;
 char *nombre_entrada_salida_conectada;
 uint16_t planificar_ready_plus;
@@ -27,7 +26,6 @@ t_dictionary *diccionario_semaforos_io;
 t_dictionary *recursos_disponibles;
 t_dictionary *cola_de_bloqueados_por_recurso;
 t_dictionary *recursos_asignados_por_proceso;
-t_dictionary *tiempo_restante_de_quantum_por_proceso;
 
 pthread_mutex_t mutex_pid;
 pthread_mutex_t mutex_cola_de_readys;
@@ -68,8 +66,12 @@ char **recursos;
 char **instancias_recursos;
 t_semaforo_contador *semaforo_multi;
 sem_t podes_eliminar_loko;
-
 int grado_multiprogramacion;
+pthread_mutex_t mutex_ultimo_pcb;
+pthread_mutex_t mutex_flag_planificar_plus;
+char* interfaz_causante_bloqueo;
+pthread_mutex_t mutex_nombre_interfaz_bloqueante;
+
 
 int main(void)
 {
@@ -116,7 +118,6 @@ int main(void)
 
     if(strcmp(algoritmo_planificacion, "VRR") == 0){
         log_info(logger_kernel, "iniciando contador de quantum");
-        tiempo_restante_de_quantum_por_proceso = dictionary_create();
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum_vrr, NULL);
         pthread_detach(hilo_quantum);
     }

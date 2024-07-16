@@ -73,6 +73,9 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_cola_de_exit, NULL);
     pthread_mutex_init(&mutex_procesos_en_sistema, NULL);
     pthread_mutex_init(&mutex_cola_de_ready_plus, NULL);
+    pthread_mutex_init(&mutex_ultimo_pcb, NULL);
+    pthread_mutex_init(&mutex_flag_planificar_plus, NULL);
+    pthread_mutex_init(&mutex_nombre_interfaz_bloqueante, NULL);
     iniciar_semaforo_contador(semaforo_multi, grado_multiprogramacion);
 }
 
@@ -80,11 +83,10 @@ void iniciar_variables()
 {
     contador_pid = 0;
     ultimo_pcb_ejecutado = NULL;
-    procesos_en_ready_plus = 0;
     planificar_ready_plus = 0;
     nombre_entrada_salida_conectada = NULL;
     semaforo_multi = malloc(sizeof(t_semaforo_contador));
-    planificacion_detenida = true;
+    planificacion_detenida = false;
 }
 
 void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_inicial)

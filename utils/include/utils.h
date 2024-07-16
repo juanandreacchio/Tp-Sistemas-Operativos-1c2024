@@ -59,7 +59,12 @@ typedef enum
 	PAGINA_A_MARCO,
 	MARCO,
 	WAIT_SOLICITADO,
-	SIGNAL_SOLICITADO
+	SIGNAL_SOLICITADO,
+	INVALID_RESOURCE,
+	SUCCESS,
+	INVALID_INTERFACE,
+	RESOURCE_FAIL,
+	RESOURCE_OK
 
 } op_code;
 
@@ -114,6 +119,9 @@ typedef struct
 	estados estado_actual;
 } t_pcb;
 
+typedef struct{
+	pthread_mutex_t semaforo_pcb;
+} t_semaforo_pcb;
 typedef enum
 {
 	// 5 PARÁMETROS
