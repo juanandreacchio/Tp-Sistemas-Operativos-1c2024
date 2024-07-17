@@ -225,7 +225,6 @@ void ejecutar_comando(char *comando)
         log_info(logger_kernel, "------------------------------");
 
 
-        sem_post(&cpu_libre);
         return;
     }
     else if (strcmp(consola[0], "MULTIPROGRAMACION") == 0)
