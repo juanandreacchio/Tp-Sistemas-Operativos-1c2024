@@ -544,6 +544,7 @@ t_buffer *serializar_instruccion(t_instruccion *instruccion)
 	{
 		buffer_add(buffer, instruccion->parametros[4], instruccion->param5_length);
 	}
+	printf("breakpoint");
 	return buffer;
 }
 
@@ -551,7 +552,7 @@ t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset)
 {
 	t_instruccion *instruccion = malloc(sizeof(t_instruccion));
 	buffer->offset = offset;
-
+	
 	buffer_read(buffer, &instruccion->identificador, sizeof(uint32_t));
 	buffer_read(buffer, &instruccion->cant_parametros, sizeof(uint32_t));
 	buffer_read(buffer, &instruccion->param1_length, sizeof(uint32_t));
@@ -562,6 +563,12 @@ t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset)
 	u_int32_t tamanio = instruccion->param1_length + instruccion->param2_length + instruccion->param3_length + instruccion->param4_length + instruccion->param5_length;
 	instruccion->parametros = malloc(tamanio);
 
+	char* str1 = malloc(instruccion->param1_length);
+	char* str2 = malloc(instruccion->param2_length);
+	char* str3 = malloc(instruccion->param3_length);
+	char* str4 = malloc(instruccion->param4_length);
+	char* str5 = malloc(instruccion->param5_length);
+
 	for (uint32_t i = 0; i < instruccion->cant_parametros; i++)
 	{
 		// Reservar memoria para el parámetro y leerlo del buffer
@@ -570,24 +577,58 @@ t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset)
 		{
 		case 0:
 			longitud_parametro = instruccion->param1_length;
+			buffer_read(buffer, str1, longitud_parametro);
 			break;
 		case 1:
 			longitud_parametro = instruccion->param2_length;
+			buffer_read(buffer, str2, longitud_parametro);
 			break;
 		case 2:
 			longitud_parametro = instruccion->param3_length;
+			buffer_read(buffer, str3, longitud_parametro);
 			break;
 		case 3:
 			longitud_parametro = instruccion->param4_length;
+			buffer_read(buffer, str4, longitud_parametro);
 			break;
 		case 4:
 			longitud_parametro = instruccion->param5_length;
+			buffer_read(buffer, str5, longitud_parametro);
 			break;
 		default:
 			break;
 		}
-		instruccion->parametros[i] = malloc(longitud_parametro);
-		buffer_read(buffer, instruccion->parametros[i], longitud_parametro);
+		//char* str = malloc(longitud_parametro);
+		//buffer_read(buffer, str, longitud_parametro);
+		//strcpy(instruccion->parametros[i],str);
+		//free(str);
+	}
+	for(uint32_t j = 0; j < instruccion->cant_parametros; j++){
+		switch (j)
+		{
+		case 0:
+			instruccion->parametros[j] = malloc(instruccion->param1_length);
+			strcpy(instruccion->parametros[j],str1);
+			break;
+		case 1:
+			instruccion->parametros[j] = malloc(instruccion->param2_length);
+			strcpy(instruccion->parametros[j],str2);
+			break;
+		case 2:
+			instruccion->parametros[j] = malloc(instruccion->param3_length);
+			strcpy(instruccion->parametros[j],str3);
+			break;
+		case 3:
+			instruccion->parametros[j] = malloc(instruccion->param4_length);
+			strcpy(instruccion->parametros[j],str4);
+			break;
+		case 4:
+			instruccion->parametros[j] = malloc(instruccion->param5_length);
+			strcpy(instruccion->parametros[j],str5);
+			break;
+		default:
+			break;
+		}
 	}
 
 	return instruccion;
@@ -638,13 +679,15 @@ void destruir_instruccion(t_instruccion *instruccion)
 void agregar_parametro_a_instruccion(t_list *parametros, t_instruccion *instruccion)
 {
 	int i = 0;
-	if (parametros != NULL)
+	if (parametros != NULL){
 		while (i < instruccion->cant_parametros)
 		{
 			char *parametro = list_get(parametros, i);
 			instruccion->parametros[i] = strdup(parametro);
 			i++;
 		}
+	}
+		
 	instruccion->param1_length = 0;
 	instruccion->param2_length = 0;
 	instruccion->param3_length = 0;
@@ -726,6 +769,12 @@ t_list *parsear_instrucciones(FILE *archivo_instrucciones)
 		t_identificador identificador = string_to_identificador(tokens[0]);
 		t_instruccion *instruccion = crear_instruccion(identificador, lista_de_parametros);
 		list_add(lista_instrucciones, instruccion);
+		i=0;
+		while (tokens[i] != NULL)
+        {
+            free(tokens[i]);
+            i++;
+        }
 		free(tokens);
 		list_destroy(lista_de_parametros);
 	}

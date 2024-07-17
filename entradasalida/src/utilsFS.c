@@ -59,7 +59,7 @@ void asignar_bloque(uint32_t bloque_libre) {
         log_error(logger_entradasalida, "Error al sincronizar el archivo de bitmap");
     }
 
-    log_info(logger_entradasalida, "Bloque %d asignado al archivo ", bloque_libre);//TODO: aca al final ponian el nombre del archivo pero no estaba y como no c que va se los dejo asi.
+    // log_info(logger_entradasalida, "Bloque %d asignado al archivo ", bloque_libre);//TODO: aca al final ponian el nombre del archivo pero no estaba y como no c que va se los dejo asi.
 }
 
 void liberar_bloque(uint32_t bloque) {
@@ -76,7 +76,7 @@ void liberar_bloque(uint32_t bloque) {
         log_error(logger_entradasalida, "Error al sincronizar el archivo de bitmap");
     }
 
-    log_info(logger_entradasalida, "Bloque %d liberado", bloque);
+    // log_info(logger_entradasalida, "Bloque %d liberado", bloque);
 }
 
 char* buscar_archivo(const char* archivo_buscar) {

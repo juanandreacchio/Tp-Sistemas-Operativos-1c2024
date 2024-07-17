@@ -80,4 +80,7 @@ void escribir_archivo(char* filename, void* datos, uint32_t tamanio_datos, int p
 void compactar_file_system(const char* archivo_a_mover, u_int32_t PID);
 void mover_bloque(void* mmap_bloques,uint32_t bloque_origen, uint32_t bloque_destino);
 void actualizar_metadata_bloque_inicial(char* metadata_path, uint32_t bloque_inicial);
+
+void loguear_bloques_archivos();
+
 #endif

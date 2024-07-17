@@ -46,8 +46,10 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
         levantarFileSystem();
     }
 
-    pthread_create(&thread_kernel, NULL, iniciar_conexion_kernel, interfaz_creada);
-    pthread_join(thread_kernel, NULL);
+    //pthread_create(&thread_kernel, NULL, iniciar_conexion_kernel, interfaz_creada);
+    //pthread_join(thread_kernel, NULL);
+
+    iniciar_conexion_kernel(interfaz_creada);
     
     log_info(logger_entradasalida, "I/O %s terminada", interfaz_creada->nombre);
     config_destroy(config_entradasalida);

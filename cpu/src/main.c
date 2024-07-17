@@ -530,6 +530,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             free(instruccion);
 
         instruccion = siguiente_instruccion(pcb, socket_Memoria);
+        log_info(logger_cpu,"el length de parametro1: %d",instruccion->param1_length);
         if (instruccion == NULL)
         {
             // Manejar error: siguiente_instruccion no debería devolver NULL

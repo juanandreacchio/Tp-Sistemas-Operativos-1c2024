@@ -128,7 +128,7 @@ void *atender_cliente(void *socket_cliente)
             buffer_read(buffer, &(soli->pc), sizeof(uint32_t));
             //  quiza hay que poner un semaforo para esperar a que las instruccione esten cargadas en el proceso
             instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
-
+            imprimir_instruccion(instruccion);
             paquete = crear_paquete(INSTRUCCION);
             agregar_instruccion_a_paquete(paquete, instruccion);
 

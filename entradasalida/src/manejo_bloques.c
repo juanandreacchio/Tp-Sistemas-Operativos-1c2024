@@ -373,7 +373,6 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
 
         // Actualizar la metadata con el nuevo bloque inicial
         actualizar_metadata_bloque_inicial(metadata_path, bloque_libre - info->cantidad_bloques);
-        log_info(logger_entradasalida, "archivo %s termina con bloque_inicial: %d y bloque final: %d", info->nombre_archivo, bloque_libre - info->cantidad_bloques, bloque_libre);
         free(metadata_path);
     }
 
@@ -387,8 +386,6 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
         // Marcar el nuevo bloque como ocupado en el bitmap
         asignar_bloque(nuevo_bloque_inicial + j);
     }
-
-    log_info(logger_entradasalida, "archivo a mover: %s termina con bloque_inicial: %d y bloque final: %d", archivo_mover_info.nombre_archivo, bloque_libre - archivo_mover_info.cantidad_bloques, bloque_libre);
 
     // Actualizar la metadata del archivo movido
     char* metadata_path = buscar_archivo(archivo_mover_info.nombre_archivo);
@@ -417,5 +414,38 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
     usleep(retraso_compactacion * 1000); // Convertir milisegundos a microsegundos
 
     free(archivos);
+    loguear_bloques_archivos();
     log_info(logger_entradasalida, "PID: %d - Fin Compactacion", PID); //LOG OBLIGATORIO
 }
+
+void loguear_bloques_archivos() {
+    int cantidad_archivos = 0;
+    archivo_info* archivos = listar_archivos(&cantidad_archivos);
+
+    if (archivos == NULL) {
+        log_error(logger_entradasalida, "No se encontraron archivos para loguear");
+        return;
+    }
+
+    for (int i = 0; i < cantidad_archivos; i++) {
+        archivo_info* info = &archivos[i];
+        
+        char* metadata_path = buscar_archivo(info->nombre_archivo);
+        if (metadata_path == NULL) {
+            log_error(logger_entradasalida, "No se pudo encontrar la metadata para el archivo: %s", info->nombre_archivo);
+            continue;
+        }
+
+        uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
+        uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
+        uint32_t cantidad_bloques = (tamanio_archivo == 0) ? 1 : (uint32_t)ceil((double)tamanio_archivo / (double)block_size);
+        uint32_t bloque_final = bloque_inicial + cantidad_bloques - 1;
+
+        log_info(logger_entradasalida, "Archivo: %s, Bloque Inicial: %d, Bloque Final: %d", info->nombre_archivo, bloque_inicial, bloque_final);
+
+        free(metadata_path);
+    }
+
+    free(archivos);
+}
+
