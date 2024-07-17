@@ -20,6 +20,12 @@ t_bitarray *marcos_ocupados;
 void *memoria_principal;
 
 //---------------------------variables globales-------------------------------------
+void imprimir_pids(t_list *lista_procesos) {
+    for (int i = 0; i < list_size(lista_procesos); i++) {
+        t_proceso *proceso = list_get(lista_procesos, i);
+        log_info(logger_memoria,"PID: %d", proceso->pid);
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -152,14 +158,15 @@ void *atender_cliente(void *socket_cliente)
         case END_PROCESS:
         {
             log_info(logger_memoria, "Se recibio un mensaje para finalizar un proceso");
+            imprimir_pids(procesos_en_memoria);
             uint32_t pid;
             buffer_read(buffer, &pid, sizeof(uint32_t));
             // liberar el proceso y sacarlo de la lista
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
             log_info(logger_memoria,"PID: %d - Tamaño: %d",proceso->pid,list_size(proceso->tabla_paginas));
             liberar_proceso(proceso);
-            list_remove(procesos_en_memoria, posicion_proceso(procesos_en_memoria, pid));
-            
+            imprimir_pids(procesos_en_memoria);
+            enviar_codigo_operacion(END_PROCESS,(int)(long int)socket_cliente);
             break;
         }
         case ACCESO_TABLA_PAGINAS:
@@ -294,15 +301,6 @@ void *atender_cliente(void *socket_cliente)
             enviar_paquete(paquete_respuesta, (int)(long int)socket_cliente);
             free(buffer_lectura);
             eliminar_paquete(paquete_respuesta);
-            break;
-        }
-        case FINALIZAR_PROCESO:
-        {
-            uint32_t pid;
-            buffer_read(paquete->buffer, &pid, sizeof(uint32_t));
-            log_info(logger_memoria, "Se recibió un mensaje para finalizar un proceso");
-            log_info(logger_memoria, "Elimino proceso con PID: %d", pid);
-            liberar_proceso_por_pid(pid);
             break;
         }
         default:

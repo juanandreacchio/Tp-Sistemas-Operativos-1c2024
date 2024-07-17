@@ -35,14 +35,14 @@ void *recibir_dispatch()
             {
                 log_error(logger_kernel, "La interfaz %s no está conectada", nombre_io);
                 finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
-                exit(EXIT_FAILURE);
+                sem_post(&cpu_libre);
             }
             t_interfaz_en_kernel *interfaz = dictionary_get(conexiones_io, nombre_io);
             if (!esOperacionValida(identificador, interfaz->tipo_interfaz))
             {
                 log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", identificador, nombre_io);
                 finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
-                exit(EXIT_FAILURE);
+                sem_post(&cpu_libre);
             }
 
             // esto va?
@@ -112,6 +112,7 @@ void *recibir_dispatch()
             t_paquete *respuesta = recibir_paquete(conexion_dispatch);
             t_instruccion *utlima = instruccion_deserializar(respuesta->buffer, 0);
             char *recurso_solicitado = utlima->parametros[0];
+            bool flag_recurso_no_existe = false;
 
             if (!existe_recurso(recurso_solicitado))
             {
@@ -122,31 +123,35 @@ void *recibir_dispatch()
                 sem_post(&podes_revisar_lista_bloqueados);
                 sem_post(&cpu_libre);
                 finalizar_pcb(pcb_actualizado, INVALID_RESOURCE);
-                break;
+                flag_recurso_no_existe = true;
             }
-            int32_t instancias_restantes = restar_instancia_a_recurso(recurso_solicitado);
-            retener_instancia_de_recurso(recurso_solicitado, pcb_actualizado->pid);
-            if (instancias_restantes < 0)
+            if (!flag_recurso_no_existe)
             {
-                enviar_codigo_operacion(RESOURCE_BLOCKED, conexion_dispatch);
-                agregar_pcb_a_cola_bloqueados_de_recurso(pcb_actualizado, recurso_solicitado);
+                int32_t instancias_restantes = restar_instancia_a_recurso(recurso_solicitado);
+                retener_instancia_de_recurso(recurso_solicitado, pcb_actualizado->pid);
+                if (instancias_restantes < 0)
+                {
+                    enviar_codigo_operacion(RESOURCE_BLOCKED, conexion_dispatch);
+                    agregar_pcb_a_cola_bloqueados_de_recurso(pcb_actualizado, recurso_solicitado);
 
-                logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
-                bloquear_pcb(pcb_actualizado);
-                logear_lista_blocked();
+                    logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
+                    bloquear_pcb(pcb_actualizado);
+                    logear_lista_blocked();
 
-                pthread_mutex_lock(&mutex_flag_cpu_libre);
-                flag_cpu_libre = 1;
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                    pthread_mutex_lock(&mutex_flag_cpu_libre);
+                    flag_cpu_libre = 1;
+                    pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
-                sem_post(&cpu_libre);
-                signal_contador(semaforo_multi);
+                    sem_post(&cpu_libre);
+                    signal_contador(semaforo_multi);
+                }
+                else
+                {
+                    enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
+                }
+                sem_post(&podes_revisar_lista_bloqueados);
             }
-            else
-            {
-                enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
-            }
-            sem_post(&podes_revisar_lista_bloqueados);
+
             break;
         case SIGNAL_SOLICITADO:
             t_paquete *respuesta_signal = recibir_paquete(conexion_dispatch);

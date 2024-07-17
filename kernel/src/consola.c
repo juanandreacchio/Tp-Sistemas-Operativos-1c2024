@@ -126,9 +126,14 @@ void ejecutar_comando(char *comando)
     {
        uint32_t pid = atoi(consola[1]);
 
-        t_paquete *paquete = crear_paquete(FINALIZAR_PROCESO);
+        t_paquete *paquete = crear_paquete(END_PROCESS);
         buffer_add(paquete->buffer, &pid, sizeof(uint32_t));
         enviar_paquete(paquete, conexion_memoria);
+        if(recibir_operacion(conexion_memoria) != END_PROCESS)
+        {
+            log_error(logger_kernel, "error de end process del PID %d", pid);
+            return;
+        }
 
         uint32_t index = tener_index_pid(pid);
         pthread_mutex_lock(&mutex_procesos_en_sistema);

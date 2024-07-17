@@ -49,7 +49,16 @@ void eliminacion_de_procesos()
 
         liberar_recursos(pcb_exit->pid);
         uint32_t index = tener_index_pid(pcb_exit->pid);
-
+        
+        t_paquete *paquete = crear_paquete(END_PROCESS);
+        buffer_add(paquete->buffer, &pcb_exit->pid, sizeof(uint32_t));
+        enviar_paquete(paquete, conexion_memoria);
+        if(recibir_operacion(conexion_memoria) != END_PROCESS)
+        {
+            log_error(logger_kernel, "error de end process del PID %d", pcb_exit->pid);
+            return;
+        }
+            
         if (index == -1)
         {
             log_error(logger_kernel, "No se encontró el proceso con PID %d", pcb_exit->pid);

@@ -460,7 +460,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         op_code estado_operacion =  recibir_operacion(conexion_kernel_dispatch);
         if(estado_operacion == RESOURCE_FAIL)
         {
-          end_process_flag = 1;
+            end_process_flag = 1;
         } else if (estado_operacion == RESOURCE_BLOCKED)
         {
             flag_bloqueado_por_resource = 1;
@@ -511,8 +511,8 @@ bool check_interrupt(uint32_t pid)
 
 t_instruccion *siguiente_instruccion(t_pcb *pcb, int socket)
 {
-    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &registros_cpu.PC, socket);
     log_info(logger_cpu,"PID: %d - FETCH - Program Counter: %d",pcb->pid, registros_cpu.PC);
+    t_instruccion *instruccion = fetch_instruccion(pcb->pid, &registros_cpu.PC, socket);
     if (instruccion != NULL)
     {
         registros_cpu.PC+= 1;
