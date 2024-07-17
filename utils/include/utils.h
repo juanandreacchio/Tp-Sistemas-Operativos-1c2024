@@ -281,4 +281,5 @@ void enviar_soli_escritura_sin_pid(t_paquete *paquete,t_list *direc_fisicas,size
 char* estado_to_string(estados estado);
 char* number_to_string(int number);
 const char* identificador_to_string(t_identificador id);
+const char* op_code_to_string(op_code code);
 #endif /* UTILS_H_ */

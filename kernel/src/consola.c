@@ -71,7 +71,9 @@ void ejecutar_comando(char *comando)
         if (archivo == NULL)
         {
             log_error(logger_kernel, "No se pudo abrir el archivo");
-            exit(EXIT_FAILURE);
+            free(full_path);
+            string_array_destroy(consola);
+            return;
         }
         char *linea = malloc(100);
         while (fgets(linea, 100, archivo) != NULL)

@@ -991,3 +991,48 @@ const char* identificador_to_string(t_identificador id) {
         default: return "UNKNOWN_IDENTIFIER";
     }
 }
+const char* op_code_to_string(op_code code) {
+    switch (code) {
+        case SOLICITUD_INSTRUCCION: return "SOLICITUD_INSTRUCCION";
+        case INSTRUCCION: return "INSTRUCCION";
+        case CREAR_PROCESO: return "CREAR_PROCESO";
+        case FINALIZAR_PROCESO: return "FINALIZAR_PROCESO";
+        case CPU: return "CPU";
+        case KERNEL: return "KERNEL";
+        case MEMORIA: return "MEMORIA";
+        case ENTRADA_SALIDA: return "ENTRADA_SALIDA";
+        case PCB: return "PCB";
+        case INTERRUPTION: return "INTERRUPTION";
+        case PRUEBA: return "PRUEBA";
+        case INTERFAZ_DIALFS: return "INTERFAZ_DIALFS";
+        case INTERFAZ_STDIN: return "INTERFAZ_STDIN";
+        case INTERFAZ_STDOUT: return "INTERFAZ_STDOUT";
+        case INTERFAZ_GENERICA: return "INTERFAZ_GENERICA";
+        case FIN_OPERACION_IO: return "FIN_OPERACION_IO";
+        case END_PROCESS: return "END_PROCESS";
+        case FIN_CLOCK: return "FIN_CLOCK";
+        case KILL_PROCESS: return "KILL_PROCESS";
+        case OPERACION_IO: return "OPERACION_IO";
+        case IO_SUCCESS: return "IO_SUCCESS";
+        case EJECUTAR_IO: return "EJECUTAR_IO";
+        case INTERRUPCION_CLOCK: return "INTERRUPCION_CLOCK";
+        case CERRAR_IO: return "CERRAR_IO";
+        case ACCESO_TABLA_PAGINAS: return "ACCESO_TABLA_PAGINAS";
+        case AJUSTAR_TAMANIO_PROCESO: return "AJUSTAR_TAMANIO_PROCESO";
+        case OUT_OF_MEMORY: return "OUT_OF_MEMORY";
+        case ESCRITURA_MEMORIA: return "ESCRITURA_MEMORIA";
+        case LECTURA_MEMORIA: return "LECTURA_MEMORIA";
+        case OK: return "OK";
+        case MEMORIA_LEIDA: return "MEMORIA_LEIDA";
+        case PAGINA_A_MARCO: return "PAGINA_A_MARCO";
+        case MARCO: return "MARCO";
+        case WAIT_SOLICITADO: return "WAIT_SOLICITADO";
+        case SIGNAL_SOLICITADO: return "SIGNAL_SOLICITADO";
+        case INVALID_RESOURCE: return "INVALID_RESOURCE";
+        case SUCCESS: return "SUCCESS";
+        case INVALID_INTERFACE: return "INVALID_INTERFACE";
+        case RESOURCE_FAIL: return "RESOURCE_FAIL";
+        case RESOURCE_OK: return "RESOURCE_OK";
+        default: return "UNKNOWN_OPCODE";
+    }
+}

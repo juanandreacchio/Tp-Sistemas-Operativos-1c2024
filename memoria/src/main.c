@@ -90,7 +90,7 @@ void *atender_cliente(void *socket_cliente)
 
         op_code codigo_operacion = paquete->codigo_operacion;
         t_buffer *buffer = paquete->buffer;
-        printf("codigo de operacion: %s\n", cod_op_to_string(codigo_operacion));
+        log_info(logger_memoria,"codigo de operacion: %s", op_code_to_string(codigo_operacion));
 
         // NO SE SI ESTO ESTA BIEN, CREO QUE DA LO MISMO DONDE SE PONGA
         usleep(RETARDO_RESPUESTA*1000);
@@ -201,6 +201,7 @@ void *atender_cliente(void *socket_cliente)
         {
             log_info(logger_memoria, "Se recibio un mensaje para ajustar el tamaño de un proceso");
             uint32_t pid, nuevo_tamanio;
+            bool flag_break = false;
             buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &nuevo_tamanio, sizeof(uint32_t));
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
@@ -215,6 +216,7 @@ void *atender_cliente(void *socket_cliente)
                     if (obtener_primer_marco_libre() == -1)
                     {
                         enviar_codigo_operacion(OUT_OF_MEMORY, (int)(long int)socket_cliente);
+                        flag_break = true;
                         break;
                     }
                     t_pagina *pagina = inicializar_pagina(obtener_primer_marco_libre());
@@ -235,9 +237,10 @@ void *atender_cliente(void *socket_cliente)
                 }
                 log_info(logger_memoria,"PID: %d - Tamaño Actual: %d - Tamaño a Reducir: %d",pid,tamanio_actual,tam_a_reducir);
             }
-
+            if(!flag_break){
             enviar_codigo_operacion(OK, (int)(long int)socket_cliente);
             log_info(logger_memoria,"mande el OK");
+            }
             break;
         }
         case ESCRITURA_MEMORIA:

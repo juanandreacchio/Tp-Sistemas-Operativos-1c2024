@@ -208,6 +208,7 @@ void *atender_cliente(int socket_cliente)
         break;
         }
     case DIALFS:
+        usleep(tiempo_unidad_trabajo * 1000);
         log_info(logger_entradasalida,"entre al case dialfs");
         t_identificador identificador;
         buffer_read(paquete->buffer,&identificador, sizeof(t_identificador));

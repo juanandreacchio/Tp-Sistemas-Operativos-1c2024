@@ -20,6 +20,7 @@ t_list *TLB;
 u_int8_t interruption_flag;
 u_int8_t end_process_flag;
 u_int8_t input_ouput_flag;
+u_int8_t flag_out_of_memory;
 uint8_t flag_bloqueado_por_resource;
 
 // ------------------------- MAIN---------------------------
@@ -66,6 +67,7 @@ void inicializar_flags()
     end_process_flag = 0;
     input_ouput_flag = 0;
     flag_bloqueado_por_resource = 0;
+    flag_out_of_memory = 0;
 }
 //--------------------------RECIBIR TAMAÑO "handshake"---------------------------
 u_int32_t recibir_tamanio(u_int32_t socket_cliente)
@@ -423,8 +425,11 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     op_code operacion = recibir_operacion(conexion_memoria);
     if (operacion == OUT_OF_MEMORY)
     {
+        pcb->registros = registros_cpu;
+        pcb->pc = registros_cpu.PC;
         enviar_motivo_desalojo(OUT_OF_MEMORY, conexion_kernel_dispatch);
         enviar_pcb(pcb, conexion_kernel_dispatch);
+        flag_out_of_memory = 1;
     }
     else if (operacion != OK)
     {
@@ -519,7 +524,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 {
     t_instruccion *instruccion = NULL;
     input_ouput_flag = 0;
-    while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1 && flag_bloqueado_por_resource != 1)
+    while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1 && flag_bloqueado_por_resource != 1 && flag_out_of_memory != 1)
     {
         if (instruccion != NULL)
             free(instruccion);
@@ -950,7 +955,7 @@ void mov_out(u_int32_t pid, char *registro_direccion, char *registro_datos)
         void *valor_registro = malloc(size_of_element);
         uint8_t valor = get_registro_int8(registro_datos);
         memcpy(valor_registro,&valor,size_of_element);
-        log_info(logger_cpu,"el numero en codigo ascci es: %s",(char*)valor_registro);
+        //log_info(logger_cpu,"el numero en codigo ascci es: %s",(char*)valor_registro);
         direc_fisicas = traducir_DL_a_DF_generico(direc_logica,pid, size_of_element);
         t_direc_fisica *primer_direc_fisica = list_get(direc_fisicas,0);
         log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d",pid,primer_direc_fisica->direccion_fisica,valor);

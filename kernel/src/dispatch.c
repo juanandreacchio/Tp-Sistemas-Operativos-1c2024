@@ -41,6 +41,7 @@ void *recibir_dispatch()
             if (!esOperacionValida(identificador, interfaz->tipo_interfaz))
             {
                 log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", identificador, nombre_io);
+                finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
                 exit(EXIT_FAILURE);
             }
 
