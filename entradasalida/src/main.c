@@ -155,11 +155,8 @@ void *atender_cliente(int socket_cliente)
         }
        
         // Leer desde el STDIN
-        char *dato = leer_desde_teclado(total_tamanio);
+        void *dato = leer_desde_teclado(total_tamanio);
         if (dato == NULL) {
-            log_info(logger_entradasalida,"error: el dato dio null");
-        }
-        if (strlen(dato) > total_tamanio) {
             log_info(logger_entradasalida,"error: el dato dio null");
         }
 
@@ -176,7 +173,8 @@ void *atender_cliente(int socket_cliente)
         else
         {
             log_error(logger_entradasalida,"error: no OK la escritura");
-        }     
+        } 
+        free(dato);    
         break;
         }
     case STDOUT:{
@@ -199,12 +197,14 @@ void *atender_cliente(int socket_cliente)
         // recibir dato de memoria
 
         t_paquete *paquete_dato = recibir_paquete(socket_conexion_memoria);
-        char *str = malloc(total_tamanio);
+        char *str = malloc(total_tamanio+1);
         buffer_read(paquete_dato->buffer,str, total_tamanio);
+        str[total_tamanio] = '\0';
         eliminar_paquete(paquete_dato);
 
         log_info(logger_entradasalida,"leido: %s",str);
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente); 
+        free(str);
         break;
         }
     case DIALFS:
@@ -364,14 +364,14 @@ void *atender_cliente(int socket_cliente)
 }
 
 void* leer_desde_teclado(uint32_t tamanio) {
-    void *dato = malloc(tamanio);
+    char *dato = malloc(tamanio+2);
     if (!dato) {
         log_error(logger_entradasalida, "Error al asignar memoria para el dato");
         return NULL;
     }
 
     log_info(logger_entradasalida, "Ingrese el dato a escribir en la memoria: ");
-    if (fgets(dato, tamanio, stdin) == NULL) {
+    if (fgets(dato, tamanio+2, stdin) == NULL) {
         log_error(logger_entradasalida, "Error al leer el dato desde el STDIN");
         free(dato);
         return NULL;
@@ -383,5 +383,17 @@ void* leer_desde_teclado(uint32_t tamanio) {
         *newline = '\0';
     }
 
-    return dato;
+    // Asignar memoria para el buffer de tipo void*
+    void *buffer = malloc(tamanio); // No incluimos el carácter nulo
+    if (!buffer) {
+        log_error(logger_entradasalida, "Error al asignar memoria para el buffer");
+        free(dato);
+        return NULL;
+    }
+
+    memcpy(buffer, dato, tamanio);
+
+    free(dato);
+
+    return buffer;
 }
