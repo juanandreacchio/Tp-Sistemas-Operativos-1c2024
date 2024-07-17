@@ -1,0 +1,127 @@
+[33mcd56f6b[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m)[m Merge branch 'dev-fs'
+[33mb7a99ab[m[33m ([m[1;31morigin/dev-fs[m[33m, [m[1;32mdev-fs[m[33m)[m fix errors
+[33m9f7d48f[m pruebas plani todo menos VRR
+[33md1e2d7a[m envio info para las io de FS
+[33m74d7a3f[m MERGE Y CORRECION DE ALGUNOS ERRORES Co-authored-by: Nicholas Sher <nicossher@gmail.com>
+[33m3dca203[m Merge branch 'dev-fs'
+[33m9dcb3bf[m fix errores IO y agregue logs
+[33m08511df[m solucion finalizar proceso creo
+[33m59e1c04[m finalizar proceso está mal
+[33mea43530[m FS terminado, faltan pruebas
+[33m72cac8e[m fixes pcb? ver. detener planificacion mal
+[33m2e15e6e[m grado multi - detener planificacion - faltan fixes recursos
+[33ma93bcf4[m[33m ([m[1;31morigin/dev-kernel[m[33m)[m Merge branch 'main' into dev-kernel
+[33md134e54[m agregue TLB solucionado Merge
+[33mcc889b0[m destruir semaforos
+[33mf25113c[m iniciar-detener planificación
+[33m2099a49[m fixes +logear ingreso a ready y ready plus
+[33ma4c4964[m grado multiprogramacion consola
+[33m5e6969a[m Ejecutar scripts en el kernel
+[33m9a9acf7[m Merge branch 'main' into dev-kernel
+[33m6498163[m compactacion
+[33m064c2a2[m funciones de read y write
+[33mc73ae97[m corrijo error
+[33mc503012[m funciones de eliminar, agrandar y acortar archivo
+[33m827ebb7[m funcion crear archivo
+[33mf3df3aa[m estructuras creadas
+[33mdb691a4[m[33m ([m[1;33mtag: checkpoint-3[m[33m)[m Merge pull request #9 from sisoputnfrba/dev-cpu
+[33ma8fa21e[m[33m ([m[1;31morigin/dev-cpu[m[33m)[m Merge branch 'main' into dev-cpu
+[33mf0292be[m Added out of memory
+[33mb31fc9a[m fix vrr
+[33m0fc134f[m finalizadas todas las IO
+[33m9d32310[m fixes vrr
+[33mf95bbab[m inicio vrr
+[33m57a862b[m funciona MOV_IN MOV_OUT COPY_STRING RESIZE
+[33m3772b8d[m nuevo mensaje PAGINA_A_TABLA memoria-cpu
+[33m4099b0b[m fix erroes en lectura escritura
+[33m7fb97d2[m Merge remote-tracking branch 'origin/dev-memoria' into dev-cpu
+[33m45455fe[m operaciones cheackpoint 3 y MMU hechos
+[33m507ae16[m rr actualizado (había quedado atrasado el merge)
+[33mc8ff513[m Planificador largo plazo + manejo recursos
+[33m9dff1dc[m fixes antes de merge
+[33m3e28d29[m[33m ([m[1;31morigin/dev-memoria[m[33m)[m fixes acordados con mati
+[33m01cf907[m[33m ([m[1;31morigin/dev-io[m[33m)[m algunos fixes io
+[33mde00441[m terminado pero no probado
+[33me62a013[m mas fixes
+[33me92a9d8[m fixes varios
+[33m36a5f15[m comentado parte no necesaria
+[33mf01611a[m fix lectura y escritura para multiples marcos
+[33m72c0925[m Empezadas STDIN y STDOUT
+[33m6ab8f1c[m prueba
+[33m48026a5[m finalizar pcb desde consola + funcion para agregar pcb a cola de exit
+[33meacc2a4[m memoria casi terminada, falta probarla con el resto de los modulos y los logs
+[33m53e9895[m logs necesarios del kernel (faltan igual)
+[33m57f9eab[m organizar código + planificador largo plazo
+[33m58ac72d[m fixes RR
+[33m9c29079[m manejo de recursos (falta todavía)
+[33md75b376[m fixes i/o
+[33m0b5bc47[m fix errors
+[33m7b1d433[m Segundo checkpoint
+[33m2c9c714[m fix io
+[33m8210380[m fix i/o
+[33md720634[m Correccion RR
+[33m0f9b647[m Agregar funciones a .h, ordenar un poco el código
+[33m4b055af[m finalizado RR
+[33m1a10067[m Casi terminado FIFO
+[33m3c84eeb[m ios - kernel
+[33mbe46760[m agrego algunas cosas para planificacion
+[33md2a4b6c[m cambio en check interrupt
+[33m7aa9160[m agrego lo hecho de I/O hasta ahora
+[33m77a17a7[m ya funciona el comenzar_proceso y ejecuta
+[33m002c72b[m hay que hacer que funcione el proceso
+[33mc0c71ca[m[33m ([m[1;33mtag: checkpoint-2[m[33m)[m crear proceso desde kernel x consola interactiva
+[33mc555bf1[m Consola Interactiva
+[33m9e7bfb3[m Merge pull request #5 from sisoputnfrba/dev-oren
+[33m3011bc7[m fix problema hilos
+[33m9489699[m merge oren
+[33mdc2e055[m Merge branch 'dev-oren' into dev-matiF
+[33mf8fd87a[m fix enviar solicitud instruccion - sigue problema hilos
+[33m701f7b7[m fetch recibe instruccion basura
+[33m7c6d8f1[m no fix hilos
+[33m751898a[m fix crear procesos - falta problema con semaforos
+[33mc4f5741[m fix mandar solicitud de crear proceso a memoria
+[33mf8f0f69[m no anda el pid a enviar en CREAR_PROCESO (me voy a dormir)
+[33m894e4c6[m antes del testeo
+[33md64b49c[m merge y fixes de matiD
+[33mc15b0a6[m Merge branch 'dev-matiD' into test
+[33ma29d325[m PCB envio/recibir y Operaciones funciona
+[33mca132bc[m consola interactiva kernell casi terminada, faltan un par de validaciones y probarla
+[33mac8f4db[m modificacion funcion crear buffer y crear paquete
+[33m74efefa[m Merge remote-tracking branch 'refs/remotes/origin/dev-matiD' into dev-matiD
+[33m0ceed81[m funciona correctamente la serializacion y envio paquete
+[33mcaaca73[m deserializar lista de instrucciones
+[33mb5048bb[m cambio en serialización de lista de instrucciones
+[33m721ca9d[m fix organizacion codigo
+[33m4c66f95[m tambien esto
+[33mbb4fbc7[m quedo colgado
+[33m6ce2d5d[m mas fixes
+[33meaa8f51[m errores varios
+[33m73d1a04[m avances en memoria - checkpoint 2
+[33m9d385c8[m arreglar funciones de enviar/recibir paquetes Co-authored-by: Juan Cruz Andreacchio
+[33m3f923f4[m empezado
+[33mf3977ed[m fix utils.c expresividad
+[33mc57bc70[m ultimos fixes
+[33m35bc7bb[m Merge pull request #4 from sisoputnfrba/dev-matiD
+[33m77da86d[m soluciono errores
+[33m3c6362b[m Merge pull request #3 from sisoputnfrba/main
+[33m117074e[m Merge branch 'dev-matiD' into main
+[33m83c87af[m avances con I/O y PCB
+[33m860686e[m Merge pull request #2 from sisoputnfrba/dev-juan
+[33mf3be6f2[m agregar psw  a pcb
+[33mc03f568[m caso de falla en fetch
+[33md460605[m cambio fetch y utils
+[33mf0c46f6[m fetch ciclo instruccion
+[33m9183fe9[m funcion crear pcb
+[33mb2d5bb5[m[33m ([m[1;33mtag: checkpoint-1[m[33m)[m Merge pull request #1 from sisoputnfrba/dev
+[33m9300d87[m Replace log_error with printf in error handling for logger creation
+[33m6fffdbc[m fixes warnings y manejo de errores
+[33m2544dd0[m fixes threads + agregados a .h
+[33mac16ab3[m fixes threads
+[33m4894867[m conexionnes entre todos los modulos
+[33m881a145[m funcionan las conexiones entre memoria, cpu y kernel
+[33m1cd50d7[m fixes conexiones
+[33m8c0399c[m funciona el handshake entre cpu y memoria
+[33meaf10b3[m fixes memoria and utils
+[33m8a21826[m actualizacion de configs
+[33mdfa8efe[m primeros avances en grupo
+[33m3611760[m Initial commit

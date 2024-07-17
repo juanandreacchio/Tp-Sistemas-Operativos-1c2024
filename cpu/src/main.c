@@ -268,7 +268,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         enviar_pcb(pcb, conexion_kernel_dispatch);
 
         u_int32_t direc_logica = get_registro_generico( instruccion->parametros[1]);
-        u_int32_t tamanio = get_registro_generico( instruccion->parametros[2]);
+        u_int32_t tamanio = get_registro_generico( instruccion->parametros[2])+1;
 
         t_paquete *paquete = crear_paquete(OPERACION_IO);
         t_list *direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pcb->pid, tamanio);
@@ -437,7 +437,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
     case COPY_STRING:
     {
         
-        size_t tamanio = (size_t)get_registro_generico(instruccion->parametros[0]);
+        size_t tamanio = (size_t)atoi(instruccion->parametros[0]);
         copy_string(pcb->pid, tamanio);
         break;
 
@@ -940,17 +940,22 @@ void mov_out(u_int32_t pid, char *registro_direccion, char *registro_datos)
     uint32_t direc_logica = get_registro_generico(registro_direccion);
     t_paquete *paquete = crear_paquete(ESCRITURA_MEMORIA);
     size_t size_of_element;
-    void *valor_registro;
+    
     t_list *direc_fisicas;
 
     if (strcasecmp(registro_datos, "AX") == 0 || strcasecmp(registro_datos, "BX") == 0 ||
         strcasecmp(registro_datos, "CX") == 0 || strcasecmp(registro_datos, "DX") == 0)
     {
-
         size_of_element = sizeof(uint8_t);
-        uint8_t valor = get_registro_generico(registro_datos);
-        valor_registro = &valor;
+        void *valor_registro = malloc(size_of_element);
+        uint8_t valor = get_registro_int8(registro_datos);
+        memcpy(valor_registro,&valor,size_of_element);
+        log_info(logger_cpu,"el numero en codigo ascci es: %s",(char*)valor_registro);
         direc_fisicas = traducir_DL_a_DF_generico(direc_logica,pid, size_of_element);
+        t_direc_fisica *primer_direc_fisica = list_get(direc_fisicas,0);
+        log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d",pid,primer_direc_fisica->direccion_fisica,valor);
+        enviar_soli_escritura(paquete, direc_fisicas, size_of_element, valor_registro, conexion_memoria,pid);
+        free(valor_registro);
     }
     else if (strcasecmp(registro_datos, "EAX") == 0 || strcasecmp(registro_datos, "EBX") == 0 ||
              strcasecmp(registro_datos, "ECX") == 0 || strcasecmp(registro_datos, "EDX") == 0 ||
@@ -959,9 +964,14 @@ void mov_out(u_int32_t pid, char *registro_direccion, char *registro_datos)
     {
 
         size_of_element = sizeof(uint32_t);
+        void *valor_registro = malloc(size_of_element);
         uint32_t valor = get_registro_generico(registro_datos);
-        valor_registro = &valor;
+        memcpy(valor_registro,&valor,size_of_element);
         direc_fisicas = traducir_DL_a_DF_generico(direc_logica, pid, size_of_element);
+        t_direc_fisica *primer_direc_fisica = list_get(direc_fisicas,0);
+        log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d",pid,primer_direc_fisica->direccion_fisica,valor);
+        enviar_soli_escritura(paquete, direc_fisicas, size_of_element, valor_registro, conexion_memoria,pid);
+        free(valor_registro);
     }
     else
     {
@@ -969,16 +979,11 @@ void mov_out(u_int32_t pid, char *registro_direccion, char *registro_datos)
         eliminar_paquete(paquete);
         return;
     }
-    enviar_soli_escritura(paquete, direc_fisicas, size_of_element, valor_registro, conexion_memoria,pid);
     op_code cod_op = recibir_operacion(conexion_memoria);
     if (cod_op != OK)
     {
         log_error(logger_cpu, "error: codigo de operacion inesperado al recibir la escritura de memoria");
     }
-    u_int32_t valor_escrito;
-    t_direc_fisica *primer_direc_fisica = list_get(direc_fisicas,0);
-    memcpy(&valor_escrito, valor_registro, sizeof(uint32_t));
-    log_info(logger_cpu,"PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %d",pid,primer_direc_fisica->direccion_fisica,valor_escrito);
     list_destroy_and_destroy_elements(direc_fisicas, free);
 }
 
@@ -1046,8 +1051,14 @@ t_list *traducir_DL_a_DF_generico(uint32_t DL, uint32_t pid, size_t tamanio)
     t_list *paginas_a_traducir = list_create();
     for (uint32_t i = 0; i < num_paginas; i++)
     {
+        int marco;
         uint32_t pagina_actual = numero_pagina + i;
-        int marco = buscar_en_tlb(pagina_actual, pid);
+        if(cant_entradas_tlb == 0){
+         marco = -1;
+        }else{
+         marco = buscar_en_tlb(pagina_actual, pid);
+        }
+             
         t_direc_fisica *direc = malloc(sizeof(t_direc_fisica));
         direc->num_pag = pagina_actual;
 
