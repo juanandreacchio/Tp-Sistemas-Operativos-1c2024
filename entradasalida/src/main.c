@@ -179,7 +179,6 @@ void *atender_cliente(int socket_cliente)
         } 
         free(dato);
         list_destroy_and_destroy_elements(direcciones_fisicas, free);
-        eliminar_paquete(paquete_escritura);
         break;
         }
     case STDOUT:{
@@ -210,7 +209,6 @@ void *atender_cliente(int socket_cliente)
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente); 
 
         eliminar_paquete(paquete_dato);
-        eliminar_paquete(paquete_lectura);
         free(str);
         list_destroy_and_destroy_elements(direcciones_fisicas, free);
         break;
@@ -325,7 +323,6 @@ void *atender_cliente(int socket_cliente)
 
             enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
             
-            eliminar_paquete(paquete_lectura);
             eliminar_paquete(paquete_dato);
             free(lectura);
             free(nombre_archivo); 
@@ -379,7 +376,6 @@ void *atender_cliente(int socket_cliente)
                 exit(EXIT_FAILURE);
             }
 
-            eliminar_paquete(paquete_escritura);
             free(lectura);
             free(nombre_archivo); 
             list_destroy_and_destroy_elements(direcciones_fisicas, free); 
