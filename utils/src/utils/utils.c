@@ -548,95 +548,42 @@ t_buffer *serializar_instruccion(t_instruccion *instruccion)
 	return buffer;
 }
 
-t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset)
-{
-	t_instruccion *instruccion = malloc(sizeof(t_instruccion));
-	buffer->offset = offset;
-	
-	buffer_read(buffer, &instruccion->identificador, sizeof(uint32_t));
-	buffer_read(buffer, &instruccion->cant_parametros, sizeof(uint32_t));
-	buffer_read(buffer, &instruccion->param1_length, sizeof(uint32_t));
-	buffer_read(buffer, &instruccion->param2_length, sizeof(uint32_t));
-	buffer_read(buffer, &instruccion->param3_length, sizeof(uint32_t));
-	buffer_read(buffer, &instruccion->param4_length, sizeof(uint32_t));
-	buffer_read(buffer, &instruccion->param5_length, sizeof(uint32_t));
-	u_int32_t tamanio = instruccion->param1_length + instruccion->param2_length + instruccion->param3_length + instruccion->param4_length + instruccion->param5_length;
-	instruccion->parametros = malloc(tamanio);
+t_instruccion *instruccion_deserializar(t_buffer *buffer, uint32_t offset) {
+    t_instruccion *instruccion = malloc(sizeof(t_instruccion));
+    buffer->offset = offset;
 
-	char* str1 = malloc(instruccion->param1_length);
-	char* str2 = malloc(instruccion->param2_length);
-	char* str3 = malloc(instruccion->param3_length);
-	char* str4 = malloc(instruccion->param4_length);
-	char* str5 = malloc(instruccion->param5_length);
+    buffer_read(buffer, &instruccion->identificador, sizeof(uint32_t));
+    buffer_read(buffer, &instruccion->cant_parametros, sizeof(uint32_t));
+    buffer_read(buffer, &instruccion->param1_length, sizeof(uint32_t));
+    buffer_read(buffer, &instruccion->param2_length, sizeof(uint32_t));
+    buffer_read(buffer, &instruccion->param3_length, sizeof(uint32_t));
+    buffer_read(buffer, &instruccion->param4_length, sizeof(uint32_t));
+    buffer_read(buffer, &instruccion->param5_length, sizeof(uint32_t));
 
-	for (uint32_t i = 0; i < instruccion->cant_parametros; i++)
-	{
-		// Reservar memoria para el parámetro y leerlo del buffer
-		uint32_t longitud_parametro = 0;
-		switch (i)
-		{
-		case 0:
-			longitud_parametro = instruccion->param1_length;
-			buffer_read(buffer, str1, longitud_parametro);
-			break;
-		case 1:
-			longitud_parametro = instruccion->param2_length;
-			buffer_read(buffer, str2, longitud_parametro);
-			break;
-		case 2:
-			longitud_parametro = instruccion->param3_length;
-			buffer_read(buffer, str3, longitud_parametro);
-			break;
-		case 3:
-			longitud_parametro = instruccion->param4_length;
-			buffer_read(buffer, str4, longitud_parametro);
-			break;
-		case 4:
-			longitud_parametro = instruccion->param5_length;
-			buffer_read(buffer, str5, longitud_parametro);
-			break;
-		default:
-			break;
-		}
-		//char* str = malloc(longitud_parametro);
-		//buffer_read(buffer, str, longitud_parametro);
-		//strcpy(instruccion->parametros[i],str);
-		//free(str);
-	}
-	for(uint32_t j = 0; j < instruccion->cant_parametros; j++){
-		switch (j)
-		{
-		case 0:
-			instruccion->parametros[j] = malloc(instruccion->param1_length);
-			strcpy(instruccion->parametros[j],str1);
-			free(str1);
-			break;
-		case 1:
-			instruccion->parametros[j] = malloc(instruccion->param2_length);
-			strcpy(instruccion->parametros[j],str2);
-			free(str2);
-			break;
-		case 2:
-			instruccion->parametros[j] = malloc(instruccion->param3_length);
-			strcpy(instruccion->parametros[j],str3);
-			free(str3);
-			break;
-		case 3:
-			instruccion->parametros[j] = malloc(instruccion->param4_length);
-			strcpy(instruccion->parametros[j],str4);
-			free(str4);
-			break;
-		case 4:
-			instruccion->parametros[j] = malloc(instruccion->param5_length);
-			strcpy(instruccion->parametros[j],str5);
-			free(str5);
-			break;
-		default:
-			break;
-		}
-	}
+    uint32_t tamanio = instruccion->param1_length + instruccion->param2_length + instruccion->param3_length + instruccion->param4_length + instruccion->param5_length;
+    instruccion->parametros = malloc(instruccion->cant_parametros * sizeof(char*));
 
-	return instruccion;
+    char *param_storage = malloc(tamanio);
+    uint32_t param_offsets[5] = {0, instruccion->param1_length, instruccion->param1_length + instruccion->param2_length, 
+                                instruccion->param1_length + instruccion->param2_length + instruccion->param3_length, 
+                                instruccion->param1_length + instruccion->param2_length + instruccion->param3_length + instruccion->param4_length};
+
+    for (uint32_t i = 0; i < instruccion->cant_parametros; i++) {
+        uint32_t longitud_parametro = 0;
+        switch (i) {
+            case 0: longitud_parametro = instruccion->param1_length; break;
+            case 1: longitud_parametro = instruccion->param2_length; break;
+            case 2: longitud_parametro = instruccion->param3_length; break;
+            case 3: longitud_parametro = instruccion->param4_length; break;
+            case 4: longitud_parametro = instruccion->param5_length; break;
+            default: break;
+        }
+
+        instruccion->parametros[i] = param_storage + param_offsets[i];
+        buffer_read(buffer, instruccion->parametros[i], longitud_parametro);
+    }
+
+    return instruccion;
 }
 
 t_buffer *serializar_lista_instrucciones(t_list *lista_instrucciones)
