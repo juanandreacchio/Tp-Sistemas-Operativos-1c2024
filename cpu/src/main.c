@@ -530,7 +530,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             free(instruccion);
 
         instruccion = siguiente_instruccion(pcb, socket_Memoria);
-        log_info(logger_cpu, "el length de parametro1: %d", instruccion->param1_length);
+        //log_info(logger_cpu, "el length de parametro1: %d", instruccion->param1_length);
         if (instruccion == NULL)
         {
             // Manejar error: siguiente_instruccion no debería devolver NULL
@@ -734,101 +734,97 @@ u_int32_t get_registro_generico(char *registro)
     return -1;
 }
 
-void sum_registro(char *registroDestino, char *registroOrigen)
-{
+void sum_registro(char *registroDestino, char *registroOrigen) {
+    struct {
+        char *nombre;
+        void *direccion;
+        size_t size;
+    } mapa[] = {
+        {"AX", &(registros_cpu.AX), sizeof(uint8_t)},
+        {"BX", &(registros_cpu.BX), sizeof(uint8_t)},
+        {"CX", &(registros_cpu.CX), sizeof(uint8_t)},
+        {"DX", &(registros_cpu.DX), sizeof(uint8_t)},
+        {"EAX", &(registros_cpu.EAX), sizeof(uint32_t)},
+        {"EBX", &(registros_cpu.EBX), sizeof(uint32_t)},
+        {"ECX", &(registros_cpu.ECX), sizeof(uint32_t)},
+        {"EDX", &(registros_cpu.EDX), sizeof(uint32_t)},
+        {"SI", &(registros_cpu.SI), sizeof(uint32_t)},
+        {"DI", &(registros_cpu.DI), sizeof(uint32_t)},
+        {"PC", &(registros_cpu.PC), sizeof(uint32_t)}
+    };
 
-    if (strcasecmp(registroDestino, "AX") == 0)
-    {
-        registros_cpu.AX += get_registro_int8(registroOrigen);
+    void *dest_addr = NULL;
+    size_t dest_size = 0;
+    for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++) {
+        if (strcasecmp(registroDestino, mapa[i].nombre) == 0) {
+            dest_addr = mapa[i].direccion;
+            dest_size = mapa[i].size;
+            break;
+        }
     }
-    else if (strcasecmp(registroDestino, "BX") == 0)
-    {
-        registros_cpu.BX += get_registro_int8(registroOrigen);
+
+    if (!dest_addr) {
+        printf("Error: no se encontró el registro destino\n");
+        return;
     }
-    else if (strcasecmp(registroDestino, "CX") == 0)
-    {
-        registros_cpu.CX += get_registro_int8(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "DX") == 0)
-    {
-        registros_cpu.DX += get_registro_int8(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "EAX") == 0)
-    {
-        registros_cpu.EAX += get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "EBX") == 0)
-    {
-        registros_cpu.EBX += get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "ECX") == 0)
-    {
-        registros_cpu.ECX += get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "EDX") == 0)
-    {
-        registros_cpu.EDX += get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "PC") == 0)
-    {
-        registros_cpu.PC += get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "SI") == 0)
-    {
-        registros_cpu.SI += get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "DI") == 0)
-    {
-        registros_cpu.DI += get_registro_int32(registroOrigen);
+
+    if (dest_size == sizeof(uint8_t)) {
+        *(uint8_t *)dest_addr += (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
+                                  strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
+                                  ? get_registro_int8(registroOrigen) 
+                                  : (uint8_t)get_registro_int32(registroOrigen);
+    } else if (dest_size == sizeof(uint32_t)) {
+        *(uint32_t *)dest_addr += (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
+                                   strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
+                                   ? (uint32_t)get_registro_int8(registroOrigen) 
+                                   : get_registro_int32(registroOrigen);
     }
 }
 
-void sub_registro(char *registroOrigen, char *registroDestino)
-{
+void sub_registro(char *registroDestino, char *registroOrigen) {
+    struct {
+        char *nombre;
+        void *direccion;
+        size_t size;
+    } mapa[] = {
+        {"AX", &(registros_cpu.AX), sizeof(uint8_t)},
+        {"BX", &(registros_cpu.BX), sizeof(uint8_t)},
+        {"CX", &(registros_cpu.CX), sizeof(uint8_t)},
+        {"DX", &(registros_cpu.DX), sizeof(uint8_t)},
+        {"EAX", &(registros_cpu.EAX), sizeof(uint32_t)},
+        {"EBX", &(registros_cpu.EBX), sizeof(uint32_t)},
+        {"ECX", &(registros_cpu.ECX), sizeof(uint32_t)},
+        {"EDX", &(registros_cpu.EDX), sizeof(uint32_t)},
+        {"SI", &(registros_cpu.SI), sizeof(uint32_t)},
+        {"DI", &(registros_cpu.DI), sizeof(uint32_t)},
+        {"PC", &(registros_cpu.PC), sizeof(uint32_t)}
+    };
 
-    if (strcasecmp(registroDestino, "AX") == 0)
-    {
-        registros_cpu.AX -= get_registro_int8(registroOrigen);
+    void *dest_addr = NULL;
+    size_t dest_size = 0;
+    for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++) {
+        if (strcasecmp(registroDestino, mapa[i].nombre) == 0) {
+            dest_addr = mapa[i].direccion;
+            dest_size = mapa[i].size;
+            break;
+        }
     }
-    else if (strcasecmp(registroDestino, "BX") == 0)
-    {
-        registros_cpu.BX -= get_registro_int8(registroOrigen);
+
+    if (!dest_addr) {
+        printf("Error: no se encontró el registro destino\n");
+        return;
     }
-    else if (strcasecmp(registroDestino, "CX") == 0)
-    {
-        registros_cpu.CX -= get_registro_int8(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "DX") == 0)
-    {
-        registros_cpu.DX -= get_registro_int8(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "EAX") == 0)
-    {
-        registros_cpu.EAX -= get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "EBX") == 0)
-    {
-        registros_cpu.EBX -= get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "ECX") == 0)
-    {
-        registros_cpu.ECX -= get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "EDX") == 0)
-    {
-        registros_cpu.EDX -= get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "PC") == 0)
-    {
-        registros_cpu.PC -= get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "SI") == 0)
-    {
-        registros_cpu.SI += get_registro_int32(registroOrigen);
-    }
-    else if (strcasecmp(registroDestino, "DI") == 0)
-    {
-        registros_cpu.DI += get_registro_int32(registroOrigen);
+
+    if (dest_size == sizeof(uint8_t)) {
+        *(uint8_t *)dest_addr -= (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
+                                  strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
+                                  ? get_registro_int8(registroOrigen) 
+                                  : (uint8_t)get_registro_int32(registroOrigen);
+    } else if (dest_size == sizeof(uint32_t)) {
+        *(uint32_t *)dest_addr -= (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
+                                   strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
+                                   ? (uint32_t)get_registro_int8(registroOrigen) 
+                                   : get_registro_int32(registroOrigen);
     }
 }
 void JNZ_registro(char *registro, u_int32_t valor)
@@ -924,10 +920,12 @@ void mov_in(u_int32_t pid, char *registro_datos, char *registro_direccion)
             void *buffer = malloc(size_of_element);
             buffer_read(paquete_recibido->buffer, buffer, size_of_element);
             memcpy(mapa[i].direccion, buffer, size_of_element);
-            u_int32_t valor;
-            memcpy(&valor, buffer, sizeof(uint32_t));
             t_direc_fisica *primer_direc_fisica = list_get(direcciones_fisicas, 0);
-            log_info(logger_cpu, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", pid, primer_direc_fisica->direccion_fisica, valor);
+            if (size_of_element == sizeof(uint8_t)) {
+                log_info(logger_cpu, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", pid, primer_direc_fisica->direccion_fisica, *(uint8_t *)buffer);
+            } else {
+                log_info(logger_cpu, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", pid, primer_direc_fisica->direccion_fisica, *(uint32_t *)buffer);
+            }
             free(buffer);
             eliminar_paquete(paquete_recibido);
 

@@ -274,7 +274,11 @@ void ejecutar_comando(char *comando)
     // detener_planificacion();
     else if (strcmp(consola[0], "INICIAR_PLANIFICACION") == 0)
     {
+        if(planificacion_detenida)
+        {
         iniciar_planificacion();
+        }
+        
     }
     else
     {
