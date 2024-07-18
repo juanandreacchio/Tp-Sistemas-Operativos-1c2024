@@ -98,13 +98,13 @@ void *verificar_quantum()
                 enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
-                break;
+                //break; lo sa que fdepsues vemos si iba o no
             }
 
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             if (flag_cpu_libre == 1)
             {
-                switch (motivo_ultimo_desalojo)
+                switch (motivo_ultimo_desalojo)//ESTO ESTA MEDIO RARO
                 {
                 case OPERACION_IO:
                     log_info(logger_kernel, "DESALOJÉ POR IO");
@@ -117,6 +117,9 @@ void *verificar_quantum()
                     break;
                 case END_PROCESS:
                     log_info(logger_kernel, "DESALOJÉ POR END");
+                    break;
+                case FIN_CLOCK:
+                    log_info(logger_kernel, "DESALOJÉ POR FIN_CLOCK");
                     break;
                 default:
                     log_info(logger_kernel, "MOTIVO DESCONOCIDO DE DESALOJO");

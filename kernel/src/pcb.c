@@ -3,8 +3,8 @@
 void ejecutar_PCB(t_pcb *pcb)
 {
     setear_pcb_en_ejecucion(pcb);
-    enviar_pcb(pcb, conexion_dispatch);
     log_info(logger_kernel, "Se envio el PCB con PID %d a CPU Dispatch", pcb->pid);
+    enviar_pcb(pcb, conexion_dispatch);
 }
 
 void setear_pcb_en_ejecucion(t_pcb *pcb)

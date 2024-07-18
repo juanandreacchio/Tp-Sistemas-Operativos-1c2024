@@ -132,7 +132,7 @@ void accion_interrupt(t_pcb *pcb, op_code motivo, int socket)
     }
 
     interruption_flag = 0;
-    log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion nevio PCB y motivo de desalojo a Kernel");
+    log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion motivo: %s",op_code_to_string(motivo));
     enviar_motivo_desalojo(motivo, socket);
     enviar_pcb(pcb, socket);
 }

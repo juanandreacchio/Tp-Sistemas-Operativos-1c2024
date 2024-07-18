@@ -609,22 +609,27 @@ t_instruccion *instruccion_deserializar(t_buffer *buffer, u_int32_t offset)
 		case 0:
 			instruccion->parametros[j] = malloc(instruccion->param1_length);
 			strcpy(instruccion->parametros[j],str1);
+			free(str1);
 			break;
 		case 1:
 			instruccion->parametros[j] = malloc(instruccion->param2_length);
 			strcpy(instruccion->parametros[j],str2);
+			free(str2);
 			break;
 		case 2:
 			instruccion->parametros[j] = malloc(instruccion->param3_length);
 			strcpy(instruccion->parametros[j],str3);
+			free(str3);
 			break;
 		case 3:
 			instruccion->parametros[j] = malloc(instruccion->param4_length);
 			strcpy(instruccion->parametros[j],str4);
+			free(str4);
 			break;
 		case 4:
 			instruccion->parametros[j] = malloc(instruccion->param5_length);
 			strcpy(instruccion->parametros[j],str5);
+			free(str5);
 			break;
 		default:
 			break;

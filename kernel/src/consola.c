@@ -53,7 +53,7 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
-        char base_path[] = "/home/ubuntu";
+        char base_path[] = "/home/utnso";
         // Calcula el tamaño necesario para la cadena final
         size_t path_size = strlen(base_path) + strlen(consola[1]) + 1; // +1 para el carácter nulo
         char *full_path = (char *)malloc(path_size);
@@ -168,7 +168,7 @@ void ejecutar_comando(char *comando)
                 t_pcb *pcb = queue_pop(cola_procesos_ready);
                 if (pcb->pid != pid)
                 {
-                    queue_push(cola_procesos_ready, pcb);
+                    queue_push(cola_procesos_ready, pcb);//ESTO ESTA MAL HAY QUE CAMBIARLO
                 }
                 else
                 {
@@ -184,7 +184,7 @@ void ejecutar_comando(char *comando)
                 for (size_t i = 0; i < queue_size(cola_ready_plus); i++)
                 {
 
-                    t_pcb *pcb = queue_pop(cola_ready_plus);
+                    t_pcb *pcb = queue_pop(cola_ready_plus);//LO MISMO CON VOS ESTE 
                     if (pcb->pid != pid)
                     {
                         queue_push(cola_ready_plus, pcb);
@@ -238,6 +238,9 @@ void ejecutar_comando(char *comando)
         if (pcb->estado_actual == EXEC)
         {
             sem_post(&cpu_libre);
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            flag_cpu_libre = 1;
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
         
 
