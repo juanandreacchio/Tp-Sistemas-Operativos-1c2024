@@ -22,7 +22,7 @@ void crear_archivo_metadata(const char* filename, int initial_block, uint32_t ta
     // Asegurar el terminador nulo al final
     metadata_path[metadata_path_tamanio - 1] = '\0';
 
-    log_debug(logger_entradasalida, "Ruta de metadata: %s", metadata_path);
+    // log_debug(logger_entradasalida, "Ruta de metadata: %s", metadata_path);
 
     FILE* file = fopen(metadata_path, "w");
     if (file == NULL) {

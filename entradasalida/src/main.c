@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
     log_info(logger_entradasalida, "I/O %s terminada", interfaz_creada->nombre);
     config_destroy(config_entradasalida);
     log_destroy(logger_entradasalida);
-
+    free(interfaz_creada);
     return 0;
 }
 
@@ -101,7 +101,7 @@ void iniciar_config(char *ruta)
         exit(3);
     }
 
-    free(tipo_interfaz_str);
+    // free(tipo_interfaz_str);
 }
 
 t_interfaz *iniciar_interfaz(char *nombre, char *ruta)
@@ -136,9 +136,9 @@ void *atender_cliente(int socket_cliente)
         u_int32_t unidad_de_trabajo;
         buffer_read(paquete->buffer,&unidad_de_trabajo,sizeof(u_int32_t));
 
-        log_info(logger_entradasalida,"arranco a dormir x tiempo");
+        //log_info(logger_entradasalida,"arranco a dormir x tiempo");
         usleep(unidad_de_trabajo * tiempo_unidad_trabajo * 1000); // *1000 para pasarlo a microsegundos
-        log_info(logger_entradasalida,"termine de dormirme x tiempo");
+        //log_info(logger_entradasalida,"termine de dormirme x tiempo");
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
         break;
         }
@@ -175,8 +175,11 @@ void *atender_cliente(int socket_cliente)
         else
         {
             log_error(logger_entradasalida,"error: no OK la escritura");
+            exit(EXIT_FAILURE);
         } 
-        free(dato);    
+        free(dato);
+        list_destroy_and_destroy_elements(direcciones_fisicas, free);
+        eliminar_paquete(paquete_escritura);
         break;
         }
     case STDOUT:{
@@ -202,16 +205,19 @@ void *atender_cliente(int socket_cliente)
         char *str = malloc(total_tamanio+1);
         buffer_read(paquete_dato->buffer,str, total_tamanio);
         str[total_tamanio] = '\0';
-        eliminar_paquete(paquete_dato);
 
         log_info(logger_entradasalida,"leido: %s",str);
         enviar_codigo_operacion(IO_SUCCESS, socket_cliente); 
+
+        eliminar_paquete(paquete_dato);
+        eliminar_paquete(paquete_lectura);
         free(str);
+        list_destroy_and_destroy_elements(direcciones_fisicas, free);
         break;
         }
     case DIALFS:
         usleep(tiempo_unidad_trabajo * 1000);
-        log_info(logger_entradasalida,"entre al case dialfs");
+        //log_info(logger_entradasalida,"entre al case dialfs");
         t_identificador identificador;
         buffer_read(paquete->buffer,&identificador, sizeof(t_identificador));
         switch (identificador)
@@ -228,10 +234,13 @@ void *atender_cliente(int socket_cliente)
 
             int resultado_operacion = crear_archivo(nombre_archivo, tamanio_nombre_archivo);
             if(resultado_operacion == -1){
-                // devolver error
+                log_error(logger_entradasalida, "error al crear archivo");
+                free(nombre_archivo);
+                exit(EXIT_FAILURE);
             } else {     
                 enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
-            }         
+            }
+            free(nombre_archivo);         
             break;
         }
         case IO_FS_DELETE:
@@ -246,32 +255,36 @@ void *atender_cliente(int socket_cliente)
             borrar_archivo(nombre_archivo);
 
             enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
+            free(nombre_archivo);
             break;
         }
         case IO_FS_TRUNCATE: 
         {
-            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_TRUNCATE", PID);
+            log_info(logger_entradasalida, "PID: %d - Operacion: IO_FS_TRUNCATE", PID); //LOG OBLIGATORIO
             u_int32_t tamanio_nombre_archivo;
             buffer_read(paquete->buffer,&tamanio_nombre_archivo,sizeof(u_int32_t));
             char* nombre_archivo = malloc(tamanio_nombre_archivo);
             u_int32_t tamanio;
             buffer_read(paquete->buffer, nombre_archivo, tamanio_nombre_archivo);
 
-            log_info(logger_entradasalida, "nombre archivo:%s y su long: %d", nombre_archivo, tamanio_nombre_archivo);
+            // log_info(logger_entradasalida, "nombre archivo:%s y su long: %d", nombre_archivo, tamanio_nombre_archivo);
 
             buffer_read(paquete->buffer, &tamanio, sizeof(uint32_t));
 
-            log_info(logger_entradasalida, "tamanio nuevo: %d", tamanio);
+            // log_info(logger_entradasalida, "tamanio nuevo: %d", tamanio);
 
             log_info(logger_entradasalida, "PID: %d - Truncar Archivo: %s - Tamaño: %d",PID, nombre_archivo, tamanio); //LOG OBLIGATORIO
             int resultado_operacion = truncar_archivo(nombre_archivo, tamanio,PID);
             if(resultado_operacion == -1){
                 // devolver error
                 log_error(logger_entradasalida, "error al truncar archivo");
+                free(nombre_archivo);
+                exit(EXIT_FAILURE);
             } else {
-                log_info(logger_entradasalida, "archivo truncado correctamente");
+                //log_info(logger_entradasalida, "archivo truncado correctamente");
                 enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
-            }  
+            } 
+            free(nombre_archivo); 
             break;
         }
         case IO_FS_WRITE:
@@ -304,13 +317,19 @@ void *atender_cliente(int socket_cliente)
             t_paquete *paquete_dato = recibir_paquete(socket_conexion_memoria);
             void *lectura = malloc(tamanio);
             buffer_read(paquete_dato->buffer, lectura, tamanio);
-            eliminar_paquete(paquete_dato);
+            
             
             // escribir archivo
             escribir_archivo(nombre_archivo, lectura, tamanio, puntero);
-            log_info(logger_entradasalida, "se realizo escritura correctamente");   
-            free(lectura);
+            // log_info(logger_entradasalida, "se realizo escritura correctamente");   
+
             enviar_codigo_operacion(IO_SUCCESS, socket_cliente);
+            
+            eliminar_paquete(paquete_lectura);
+            eliminar_paquete(paquete_dato);
+            free(lectura);
+            free(nombre_archivo); 
+            list_destroy_and_destroy_elements(direcciones_fisicas, free);     
             break;
         }
         case IO_FS_READ:
@@ -340,6 +359,9 @@ void *atender_cliente(int socket_cliente)
             
             // leer archivo
             void* lectura = leer_archivo(nombre_archivo, tamanio, puntero);
+            if(lectura == NULL){
+                exit(EXIT_FAILURE);
+            }
             
             t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);
             enviar_soli_escritura(paquete_escritura, direcciones_fisicas, tamanio, lectura, socket_conexion_memoria,PID);
@@ -349,8 +371,18 @@ void *atender_cliente(int socket_cliente)
             }
             else {
                 log_error(logger_entradasalida,"error: no OK la escritura");
+
+                eliminar_paquete(paquete_escritura);
+                free(lectura);
+                free(nombre_archivo); 
+                list_destroy_and_destroy_elements(direcciones_fisicas, free); 
+                exit(EXIT_FAILURE);
             }
+
+            eliminar_paquete(paquete_escritura);
             free(lectura);
+            free(nombre_archivo); 
+            list_destroy_and_destroy_elements(direcciones_fisicas, free); 
             break;
         }
         default:

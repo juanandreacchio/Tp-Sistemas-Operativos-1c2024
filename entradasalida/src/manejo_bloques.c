@@ -37,6 +37,7 @@ void create_archivos_bloques() {
 
     if (munmap(mapeo, total_size) == -1) {   //munmap libera la memoria mapeada y el buffer
         log_error(logger_entradasalida,"Error al desmapear la memoria");
+        exit(EXIT_FAILURE);
     }
     
     close(archivo_bloques);
@@ -67,6 +68,7 @@ void borrar_archivo(char* filename) {
     char* metadata_path = buscar_archivo(filename);
     if (metadata_path == NULL) {
         log_error(logger_entradasalida, "Archivo %s no encontrado", filename);
+        exit(EXIT_FAILURE);
         return;
     }
 
@@ -76,6 +78,7 @@ void borrar_archivo(char* filename) {
     if (tamanio_archivo == (uint32_t)-1 || bloque_inicial == (uint32_t)-1) {
         log_error(logger_entradasalida, "Error al obtener información del archivo %s", filename);
         free(metadata_path);
+        exit(EXIT_FAILURE);
         return;
     }
 
@@ -87,9 +90,10 @@ void borrar_archivo(char* filename) {
     // Eliminar el archivo de metadata
     if (unlink(metadata_path) == -1) {
         log_error(logger_entradasalida, "Error al eliminar el archivo de metadata %s", metadata_path);
-    } else {
-        log_info(logger_entradasalida, "Archivo %s eliminado correctamente", filename);
-    }
+        exit(EXIT_FAILURE);
+    } // else {
+    // log_info(logger_entradasalida, "Archivo %s eliminado correctamente", filename);
+    // }
 
     free(metadata_path);
 }
@@ -106,6 +110,7 @@ int truncar_archivo(const char* filename, uint32_t tamanio_nuevo, u_int32_t PID)
     } else {
         agrandar_archivo(filename, metadata_path, tamanio_nuevo, tamanio_actual, PID);
     }
+    free(metadata_path);
     return 0;
 }
 
@@ -114,12 +119,12 @@ void agrandar_archivo(const char* filename , char* metadata_path, uint32_t taman
     
     uint32_t bloques_adicionales = calcular_bloques_adicionales(tamanio_actual, tamanio_nuevo);
 
-    log_info(logger_entradasalida, "bloques adicionales: %d", bloques_adicionales);
+    // log_info(logger_entradasalida, "bloques adicionales: %d", bloques_adicionales);
 
     if (bloques_adicionales > 0){
         int bloques_libres = verificar_bloques_contiguos_libres(bloque_inicial + (tamanio_actual / block_size), bloques_adicionales);
         if (bloques_libres == -1) {
-            log_info(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes");         
+            // log_info(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes");         
             compactar_file_system(filename, PID);
             
             bloque_inicial = obtener_bloque_inicial(metadata_path);
@@ -127,6 +132,7 @@ void agrandar_archivo(const char* filename , char* metadata_path, uint32_t taman
             if (bloques_libres == -1) {
                 log_error(logger_entradasalida, "No se encontraron bloques contiguos libres suficientes después de la compactación");
                 free(metadata_path);
+                exit(EXIT_FAILURE);
                 return;
             }
         }
@@ -137,7 +143,7 @@ void agrandar_archivo(const char* filename , char* metadata_path, uint32_t taman
     }
 
     actualizar_metadata_tamanio(metadata_path, tamanio_nuevo);
-    log_info(logger_entradasalida, "Archivo %s ampliado a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_adicionales);
+    // log_info(logger_entradasalida, "Archivo %s ampliado a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_adicionales);
 }
 
 void acortar_archivo(const char* filename , char* metadata_path, uint32_t tamanio_nuevo, uint32_t tamanio_actual) {
@@ -152,28 +158,28 @@ void acortar_archivo(const char* filename , char* metadata_path, uint32_t tamani
         }
     }
     actualizar_metadata_tamanio(metadata_path, tamanio_nuevo);
-    log_info(logger_entradasalida, "Archivo %s reducido a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_a_liberar);
+    // log_info(logger_entradasalida, "Archivo %s reducido a %u bytes y en %u bloques", filename, tamanio_nuevo ,bloques_a_liberar);
 }
 
 void escribir_archivo(char* filename, void* datos, uint32_t tamanio_datos, int puntero_archivo){
     char* metadata_path = buscar_archivo(filename);
     if (!metadata_path) {
         printf("Archivo no encontrado\n");
-        return;
+        exit(EXIT_FAILURE);
     }
 
     uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
     if (puntero_archivo + tamanio_datos > tamanio_archivo) {
         printf("El tamaño de datos excede el tamaño del archivo\n");
         free(metadata_path);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     int archivo_fd = open(path_archivo_bloques, O_RDWR);
     if (archivo_fd == -1) {
         printf("Error al abrir el archivo de bloques\n");
         free(metadata_path);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     void* mmap_bloques = mmap(NULL, block_size * block_count, PROT_READ | PROT_WRITE, MAP_SHARED, archivo_fd, 0);
@@ -181,7 +187,7 @@ void escribir_archivo(char* filename, void* datos, uint32_t tamanio_datos, int p
         printf("Error al mapear el archivo de bloques en memoria\n");
         close(archivo_fd);
         free(metadata_path);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     uint32_t bloque_inicial = obtener_bloque_inicial(metadata_path);
@@ -208,10 +214,12 @@ void escribir_archivo(char* filename, void* datos, uint32_t tamanio_datos, int p
     // Sincronizar los cambios
     if (msync(mmap_bloques, block_size * block_count, MS_SYNC) == -1) {
         printf("Error al sincronizar el archivo de bloques\n");
+        exit(EXIT_FAILURE);
     }
 
     if (munmap(mmap_bloques, block_size * block_count) == -1) {
         printf("Error al desmapear la memoria\n");
+        exit(EXIT_FAILURE);
     }
 
     close(archivo_fd);
@@ -269,6 +277,7 @@ void* leer_archivo(char* filename, uint32_t tamanio_datos, int puntero_archivo) 
 
     if (munmap(mmap_bloques, block_size * block_count) == -1) {
         printf("Error al desmapear la memoria\n");
+        return NULL;
     }
 
     close(archivo_fd);
@@ -284,7 +293,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
 
     if (archivos == NULL) {
         log_error(logger_entradasalida, "No se encontraron archivos para compactar");
-        return;
+        exit(EXIT_FAILURE);
     }
 
     archivo_info archivo_mover_info;
@@ -308,7 +317,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
     if (encontrado == 0) {
         log_error(logger_entradasalida, "No se encontró el archivo a mover: %s", archivo_a_mover);
         free(archivos);
-        return;
+        exit(EXIT_FAILURE);
     } 
 
     // Crear un buffer para almacenar temporalmente los bloques del archivo a mover
@@ -316,7 +325,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
     if (buffer == NULL) {
         log_error(logger_entradasalida, "Error al asignar memoria para el buffer");
         free(archivos);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     int archivo_fd = open(path_archivo_bloques, O_RDWR);
@@ -324,7 +333,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
         log_error(logger_entradasalida, "Error al abrir el archivo de bloques");
         free(buffer);
         free(archivos);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     void* mmap_bloques = mmap(NULL, block_size * block_count, PROT_READ | PROT_WRITE, MAP_SHARED, archivo_fd, 0);
@@ -333,7 +342,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
         close(archivo_fd);
         free(buffer);
         free(archivos);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     // Copiar los bloques del archivo a mover al buffer
@@ -343,11 +352,19 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
         memcpy(destino, origen, block_size);
 
         // Marcar el bloque antiguo como libre
-        bitarray_clean_bit(bitmap, archivo_mover_info.bloque_inicial + j);
+        liberar_bloque(archivo_mover_info.bloque_inicial + j);
     }
 
-    // Mover todos los archivos excepto el archivo a mover al inicio del espacio libre contiguo
-    uint32_t bloque_libre = 0; // Inicialmente, el primer bloque libre  
+    // Liberar todos los bloques ocupados por otros archivos
+    for (int i = 0; i < cantidad_archivos; i++) {
+        archivo_info* info = &archivos[i];
+        for (uint32_t j = 0; j < info->cantidad_bloques; j++) {
+            liberar_bloque(info->bloque_inicial + j);
+        }
+    }
+
+    // Asignar bloques de manera contigua y mover los archivos
+    uint32_t bloque_libre = 0; // Inicialmente, el primer bloque libre
     for (int i = 0; i < cantidad_archivos; i++) {
         archivo_info* info = &archivos[i];
 
@@ -365,9 +382,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
                 bloque_libre++;
                 continue;
             }
-
-            // Mover el bloque y actualizar el bitmap
-            mover_bloque(mmap_bloques,bloque_actual, bloque_libre);
+            asignar_bloque(bloque_libre);
             bloque_libre++;
         }
 
@@ -393,7 +408,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
         log_error(logger_entradasalida, "No se pudo encontrar la metadata para el archivo: %s", archivo_mover_info.nombre_archivo);
         free(buffer);
         free(archivos);
-        return;
+        exit(EXIT_FAILURE);
     }
     actualizar_metadata_bloque_inicial(metadata_path, nuevo_bloque_inicial);
     
@@ -401,10 +416,12 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
 
     if (msync(mmap_bloques, block_size * block_count, MS_SYNC) == -1) {
         log_error(logger_entradasalida, "Error al sincronizar el archivo de bloques");
+        exit(EXIT_FAILURE);
     }
 
     if (munmap(mmap_bloques, block_size * block_count) == -1) {
         log_error(logger_entradasalida, "Error al desmapear la memoria");
+        exit(EXIT_FAILURE);
     }
     
     close(archivo_fd);
@@ -414,7 +431,7 @@ void compactar_file_system(const char* archivo_a_mover, uint32_t PID) {
     usleep(retraso_compactacion * 1000); // Convertir milisegundos a microsegundos
 
     free(archivos);
-    loguear_bloques_archivos();
+    // loguear_bloques_archivos();
     log_info(logger_entradasalida, "PID: %d - Fin Compactacion", PID); //LOG OBLIGATORIO
 }
 

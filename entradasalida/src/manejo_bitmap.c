@@ -42,6 +42,7 @@ void crear_bitmap(){
 
     if (msync(mapeo_bitmap, tam_bitmap, MS_SYNC) == -1) {
         log_error(logger_entradasalida, "Error al sincronizar el bitmap con el archivo");
+        exit(EXIT_FAILURE);
     }
     
     close(bitmap_fd);

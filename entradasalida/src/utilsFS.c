@@ -23,16 +23,16 @@ int verificar_bloques_contiguos_libres(uint32_t bloque_inicial, uint32_t cantida
 
     // Verificar si hay suficientes bloques desde el bloque_inicial hasta el final del bitmap
     if (bloque_inicial + cantidad_bloques > tamanio_bitmap) {
-        log_info(logger_entradasalida, "tamanio pedido fuera de rango");
-        return -1;
+        log_error(logger_entradasalida, "tamanio pedido fuera de rango");
+        exit(EXIT_FAILURE);
     }
 
     for (uint32_t i = 1; i <= cantidad_bloques; i++) {
         if (bitarray_test_bit(bitmap, bloque_inicial + i)) {
-            log_info(logger_entradasalida, "bloque: %d ocupado", bloque_inicial + i);
+            // log_info(logger_entradasalida, "bloque: %d ocupado", bloque_inicial + i);
             return -1; // Si encuentra un bloque ocupado, retorna -1
         }
-        log_info(logger_entradasalida, "bloque: %d libre", bloque_inicial + i);
+        // log_info(logger_entradasalida, "bloque: %d libre", bloque_inicial + i);
     }
 
     // Si todos los bloques están libres, retorna el índice del bloque inicial
@@ -42,7 +42,7 @@ int verificar_bloques_contiguos_libres(uint32_t bloque_inicial, uint32_t cantida
 void asignar_bloque(uint32_t bloque_libre) {
     if (bloque_libre >= bitarray_get_max_bit(bitmap)) {
         log_error(logger_entradasalida, "Bloque %d fuera de rango", bloque_libre);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     if (bitarray_test_bit(bitmap, bloque_libre)) {
@@ -57,6 +57,7 @@ void asignar_bloque(uint32_t bloque_libre) {
 
     if (msync(bitmap->bitarray, bitmap->size, MS_SYNC) == -1) {
         log_error(logger_entradasalida, "Error al sincronizar el archivo de bitmap");
+        exit(EXIT_FAILURE);
     }
 
     // log_info(logger_entradasalida, "Bloque %d asignado al archivo ", bloque_libre);//TODO: aca al final ponian el nombre del archivo pero no estaba y como no c que va se los dejo asi.
@@ -65,7 +66,7 @@ void asignar_bloque(uint32_t bloque_libre) {
 void liberar_bloque(uint32_t bloque) {
     if (bloque >= bitarray_get_max_bit(bitmap)) {
         log_error(logger_entradasalida, "Bloque %d fuera de rango", bloque);
-        return;
+        exit(EXIT_FAILURE);
     }
 
     bitarray_clean_bit(bitmap, bloque);
@@ -74,6 +75,7 @@ void liberar_bloque(uint32_t bloque) {
 
     if (msync(bitmap->bitarray, bitmap->size, MS_SYNC) == -1) {
         log_error(logger_entradasalida, "Error al sincronizar el archivo de bitmap");
+        exit(EXIT_FAILURE);
     }
 
     // log_info(logger_entradasalida, "Bloque %d liberado", bloque);
@@ -162,7 +164,7 @@ void actualizar_metadata_tamanio(char* metadata_path, uint32_t tamanio_nuevo) {
     
     if (config == NULL) {
         log_error(logger_entradasalida, "Error al abrir el archivo de metadata para actualizar");
-        return;
+        exit(EXIT_FAILURE);
     }
 
     char buffer[10];
@@ -171,6 +173,7 @@ void actualizar_metadata_tamanio(char* metadata_path, uint32_t tamanio_nuevo) {
 
     if (!config_save(config)) {
         log_error(logger_entradasalida, "Error al guardar el archivo de metadata después de actualizar");
+        exit(EXIT_FAILURE);
     }
 
     config_destroy(config);
@@ -181,7 +184,7 @@ void actualizar_metadata_bloque_inicial( char* metadata_path, uint32_t bloque_in
     
     if (config == NULL) {
         log_error(logger_entradasalida, "Error al abrir el archivo de metadata para actualizar");
-        return;
+        exit(EXIT_FAILURE);
     }
 
     char buffer[10];
@@ -190,6 +193,7 @@ void actualizar_metadata_bloque_inicial( char* metadata_path, uint32_t bloque_in
 
     if (!config_save(config)) {
         log_error(logger_entradasalida, "Error al guardar el archivo de metadata después de actualizar");
+        exit(EXIT_FAILURE);
     }
     
     config_destroy(config);
