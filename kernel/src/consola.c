@@ -202,6 +202,7 @@ void ejecutar_comando(char *comando)
         case EXEC:
             enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_interrupt);
             sem_wait(&podes_eliminar_loko);
+            
             break;
         case BLOCKED:
             for (size_t i = 0; i < list_size(lista_procesos_blocked); i++)
@@ -253,9 +254,7 @@ void ejecutar_comando(char *comando)
 
         destruir_pcb(pcb);
 
-        log_info(logger_kernel, "------------------------------");
-        log_info(logger_kernel, "Se finaliza el proceso %d", pid);
-        log_info(logger_kernel, "------------------------------");
+        log_info(logger_kernel, "Finaliza el proceso %d - Motivo: %s", pid, op_code_to_string(INTERRUPTED_BY_USER));
 
         return;
     }

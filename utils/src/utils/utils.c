@@ -1087,6 +1087,7 @@ const char* op_code_to_string(op_code code) {
         case INVALID_INTERFACE: return "INVALID_INTERFACE";
         case RESOURCE_FAIL: return "RESOURCE_FAIL";
         case RESOURCE_OK: return "RESOURCE_OK";
+		case INTERRUPTED_BY_USER: return "INTERRUPTED_BY_USER";
         default: return "UNKNOWN_OPCODE";
     }
 }

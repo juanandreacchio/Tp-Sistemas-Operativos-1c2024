@@ -177,6 +177,9 @@ void *recibir_dispatch()
             break;
         case KILL_PROCESS:
             sem_post(&podes_eliminar_loko);
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            flag_cpu_libre = 1;
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
         case OUT_OF_MEMORY:
             finalizar_pcb(pcb_actualizado, OUT_OF_MEMORY);

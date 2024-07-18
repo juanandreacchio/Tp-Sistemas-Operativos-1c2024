@@ -86,55 +86,26 @@ void *verificar_quantum()
 
         tiempo_transcurrido = temporal_create();
 
-        while (1)
+        while (tiempo_transcurrido != NULL)
         {
-            usleep(1000);
-
-            if (temporal_gettime(tiempo_transcurrido) >= quantum)
-            {
-                log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum", pcb_en_ejecucion->pid);
-
-                pthread_mutex_lock(&mutex_flag_cpu_libre);
-                enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                flag_cpu_libre = 1;
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
-                //break; lo sa que fdepsues vemos si iba o no
-            }
-
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             if (flag_cpu_libre == 1)
             {
-                switch (motivo_ultimo_desalojo)//ESTO ESTA MEDIO RARO
-                {
-                case OPERACION_IO:
-                    log_info(logger_kernel, "DESALOJÉ POR IO");
-                    break;
-                case WAIT_SOLICITADO:
-                    log_info(logger_kernel, "DESALOJÉ POR WAIT");
-                    break;
-                case KILL_PROCESS:
-                    log_info(logger_kernel, "DESALOJÉ POR KILL");
-                    break;
-                case END_PROCESS:
-                    log_info(logger_kernel, "DESALOJÉ POR END");
-                    break;
-                case FIN_CLOCK:
-                    log_info(logger_kernel, "DESALOJÉ POR FIN_CLOCK");
-                    break;
-                default:
-                    log_info(logger_kernel, "MOTIVO DESCONOCIDO DE DESALOJO");
-                    break;
-                }
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
-                break;
+                flag_cpu_libre = 0;
+                temporal_destroy(tiempo_transcurrido);
+                tiempo_transcurrido = NULL;
+            }
+            else if (temporal_gettime(tiempo_transcurrido) >= quantum)
+            {
+                pcb_en_ejecucion->quantum = 0;
+                enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
+                log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum", pcb_en_ejecucion->pid);
+                temporal_destroy(tiempo_transcurrido);
+                tiempo_transcurrido = NULL;
             }
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
-
-        temporal_destroy(tiempo_transcurrido);
     }
-
-    return NULL;
 }
 
 void *verificar_quantum_vrr()
