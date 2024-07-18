@@ -31,11 +31,16 @@ void *recibir_dispatch()
             char *nombre_io = malloc(nombre_length + 1);
             buffer_read(respuesta_kernel->buffer, nombre_io, nombre_length);
 
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            flag_cpu_libre = 1;
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
+
             if (!interfaz_conectada(nombre_io))
             {
                 log_error(logger_kernel, "La interfaz %s no está conectada", nombre_io);
                 finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
                 sem_post(&cpu_libre);
+                break;
             }
             t_interfaz_en_kernel *interfaz = dictionary_get(conexiones_io, nombre_io);
             if (!esOperacionValida(identificador, interfaz->tipo_interfaz))
@@ -43,12 +48,8 @@ void *recibir_dispatch()
                 log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", identificador, nombre_io);
                 finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
                 sem_post(&cpu_libre);
+                break;
             }
-
-            // esto va?
-            pthread_mutex_lock(&mutex_proceso_en_ejecucion);
-            pcb_en_ejecucion = NULL;
-            pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
 
             pcb_actualizado->estado_actual = BLOCKED;
             logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
@@ -76,16 +77,11 @@ void *recibir_dispatch()
             t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_io);
             sem_post(&semaforos_interfaz->instruccion_en_cola);
 
-            pthread_mutex_lock(&mutex_flag_cpu_libre);
-            flag_cpu_libre = 1;
-            pthread_mutex_unlock(&mutex_flag_cpu_libre);
-
             sem_post(&cpu_libre);
-
             break;
         case FIN_CLOCK:
-            log_info(logger_kernel, "entre al fin de clock por dispatcher");
-            pcb_actualizado->quantum = 0;
+
+            log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum", pcb_actualizado->pid);
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             listar_procesos_en_ready();
             actualizar_pcb_en_procesos_del_sistema(pcb_actualizado);
@@ -96,9 +92,7 @@ void *recibir_dispatch()
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
-
             sem_post(&cpu_libre);
-
             break;
         case END_PROCESS:
             finalizar_pcb(pcb_actualizado, SUCCESS);

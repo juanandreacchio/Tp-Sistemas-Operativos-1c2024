@@ -38,7 +38,7 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
 
     t_interfaz_en_kernel *interfaz = malloc(sizeof(t_interfaz_en_kernel));
     interfaz->conexion = conexion;
-    interfaz->tipo_interfaz = cod_op_to_tipo_interfaz(tipo); 
+    interfaz->tipo_interfaz = cod_op_to_tipo_interfaz(tipo);
 
     pthread_mutex_lock(&mutex_interfaces_conectadas);
     dictionary_put(conexiones_io, nombre, interfaz); // Guardar el socket como entero
@@ -70,10 +70,9 @@ void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
 void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_interfaz_en_kernel *conexion_io)
 {
     t_paquete *paquete = crear_paquete(EJECUTAR_IO);
-    buffer_add(paquete->buffer,&info_io->pid,sizeof(u_int32_t));
-    buffer_add(paquete->buffer,info_io->info_necesaria,info_io->tam_info);
+    buffer_add(paquete->buffer, &info_io->pid, sizeof(u_int32_t));
+    buffer_add(paquete->buffer, info_io->info_necesaria, info_io->tam_info);
     enviar_paquete(paquete, conexion_io->conexion);
-    
 }
 
 void atender_interfaz(char *nombre_interfaz)
@@ -111,21 +110,23 @@ void atender_interfaz(char *nombre_interfaz)
             {
 
                 wait_contador(semaforo_multi);
-                if (pcb->quantum > 0 && strcmp(algoritmo_planificacion,"VRR") == 0)
+                if (pcb->quantum > 0 && strcmp(algoritmo_planificacion, "VRR") == 0)
                 {
                     set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
                     logear_cambio_estado(pcb, BLOCKED, READY);
                     listar_procesos_en_ready_plus();
+                    sem_post(&hay_proceso_a_ready);
                     sem_post(&(semaforos_interfaz->binario_io_libre));
-                    break;
                 }
-                set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
-                logear_cambio_estado(pcb, BLOCKED, READY);
-                listar_procesos_en_ready();
-                sem_post(&hay_proceso_a_ready);
+                else
+                {
+                    set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
+                    logear_cambio_estado(pcb, BLOCKED, READY);
+                    listar_procesos_en_ready();
+                    sem_post(&hay_proceso_a_ready);
+                    sem_post(&(semaforos_interfaz->binario_io_libre));
+                }
             }
-
-            sem_post(&(semaforos_interfaz->binario_io_libre));
 
             break;
         case CERRAR_IO:

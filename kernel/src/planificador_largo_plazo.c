@@ -65,7 +65,7 @@ void eliminacion_de_procesos()
         }
         else
         {
-            log_info(logger_kernel, "Se elimina el proceso %d de la lista de procesos en sistema", pcb_exit->pid);
+            log_info(logger_kernel, "Finaliza el proceso %d - Motivo: %s", pcb_exit->pid, op_code_to_string(proceso_exit->motivo));
             list_remove(procesos_en_sistema, index);
         }
 

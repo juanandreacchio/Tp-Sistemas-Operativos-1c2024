@@ -40,12 +40,11 @@ void iniciar_planificador_corto_plazo()
             t_pcb *pcb_a_ejecutar;
 
             pthread_mutex_lock(&mutex_cola_de_ready_plus);
-            uint32_t procesos_ready_plus = queue_size(cola_ready_plus);
+            uint32_t cantidad_de_procesos_plus = queue_size(cola_ready_plus);
             pthread_mutex_unlock(&mutex_cola_de_ready_plus);
 
-            if (procesos_ready_plus > 0)
+            if (cantidad_de_procesos_plus > 0)
             {
-
                 pthread_mutex_lock(&mutex_cola_de_ready_plus);
                 pcb_a_ejecutar = queue_pop(cola_ready_plus);
                 pthread_mutex_unlock(&mutex_cola_de_ready_plus);
@@ -59,7 +58,7 @@ void iniciar_planificador_corto_plazo()
 
                 pcb_a_ejecutar->quantum = quantum;
             }
-
+            log_info(logger_kernel, "El PID: %d tiene para ejecutar: %d", pcb_a_ejecutar->pid, pcb_a_ejecutar->quantum);
             ejecutar_PCB(pcb_a_ejecutar);
 
             sem_post(&arrancar_quantum);
@@ -99,7 +98,6 @@ void *verificar_quantum()
             {
                 pcb_en_ejecucion->quantum = 0;
                 enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum", pcb_en_ejecucion->pid);
                 temporal_destroy(tiempo_transcurrido);
                 tiempo_transcurrido = NULL;
             }
@@ -122,124 +120,35 @@ void *verificar_quantum_vrr()
 
         tiempo_transcurrido = temporal_create();
 
-        while (1)
+        while (tiempo_transcurrido != NULL)
         {
-            if (planificar_ready_plus == 1)
+            pthread_mutex_lock(&mutex_flag_cpu_libre);
+            if (flag_cpu_libre == 1)
             {
-                pthread_mutex_lock(&mutex_flag_planificar_plus);
-                planificar_ready_plus = 0;
-                pthread_mutex_unlock(&mutex_flag_planificar_plus);
-
-                if (temporal_gettime(tiempo_transcurrido) >= pcb_en_ejecucion->quantum)
+                flag_cpu_libre = 0;
+                if (temporal_gettime(tiempo_transcurrido) >= ultimo_pcb_ejecutado->quantum)
                 {
-
-                    pcb_en_ejecucion->quantum = 0;
-                    log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum en prioridad", pcb_en_ejecucion->pid);
-
-                    enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-
-                    pthread_mutex_lock(&mutex_flag_cpu_libre);
-                    flag_cpu_libre = 1;
-                    pthread_mutex_unlock(&mutex_flag_cpu_libre);
-
-                    break;
+                    ultimo_pcb_ejecutado->quantum = 0;
                 }
-
-                pthread_mutex_lock(&mutex_flag_cpu_libre);
-                if (flag_cpu_libre == 1)
+                else
                 {
-                    temporal_stop(tiempo_transcurrido);
-                    switch (motivo_ultimo_desalojo)
-                    {
-                    case OPERACION_IO:
-                        if ((ultimo_pcb_ejecutado->quantum - temporal_gettime(tiempo_transcurrido)) < 0)
-                        {
-                            ultimo_pcb_ejecutado->quantum = 0;
-                        }
-                        else
-                        {
-                            ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
-                        }
-                        break;
-                    case WAIT_SOLICITADO:
-                        sem_wait(&podes_revisar_lista_bloqueados);
-                        if (buscar_pcb_por_pid(ultimo_pcb_ejecutado->pid, lista_procesos_blocked) != NULL)
-                        {
-                            ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
-                        }
-                        log_info(logger_kernel, "DESALOJÉ POR WAIT");
-                        break;
-                    case END_PROCESS:
-                        log_info(logger_kernel, "DESALOJÉ POR END");
-                        break;
-                    default:
-                        log_info(logger_kernel, "MOTIVO DESCONOCIDO DE DESALOJO");
-                        break;
-                    }
-                    pthread_mutex_unlock(&mutex_flag_cpu_libre);
-                    break;
+                    ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
+                    log_info(logger_kernel, "PID: %d - Quantum restante: %d", ultimo_pcb_ejecutado->pid, ultimo_pcb_ejecutado->quantum);
                 }
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
-
-                pthread_mutex_lock(&mutex_flag_planificar_plus);
-                planificar_ready_plus = 0;
-                pthread_mutex_unlock(&mutex_flag_planificar_plus);
+                temporal_destroy(tiempo_transcurrido);
+                tiempo_transcurrido = NULL;
             }
-            else
+            else if (temporal_gettime(tiempo_transcurrido) >= pcb_en_ejecucion->quantum)
             {
-                if (temporal_gettime(tiempo_transcurrido) >= quantum)
-                {
-                    log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum", pcb_en_ejecucion->pid);
                     pcb_en_ejecucion->quantum = 0;
                     enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                    pthread_mutex_lock(&mutex_flag_cpu_libre);
-                    flag_cpu_libre = 1;
-                    pthread_mutex_unlock(&mutex_flag_cpu_libre);
-                    break;
-                }
-
-                pthread_mutex_lock(&mutex_flag_cpu_libre);
-                if (flag_cpu_libre == 1)
-                {
-                    temporal_stop(tiempo_transcurrido);
-                    switch (motivo_ultimo_desalojo)
-                    {
-                    case OPERACION_IO:
-                        if ((ultimo_pcb_ejecutado->quantum - temporal_gettime(tiempo_transcurrido)) < 0)
-                        {
-                            ultimo_pcb_ejecutado->quantum = 0;
-                        }
-                        else
-                        {
-                            ultimo_pcb_ejecutado->quantum = ultimo_pcb_ejecutado->quantum - temporal_gettime(tiempo_transcurrido);
-                        }
-                        break;
-                    case WAIT_SOLICITADO:
-                        sem_wait(&podes_revisar_lista_bloqueados);
-                        if (buscar_pcb_por_pid(ultimo_pcb_ejecutado->pid, lista_procesos_blocked) != NULL)
-                        {
-                            ultimo_pcb_ejecutado->quantum = quantum - temporal_gettime(tiempo_transcurrido);
-                        }
-                        log_info(logger_kernel, "DESALOJÉ POR WAIT");
-                        break;
-                    case END_PROCESS:
-                        log_info(logger_kernel, "DESALOJÉ POR END");
-                        break;
-                    default:
-                        log_info(logger_kernel, "MOTIVO DESCONOCIDO DE DESALOJO");
-                        break;
-                    }
-                    pthread_mutex_unlock(&mutex_flag_cpu_libre);
-                    break;
-                }
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                    temporal_destroy(tiempo_transcurrido);
+                    tiempo_transcurrido = NULL;
+                
             }
+            pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
-
-        temporal_destroy(tiempo_transcurrido);
     }
-
-    return NULL;
 }
 
 void iniciar_planificacion()
