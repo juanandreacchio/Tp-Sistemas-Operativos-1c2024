@@ -167,10 +167,13 @@ void *recibir_dispatch()
                 flag_cpu_libre = 1;
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 sem_post(&cpu_libre);
-                break;
             }
-            sumar_instancia_a_recurso(recurso_solicitado);
-            enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
+            else
+            {
+                sumar_instancia_a_recurso(recurso_solicitado);
+                enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
+            }
+
             break;
         case KILL_PROCESS:
             sem_post(&podes_eliminar_loko);
