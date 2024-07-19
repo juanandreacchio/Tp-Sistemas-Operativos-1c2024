@@ -73,6 +73,7 @@ char* interfaz_causante_bloqueo;
 pthread_mutex_t mutex_nombre_interfaz_bloqueante;
 
 
+
 int main(void)
 {
     iniciar_config();

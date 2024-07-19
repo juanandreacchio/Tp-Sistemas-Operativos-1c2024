@@ -168,7 +168,7 @@ void ejecutar_comando(char *comando)
                 t_pcb *pcb = queue_pop(cola_procesos_ready);
                 if (pcb->pid != pid)
                 {
-                    queue_push(cola_procesos_ready, pcb);//ESTO ESTA MAL HAY QUE CAMBIARLO
+                    queue_push(cola_procesos_ready, pcb); // ESTO ESTA MAL HAY QUE CAMBIARLO
                 }
                 else
                 {
@@ -184,7 +184,7 @@ void ejecutar_comando(char *comando)
                 for (size_t i = 0; i < queue_size(cola_ready_plus); i++)
                 {
 
-                    t_pcb *pcb = queue_pop(cola_ready_plus);//LO MISMO CON VOS ESTE 
+                    t_pcb *pcb = queue_pop(cola_ready_plus); // LO MISMO CON VOS ESTE
                     if (pcb->pid != pid)
                     {
                         queue_push(cola_ready_plus, pcb);
@@ -202,7 +202,7 @@ void ejecutar_comando(char *comando)
         case EXEC:
             enviar_interrupcion(pcb->pid, KILL_PROCESS, conexion_interrupt);
             sem_wait(&podes_eliminar_loko);
-            
+
             break;
         case BLOCKED:
             for (size_t i = 0; i < list_size(lista_procesos_blocked); i++)
@@ -243,11 +243,8 @@ void ejecutar_comando(char *comando)
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
-        
 
-        log_info(logger_kernel, "Se liberaron los recursos del proceso %d", pid);
-
-        if (semaforo_multi->valor_maximo != semaforo_multi->valor_actual)
+        if (pcb->estado_actual != BLOCKED)
         {
             signal_contador(semaforo_multi);
         }
@@ -274,11 +271,10 @@ void ejecutar_comando(char *comando)
     // detener_planificacion();
     else if (strcmp(consola[0], "INICIAR_PLANIFICACION") == 0)
     {
-        if(planificacion_detenida)
+        if (planificacion_detenida)
         {
-        iniciar_planificacion();
+            iniciar_planificacion();
         }
-        
     }
     else
     {
@@ -287,3 +283,4 @@ void ejecutar_comando(char *comando)
     }
     string_array_destroy(consola);
 }
+

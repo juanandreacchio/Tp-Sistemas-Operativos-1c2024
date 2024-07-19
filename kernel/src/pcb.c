@@ -23,6 +23,8 @@ void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t
     pthread_mutex_lock(&mutex);
     queue_push(cola, pcb);
     pthread_mutex_unlock(&mutex);
+
+    
 }
 
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
@@ -200,4 +202,8 @@ uint32_t buscar_index_pid_bloqueado(uint32_t pid)
         }
     }
     return -1;
+}
+
+bool tiene_mismo_pid(uint32_t pid1, uint32_t pid2){
+    return pid1 == pid2;
 }

@@ -31,6 +31,7 @@ void *recibir_dispatch()
             char *nombre_io = malloc(nombre_length + 1);
             buffer_read(respuesta_kernel->buffer, nombre_io, nombre_length);
 
+
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
@@ -76,6 +77,8 @@ void *recibir_dispatch()
 
             t_semaforosIO *semaforos_interfaz = dictionary_get(diccionario_semaforos_io, nombre_io);
             sem_post(&semaforos_interfaz->instruccion_en_cola);
+
+            free(nombre_io);
 
             sem_post(&cpu_libre);
             break;

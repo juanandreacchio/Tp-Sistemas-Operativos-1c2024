@@ -126,6 +126,9 @@ void *atender_cliente(void *socket_cliente);
 void iniciar_semaforo_contador(t_semaforo_contador *semaforo, uint32_t valor_inicial);
 void destruir_semaforo_contador(t_semaforo_contador *semaforo);
 void destruir_semaforos();
+void eliminar_diccionarios();
+void eliminar_listas();
+void eliminar_colas();
 
 // --------------------- FUNCIONES DE CONSOLA INTERACTIVA -------------------------
 void *iniciar_consola_interactiva();
@@ -150,6 +153,7 @@ void logear_lista_blocked();
 t_pcb *buscar_pcb_en_procesos_del_sistema(uint32_t pid);
 void actualizar_pcb_en_procesos_del_sistema(t_pcb *pcb_actualizado);
 uint32_t buscar_index_pid_bloqueado(uint32_t pid);
+bool tiene_mismo_pid(uint32_t pid1, uint32_t pid2);
 
 // --------------------- FUNCIONES DE PLANIFICACION -------------------------
 void iniciar_planificador_corto_plazo();

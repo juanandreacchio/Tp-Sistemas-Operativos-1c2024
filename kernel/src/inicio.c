@@ -105,7 +105,8 @@ void destruir_semaforo_contador(t_semaforo_contador *semaforo)
     free(semaforo);
 }
 
-void destruir_semaforos(){
+void destruir_semaforos()
+{
     sem_destroy(&hay_proceso_a_ready);
     sem_destroy(&cpu_libre);
     sem_destroy(&arrancar_quantum);
@@ -118,17 +119,44 @@ void destruir_semaforos(){
     sem_destroy(&podes_eliminar_procesos);
     sem_destroy(&podes_eliminar_loko);
     pthread_mutex_destroy(&mutex_pid);
-    pthread_mutex_destroy(&mutex_cola_de_readys);
-    pthread_mutex_destroy(&mutex_lista_de_blocked);
-    pthread_mutex_destroy(&mutex_cola_de_new);
-    pthread_mutex_destroy(&mutex_proceso_en_ejecucion);
-    pthread_mutex_destroy(&mutex_interfaces_conectadas);
-    pthread_mutex_destroy(&mutex_cola_interfaces);
-    pthread_mutex_destroy(&mutex_diccionario_interfaces_de_semaforos);
-    pthread_mutex_destroy(&mutex_flag_cpu_libre);
-    pthread_mutex_destroy(&mutex_motivo_ultimo_desalojo);
-    pthread_mutex_destroy(&mutex_cola_de_exit);
-    pthread_mutex_destroy(&mutex_procesos_en_sistema);
-    pthread_mutex_destroy(&mutex_cola_de_ready_plus);
+    pthread_mutex_init(&mutex_cola_de_readys);
+    pthread_mutex_init(&mutex_lista_de_blocked);
+    pthread_mutex_init(&mutex_cola_de_new);
+    pthread_mutex_init(&mutex_proceso_en_ejecucion);
+    pthread_mutex_init(&mutex_interfaces_conectadas);
+    pthread_mutex_init(&mutex_cola_interfaces);
+    pthread_mutex_init(&mutex_diccionario_interfaces_de_semaforos);
+    pthread_mutex_init(&mutex_flag_cpu_libre);
+    pthread_mutex_init(&mutex_motivo_ultimo_desalojo);
+    pthread_mutex_init(&mutex_cola_de_exit);
+    pthread_mutex_init(&mutex_procesos_en_sistema);
+    pthread_mutex_init(&mutex_cola_de_ready_plus);
+    pthread_mutex_init(&mutex_ultimo_pcb);
+    pthread_mutex_init(&mutex_flag_planificar_plus);
+    pthread_mutex_init(&mutex_nombre_interfaz_bloqueante);
     destruir_semaforo_contador(semaforo_multi);
+}
+
+void eliminar_diccionarios()
+{
+    dictionary_destroy_and_destroy_elements(conexiones_io, free);
+    dictionary_destroy_and_destroy_elements(colas_blocks_io, free);
+    dictionary_destroy_and_destroy_elements(diccionario_semaforos_io, free);
+    dictionary_destroy_and_destroy_elements(recursos_disponibles, free);
+    dictionary_destroy_and_destroy_elements(cola_de_bloqueados_por_recurso, free);
+    dictionary_destroy_and_destroy_elements(recursos_asignados_por_proceso, free);
+}
+
+void eliminar_listas()
+{
+    list_destroy_and_destroy_elements(lista_procesos_blocked, free);
+    list_destroy_and_destroy_elements(procesos_en_sistema, free);
+}
+
+void eliminar_colas()
+{
+    queue_destroy_and_destroy_elements(cola_procesos_ready, free);
+    queue_destroy_and_destroy_elements(cola_procesos_new, free);
+    queue_destroy_and_destroy_elements(cola_procesos_exit, free);
+    queue_destroy_and_destroy_elements(cola_ready_plus, free);
 }

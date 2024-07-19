@@ -41,7 +41,7 @@ void eliminacion_de_procesos()
         {
             sem_wait(&podes_eliminar_procesos);
         }
-        
+
         pthread_mutex_lock(&mutex_cola_de_exit);
         t_proceso_en_exit *proceso_exit = queue_pop(cola_procesos_exit);
         pthread_mutex_unlock(&mutex_cola_de_exit);
@@ -49,16 +49,16 @@ void eliminacion_de_procesos()
 
         liberar_recursos(pcb_exit->pid);
         uint32_t index = tener_index_pid(pcb_exit->pid);
-        
+
         t_paquete *paquete = crear_paquete(END_PROCESS);
         buffer_add(paquete->buffer, &pcb_exit->pid, sizeof(uint32_t));
         enviar_paquete(paquete, conexion_memoria);
-        if(recibir_operacion(conexion_memoria) != END_PROCESS)
+        if (recibir_operacion(conexion_memoria) != END_PROCESS)
         {
             log_error(logger_kernel, "error de end process del PID %d", pcb_exit->pid);
             return;
         }
-            
+
         if (index == -1)
         {
             log_error(logger_kernel, "No se encontró el proceso con PID %d", pcb_exit->pid);
@@ -71,6 +71,7 @@ void eliminacion_de_procesos()
 
         signal_contador(semaforo_multi);
         destruir_pcb(pcb_exit);
+        free(proceso_exit);
     }
 }
 
@@ -89,7 +90,6 @@ uint32_t procesos_en_memoria()
     return queue_size(cola_procesos_ready) + queue_size(cola_ready_plus);
     pthread_mutex_unlock(&mutex_cola_de_readys);
     pthread_mutex_unlock(&mutex_cola_de_ready_plus);
-    
 }
 
 bool hay_proceso_ejecutandose()
@@ -99,7 +99,7 @@ bool hay_proceso_ejecutandose()
     pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
 }
 
-void signal_contador(t_semaforo_contador *semaforo)//aca me parece que hay que arreglar los mutex pero estoy en duda
+void signal_contador(t_semaforo_contador *semaforo) // aca me parece que hay que arreglar los mutex pero estoy en duda
 {
     if (semaforo->valor_actual < 0)
     {
@@ -112,14 +112,12 @@ void signal_contador(t_semaforo_contador *semaforo)//aca me parece que hay que a
     {
         if (semaforo->valor_actual < semaforo->valor_maximo)
         {
-        sem_post(&semaforo->contador);
-        pthread_mutex_lock(&semaforo->mutex_valor_actual);
-        semaforo->valor_actual++;
-        pthread_mutex_unlock(&semaforo->mutex_valor_actual);
+            sem_post(&semaforo->contador);
+            pthread_mutex_lock(&semaforo->mutex_valor_actual);
+            semaforo->valor_actual++;
+            pthread_mutex_unlock(&semaforo->mutex_valor_actual);
         }
-        
     }
-
 }
 
 void wait_contador(t_semaforo_contador *semaforo)
@@ -128,40 +126,33 @@ void wait_contador(t_semaforo_contador *semaforo)
     pthread_mutex_lock(&semaforo->mutex_valor_actual);
     semaforo->valor_actual--;
     pthread_mutex_unlock(&semaforo->mutex_valor_actual);
-    log_info(logger_kernel, "Grado de multiprogramacion: %d", semaforo->valor_actual);
-
 }
 
 void cambiar_grado(uint32_t nuevo_grado)
 {
-    int32_t nuevo_valor_actual = nuevo_grado - procesos_en_memoria();
-    pthread_mutex_lock(&semaforo_multi->mutex_valor_actual);
-    uint32_t distancia = abs(semaforo_multi->valor_actual - nuevo_valor_actual);
-    pthread_mutex_unlock(&semaforo_multi->mutex_valor_actual);
-    if (nuevo_grado < grado_multiprogramacion)
-    {
-        for (size_t i = 0; i < distancia; i++)
-        {
-            if (semaforo_multi->valor_actual == 0)
-            {
-                break;
-            }
-            wait_contador(semaforo_multi);
-        }
-    }
-    else if (nuevo_grado > grado_multiprogramacion)
-    {
-        for (size_t i = 0; i < distancia; i++)
-        {
-            signal_contador(semaforo_multi);
-        }
-        pthread_mutex_lock(&semaforo_multi->mutex_valor_actual);
-    }
+    int32_t cantidad_de_signal_o_wait = abs(nuevo_grado - semaforo_multi->valor_maximo);
+    int32_t valor_viejo_actual = semaforo_multi->valor_actual;
+
     pthread_mutex_lock(&semaforo_multi->mutex_valor_maximo);
     semaforo_multi->valor_maximo = nuevo_grado;
     pthread_mutex_unlock(&semaforo_multi->mutex_valor_maximo);
 
-    pthread_mutex_lock(&semaforo_multi->mutex_valor_actual);
-    semaforo_multi->valor_actual += nuevo_valor_actual;
-    pthread_mutex_unlock(&semaforo_multi->mutex_valor_actual);
+    if (nuevo_grado > semaforo_multi->valor_maximo)
+    {
+        for (size_t i = 0; i < cantidad_de_signal_o_wait; i++)
+        {
+            signal_contador(semaforo_multi);
+        }
+    }
+    else if (nuevo_grado < semaforo_multi->valor_maximo)
+    {
+        int cantidad_de_wait = 0;
+        while (semaforo_multi->mutex_valor_actual > 0 && cantidad_de_wait < cantidad_de_signal_o_wait)
+        {
+            wait_contador(semaforo_multi);
+            cantidad_de_wait++;
+        }
+        int waits_restantes = cantidad_de_signal_o_wait - cantidad_de_wait;
+        semaforo_multi->valor_actual -= waits_restantes;
+    }
 }

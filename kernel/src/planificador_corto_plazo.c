@@ -20,6 +20,7 @@ void iniciar_planificador_corto_plazo()
             log_info(logger_kernel, "PID: %d - EJECUTANDO", pcb_a_ejecutar->pid);
             pthread_mutex_unlock(&mutex_cola_de_readys);
 
+
             ejecutar_PCB(pcb_a_ejecutar);
         }
         else if (strcmp(algoritmo_planificacion, "RR") == 0)
@@ -29,6 +30,7 @@ void iniciar_planificador_corto_plazo()
             pthread_mutex_lock(&mutex_cola_de_readys);
             t_pcb *pcb_a_ejecutar = queue_pop(cola_procesos_ready);
             pthread_mutex_unlock(&mutex_cola_de_readys);
+
 
             ejecutar_PCB(pcb_a_ejecutar);
 
@@ -55,6 +57,7 @@ void iniciar_planificador_corto_plazo()
                 pthread_mutex_lock(&mutex_cola_de_readys);
                 pcb_a_ejecutar = queue_pop(cola_procesos_ready);
                 pthread_mutex_unlock(&mutex_cola_de_readys);
+
 
                 pcb_a_ejecutar->quantum = quantum;
             }
@@ -140,11 +143,10 @@ void *verificar_quantum_vrr()
             }
             else if (temporal_gettime(tiempo_transcurrido) >= pcb_en_ejecucion->quantum)
             {
-                    pcb_en_ejecucion->quantum = 0;
-                    enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                    temporal_destroy(tiempo_transcurrido);
-                    tiempo_transcurrido = NULL;
-                
+                pcb_en_ejecucion->quantum = 0;
+                enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
+                temporal_destroy(tiempo_transcurrido);
+                tiempo_transcurrido = NULL;
             }
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
