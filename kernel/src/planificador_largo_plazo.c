@@ -78,17 +78,28 @@ uint32_t procesos_en_memoria()
 {
     if (hay_proceso_ejecutandose())
     {
+        pthread_mutex_lock(&mutex_cola_de_readys);
+        pthread_mutex_lock(&mutex_cola_de_ready_plus);
         return queue_size(cola_procesos_ready) + queue_size(cola_ready_plus) + 1;
+        pthread_mutex_unlock(&mutex_cola_de_readys);
+        pthread_mutex_unlock(&mutex_cola_de_ready_plus);
     }
+    pthread_mutex_lock(&mutex_cola_de_readys);
+    pthread_mutex_lock(&mutex_cola_de_ready_plus);
     return queue_size(cola_procesos_ready) + queue_size(cola_ready_plus);
+    pthread_mutex_unlock(&mutex_cola_de_readys);
+    pthread_mutex_unlock(&mutex_cola_de_ready_plus);
+    
 }
 
 bool hay_proceso_ejecutandose()
 {
+    pthread_mutex_lock(&mutex_proceso_en_ejecucion);
     return pcb_en_ejecucion != NULL;
+    pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
 }
 
-void signal_contador(t_semaforo_contador *semaforo)
+void signal_contador(t_semaforo_contador *semaforo)//aca me parece que hay que arreglar los mutex pero estoy en duda
 {
     if (semaforo->valor_actual < 0)
     {
@@ -124,7 +135,9 @@ void wait_contador(t_semaforo_contador *semaforo)
 void cambiar_grado(uint32_t nuevo_grado)
 {
     int32_t nuevo_valor_actual = nuevo_grado - procesos_en_memoria();
+    pthread_mutex_lock(&semaforo_multi->mutex_valor_actual);
     uint32_t distancia = abs(semaforo_multi->valor_actual - nuevo_valor_actual);
+    pthread_mutex_unlock(&semaforo_multi->mutex_valor_actual);
     if (nuevo_grado < grado_multiprogramacion)
     {
         for (size_t i = 0; i < distancia; i++)
