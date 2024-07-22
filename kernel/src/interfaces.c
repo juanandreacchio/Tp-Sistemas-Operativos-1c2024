@@ -97,6 +97,12 @@ void atender_interfaz(char *nombre_interfaz)
         ejecutar_instruccion_io(nombre_interfaz, info_io, conexion_io);
 
         op_code resultado_operacion = recibir_operacion(conexion_io->conexion);
+
+        if (planificacion_detenida)
+        {
+            sem_wait(&podes_manejar_recepcion_de_interfaces);
+        }
+
         switch (resultado_operacion)
         {
         case IO_SUCCESS:

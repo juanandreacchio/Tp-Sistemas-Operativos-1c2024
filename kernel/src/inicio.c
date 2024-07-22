@@ -60,6 +60,7 @@ void iniciar_semaforos()
     sem_init(&podes_manejar_desalojo, 0, 0);
     sem_init(&podes_eliminar_procesos, 0, 0);
     sem_init(&podes_eliminar_loko, 0, 0);
+    sem_init(&podes_manejar_recepcion_de_interfaces, 0, 0);
     pthread_mutex_init(&mutex_pid, NULL);
     pthread_mutex_init(&mutex_cola_de_readys, NULL);
     pthread_mutex_init(&mutex_lista_de_blocked, NULL);
@@ -118,22 +119,23 @@ void destruir_semaforos()
     sem_destroy(&podes_manejar_desalojo);
     sem_destroy(&podes_eliminar_procesos);
     sem_destroy(&podes_eliminar_loko);
+    sem_destroy(&podes_manejar_recepcion_de_interfaces);
     pthread_mutex_destroy(&mutex_pid);
-    pthread_mutex_init(&mutex_cola_de_readys);
-    pthread_mutex_init(&mutex_lista_de_blocked);
-    pthread_mutex_init(&mutex_cola_de_new);
-    pthread_mutex_init(&mutex_proceso_en_ejecucion);
-    pthread_mutex_init(&mutex_interfaces_conectadas);
-    pthread_mutex_init(&mutex_cola_interfaces);
-    pthread_mutex_init(&mutex_diccionario_interfaces_de_semaforos);
-    pthread_mutex_init(&mutex_flag_cpu_libre);
-    pthread_mutex_init(&mutex_motivo_ultimo_desalojo);
-    pthread_mutex_init(&mutex_cola_de_exit);
-    pthread_mutex_init(&mutex_procesos_en_sistema);
-    pthread_mutex_init(&mutex_cola_de_ready_plus);
-    pthread_mutex_init(&mutex_ultimo_pcb);
-    pthread_mutex_init(&mutex_flag_planificar_plus);
-    pthread_mutex_init(&mutex_nombre_interfaz_bloqueante);
+    pthread_mutex_destroy(&mutex_cola_de_readys);
+    pthread_mutex_destroy(&mutex_lista_de_blocked);
+    pthread_mutex_destroy(&mutex_cola_de_new);
+    pthread_mutex_destroy(&mutex_proceso_en_ejecucion);
+    pthread_mutex_destroy(&mutex_interfaces_conectadas);
+    pthread_mutex_destroy(&mutex_cola_interfaces);
+    pthread_mutex_destroy(&mutex_diccionario_interfaces_de_semaforos);
+    pthread_mutex_destroy(&mutex_flag_cpu_libre);
+    pthread_mutex_destroy(&mutex_motivo_ultimo_desalojo);
+    pthread_mutex_destroy(&mutex_cola_de_exit);
+    pthread_mutex_destroy(&mutex_procesos_en_sistema);
+    pthread_mutex_destroy(&mutex_cola_de_ready_plus);
+    pthread_mutex_destroy(&mutex_ultimo_pcb);
+    pthread_mutex_destroy(&mutex_flag_planificar_plus);
+    pthread_mutex_destroy(&mutex_nombre_interfaz_bloqueante);
     destruir_semaforo_contador(semaforo_multi);
 }
 

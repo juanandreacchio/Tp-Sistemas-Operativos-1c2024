@@ -71,6 +71,7 @@ pthread_mutex_t mutex_ultimo_pcb;
 pthread_mutex_t mutex_flag_planificar_plus;
 char* interfaz_causante_bloqueo;
 pthread_mutex_t mutex_nombre_interfaz_bloqueante;
+sem_t podes_manejar_recepcion_de_interfaces;
 
 
 

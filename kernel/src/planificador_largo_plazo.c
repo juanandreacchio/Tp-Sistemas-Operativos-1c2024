@@ -131,7 +131,6 @@ void wait_contador(t_semaforo_contador *semaforo)
 void cambiar_grado(uint32_t nuevo_grado)
 {
     int32_t cantidad_de_signal_o_wait = abs(nuevo_grado - semaforo_multi->valor_maximo);
-    int32_t valor_viejo_actual = semaforo_multi->valor_actual;
 
     pthread_mutex_lock(&semaforo_multi->mutex_valor_maximo);
     semaforo_multi->valor_maximo = nuevo_grado;
@@ -147,7 +146,7 @@ void cambiar_grado(uint32_t nuevo_grado)
     else if (nuevo_grado < semaforo_multi->valor_maximo)
     {
         int cantidad_de_wait = 0;
-        while (semaforo_multi->mutex_valor_actual > 0 && cantidad_de_wait < cantidad_de_signal_o_wait)
+        while (semaforo_multi->valor_actual > 0 && cantidad_de_wait < cantidad_de_signal_o_wait)
         {
             wait_contador(semaforo_multi);
             cantidad_de_wait++;

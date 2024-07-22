@@ -112,6 +112,7 @@ extern pthread_mutex_t mutex_ultimo_pcb;
 extern pthread_mutex_t mutex_flag_planificar_plus;
 extern char* interfaz_causante_bloqueo;
 extern pthread_mutex_t mutex_nombre_interfaz_bloqueante;
+extern sem_t podes_manejar_recepcion_de_interfaces;
 
 // --------------------- FUNCIONES DE INICIO -------------------------
 void iniciar_semaforos();

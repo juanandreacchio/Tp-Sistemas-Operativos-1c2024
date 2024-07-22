@@ -954,11 +954,7 @@ char* estado_to_string(estados estado)
 }
 
 char* number_to_string(int number) {
-    char *buffer;
-    if (asprintf(&buffer, "%d", number) == -1) {
-        return NULL; // Manejo de error si asprintf falla
-    }
-    return buffer;
+	return string_itoa(number);
 }
 
 
