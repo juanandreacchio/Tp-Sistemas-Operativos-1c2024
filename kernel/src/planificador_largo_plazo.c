@@ -19,7 +19,8 @@ void creacion_de_procesos()
             sem_wait(&podes_crear_procesos);
         }
 
-        wait_contador(semaforo_multi);
+        //wait_contador(semaforo_multi);
+        sem_wait(&grado_multi);
         pthread_mutex_lock(&mutex_cola_de_new);
         t_pcb *pcb_ready = queue_pop(cola_procesos_new);
         pthread_mutex_unlock(&mutex_cola_de_new);
@@ -69,7 +70,15 @@ void eliminacion_de_procesos()
             list_remove(procesos_en_sistema, index);
         }
 
-        signal_contador(semaforo_multi);
+        //signal_contador(semaforo_multi);
+        if(flag_grado_multi == 0)
+        {
+            sem_post(&grado_multi);
+            
+        }else{
+            flag_grado_multi -=1;
+        }
+            
         destruir_pcb(pcb_exit);
         free(proceso_exit);
     }
@@ -155,3 +164,13 @@ void cambiar_grado(uint32_t nuevo_grado)
         semaforo_multi->valor_actual -= waits_restantes;
     }
 }
+/*
+void eliminar_procesos(u_int32_t cant_a_eliminar)
+{
+    for (size_t i = 0; i < cant_a_eliminar; i++)
+    {
+       finalizar_pcb(pcb_actualizado, OUT_OF_MEMORY);
+    }
+    
+}
+*/

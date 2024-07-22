@@ -61,6 +61,7 @@ void iniciar_semaforos()
     sem_init(&podes_eliminar_procesos, 0, 0);
     sem_init(&podes_eliminar_loko, 0, 0);
     sem_init(&podes_manejar_recepcion_de_interfaces, 0, 0);
+    sem_init(&grado_multi, 0, grado_multiprogramacion);
     pthread_mutex_init(&mutex_pid, NULL);
     pthread_mutex_init(&mutex_cola_de_readys, NULL);
     pthread_mutex_init(&mutex_lista_de_blocked, NULL);
@@ -77,11 +78,13 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_ultimo_pcb, NULL);
     pthread_mutex_init(&mutex_flag_planificar_plus, NULL);
     pthread_mutex_init(&mutex_nombre_interfaz_bloqueante, NULL);
-    iniciar_semaforo_contador(semaforo_multi, grado_multiprogramacion);
+
+    //iniciar_semaforo_contador(semaforo_multi, grado_multiprogramacion);
 }
 
 void iniciar_variables()
 {
+    flag_grado_multi = 0;
     contador_pid = 0;
     ultimo_pcb_ejecutado = NULL;
     planificar_ready_plus = 0;
@@ -120,6 +123,7 @@ void destruir_semaforos()
     sem_destroy(&podes_eliminar_procesos);
     sem_destroy(&podes_eliminar_loko);
     sem_destroy(&podes_manejar_recepcion_de_interfaces);
+    sem_destroy(&grado_multi);
     pthread_mutex_destroy(&mutex_pid);
     pthread_mutex_destroy(&mutex_cola_de_readys);
     pthread_mutex_destroy(&mutex_lista_de_blocked);

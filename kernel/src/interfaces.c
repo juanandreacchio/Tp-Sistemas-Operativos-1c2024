@@ -115,7 +115,7 @@ void atender_interfaz(char *nombre_interfaz)
             if (pcb != NULL)
             {
 
-                wait_contador(semaforo_multi);
+                //wait_contador(semaforo_multi);
                 if (pcb->quantum > 0 && strcmp(algoritmo_planificacion, "VRR") == 0)
                 {
                     set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);

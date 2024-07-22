@@ -60,7 +60,7 @@ void *recibir_dispatch()
             interfaz_causante_bloqueo = nombre_io;
             pthread_mutex_unlock(&mutex_nombre_interfaz_bloqueante);
 
-            signal_contador(semaforo_multi);
+            //signal_contador(semaforo_multi);
 
             // 1. La agregamos a la cola de blocks io. datos necesarios para ahhacer el io y PID
             t_info_en_io *info_io = malloc(sizeof(t_info_en_io));
@@ -140,7 +140,7 @@ void *recibir_dispatch()
                     pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
                     sem_post(&cpu_libre);
-                    signal_contador(semaforo_multi);
+                    //signal_contador(semaforo_multi);
                 }
                 else
                 {

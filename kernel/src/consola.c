@@ -53,7 +53,7 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
-        char base_path[] = "/home/ubuntu";
+        char base_path[] = "/home/utnso";
         // Calcula el tamaño necesario para la cadena final
         size_t path_size = strlen(base_path) + strlen(consola[1]) + 1; // +1 para el carácter nulo
         char *full_path = (char *)malloc(path_size);
@@ -106,7 +106,11 @@ void ejecutar_comando(char *comando)
 
         enviar_paquete(paquete, conexion_memoria);
         if (recibir_operacion(conexion_memoria) != CREAR_PROCESO)
+        {
             log_error(logger_kernel, "error: no c recibio correctamente la respuesta de creacion de proceso de memoria");
+            return;
+        }
+
         set_add_pcb_cola(pcb_creado, NEW, cola_procesos_new, mutex_cola_de_new);
 
         sem_post(&hay_proceso_nuevo);
@@ -131,7 +135,7 @@ void ejecutar_comando(char *comando)
         pthread_mutex_lock(&mutex_procesos_en_sistema);
         t_pcb *pcb = list_get(procesos_en_sistema, index);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);
-
+        //log_info(logger_kernel,"entre a finalziar proceso ");
         if (index == -1)
         {
             log_error(logger_kernel, "No se encontro el proceso con PID %d en el sistema", pid);
@@ -152,6 +156,7 @@ void ejecutar_comando(char *comando)
                 else
                 {
                     sem_wait(&hay_proceso_nuevo);
+                    logear_cambio_estado(pcb, NEW, TERMINATED);
                     pthread_mutex_unlock(&mutex_cola_de_new);
                     break;
                 }
@@ -160,6 +165,7 @@ void ejecutar_comando(char *comando)
 
             break;
         case READY:
+        //log_info(logger_kernel,"entre por el case de ready ");
             bool eliminado = false;
             pthread_mutex_lock(&mutex_cola_de_readys);
             for (size_t i = 0; i < queue_size(cola_procesos_ready); i++)
@@ -168,12 +174,21 @@ void ejecutar_comando(char *comando)
                 t_pcb *pcb = queue_pop(cola_procesos_ready);
                 if (pcb->pid != pid)
                 {
-                    queue_push(cola_procesos_ready, pcb); // ESTO ESTA MAL HAY QUE CAMBIARLO
+                    queue_push(cola_procesos_ready, pcb);
                 }
                 else
                 {
                     eliminado = true;
                     sem_wait(&hay_proceso_a_ready);
+                    logear_cambio_estado(pcb, READY, TERMINATED);
+                    if (flag_grado_multi == 0)
+                    {
+                        sem_post(&grado_multi);
+                    }
+                    else
+                    {
+                        flag_grado_multi -= 1;
+                    }
                 }
             }
             pthread_mutex_unlock(&mutex_cola_de_readys);
@@ -184,7 +199,7 @@ void ejecutar_comando(char *comando)
                 for (size_t i = 0; i < queue_size(cola_ready_plus); i++)
                 {
 
-                    t_pcb *pcb = queue_pop(cola_ready_plus); // LO MISMO CON VOS ESTE
+                    t_pcb *pcb = queue_pop(cola_ready_plus);
                     if (pcb->pid != pid)
                     {
                         queue_push(cola_ready_plus, pcb);
@@ -193,6 +208,15 @@ void ejecutar_comando(char *comando)
                     {
                         eliminado = true;
                         sem_wait(&hay_proceso_a_ready);
+                        if (flag_grado_multi == 0)
+                        {
+                            sem_post(&grado_multi);
+                        }
+                        else
+                        {
+                            flag_grado_multi -= 1;
+                        }
+                        logear_cambio_estado(pcb, READY, TERMINATED);
                     }
                 }
                 pthread_mutex_unlock(&mutex_cola_de_ready_plus);
@@ -213,6 +237,15 @@ void ejecutar_comando(char *comando)
                 {
                     list_remove(lista_procesos_blocked, i);
                     pthread_mutex_unlock(&mutex_lista_de_blocked);
+                    logear_cambio_estado(pcb, BLOCKED, TERMINATED);
+                    if (flag_grado_multi == 0)
+                    {
+                        sem_post(&grado_multi);
+                    }
+                    else
+                    {
+                        flag_grado_multi -= 1;
+                    }
                     break;
                 }
                 pthread_mutex_unlock(&mutex_lista_de_blocked);
@@ -238,17 +271,26 @@ void ejecutar_comando(char *comando)
 
         if (pcb->estado_actual == EXEC)
         {
+            logear_cambio_estado(pcb, EXEC, TERMINATED);
             sem_post(&cpu_libre);
+            if (flag_grado_multi == 0)
+            {
+                sem_post(&grado_multi);
+            }
+            else
+            {
+                flag_grado_multi -= 1;
+            }
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
-
+        /*
         if (pcb->estado_actual != BLOCKED)
         {
             signal_contador(semaforo_multi);
         }
-
+        */
         destruir_pcb(pcb);
 
         log_info(logger_kernel, "Finaliza el proceso %d - Motivo: %s", pid, op_code_to_string(INTERRUPTED_BY_USER));
@@ -258,7 +300,44 @@ void ejecutar_comando(char *comando)
     else if (strcmp(consola[0], "MULTIPROGRAMACION") == 0)
     {
         uint32_t nuevo_grado = atoi(consola[1]);
-        cambiar_grado(nuevo_grado);
+        if (grado_multiprogramacion < nuevo_grado)
+        {
+            u_int32_t cant_a_sumar = nuevo_grado - grado_multiprogramacion;
+            grado_multiprogramacion = grado_multiprogramacion + cant_a_sumar;
+            for (size_t i = 0; i < cant_a_sumar; i++)
+            {
+                sem_post(&grado_multi);
+            }
+        }
+        else
+        {
+            u_int32_t cant_a_eliminar = grado_multiprogramacion - nuevo_grado;
+            int value;
+            sem_getvalue(&grado_multi, &value);
+            if (value >= cant_a_eliminar)
+            {
+                for (size_t i = 0; i < cant_a_eliminar; i++)
+                {
+                    sem_wait(&grado_multi);
+                }
+            }
+            else
+            {
+                //log_info(logger_kernel,"entre al else ");
+                for (size_t i = 0; i < value; i++)
+                {
+                    sem_wait(&grado_multi);
+                }
+                flag_grado_multi = cant_a_eliminar - value;
+                //log_info(logger_kernel,"el flag_grado_multi es: %d",flag_grado_multi);
+            }
+            grado_multiprogramacion = grado_multiprogramacion - cant_a_eliminar;
+            //log_info(logger_kernel,"el grado multi actual es: %d",grado_multiprogramacion);
+
+            // eliminar_procesos(cant_a_eliminar);
+        }
+
+        // cambiar_grado(nuevo_grado);
     }
     else if (strcmp(consola[0], "PROCESO_ESTADO") == 0)
     {
@@ -283,4 +362,3 @@ void ejecutar_comando(char *comando)
     }
     string_array_destroy(consola);
 }
-
