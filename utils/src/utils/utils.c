@@ -1036,3 +1036,17 @@ const char* op_code_to_string(op_code code) {
         default: return "UNKNOWN_OPCODE";
     }
 }
+void liberar_t_instruccion(t_instruccion *instruccion)
+{
+    // Liberar cada uno de los parámetros
+    for (uint32_t i = 0; i < instruccion->cant_parametros; i++)
+    {
+        free(instruccion->parametros[i]);
+    }
+
+    // Liberar el array de parámetros
+    free(instruccion->parametros);
+
+    // Liberar la estructura
+    free(instruccion);
+}

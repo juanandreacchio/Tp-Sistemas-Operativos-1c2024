@@ -527,7 +527,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
     while (interruption_flag != 1 && end_process_flag != 1 && input_ouput_flag != 1 && flag_bloqueado_por_resource != 1 && flag_out_of_memory != 1)
     {
         if (instruccion != NULL)
-            free(instruccion);
+            liberar_t_instruccion(instruccion);
 
         instruccion = siguiente_instruccion(pcb, socket_Memoria);
         //log_info(logger_cpu, "el length de parametro1: %d", instruccion->param1_length);
@@ -553,7 +553,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
     pcb->pc = registros_cpu.PC;
 
     if (instruccion != NULL)
-        free(instruccion);
+        liberar_t_instruccion(instruccion);
 
     if (end_process_flag == 1)
     {
@@ -575,6 +575,8 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
         enviar_pcb(pcb, socket_Kernel);
     }
     input_ouput_flag = 0;
+    if(pcb != NULL)
+        destruir_pcb(pcb);
 }
 //------------------------FUNCIONES DE OPERACIONES------------------------------
 

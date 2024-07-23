@@ -12,6 +12,9 @@ void setear_pcb_en_ejecucion(t_pcb *pcb)
     logear_cambio_estado(pcb, pcb->estado_actual, EXEC);
     pcb->estado_actual = EXEC;
 
+    if(pcb_en_ejecucion != NULL){
+        destruir_pcb(pcb_en_ejecucion);
+    }
     pthread_mutex_lock(&mutex_proceso_en_ejecucion);
     pcb_en_ejecucion = pcb;
     pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
@@ -192,7 +195,8 @@ void actualizar_pcb_en_procesos_del_sistema(t_pcb *pcb_actualizado)
     {
         uint32_t index = tener_index_pid(pcb_actualizado->pid);
         pthread_mutex_lock(&mutex_procesos_en_sistema);
-        list_replace(procesos_en_sistema, index, pcb_actualizado);
+        t_pcb *pcb_viejo = list_replace(procesos_en_sistema, index, pcb_actualizado);
+        free(pcb_viejo);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);
     }
 }

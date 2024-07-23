@@ -53,7 +53,7 @@ void *recibir_dispatch()
                 break;
             }
 
-            pcb_actualizado->estado_actual = BLOCKED;
+            //pcb_actualizado->estado_actual = BLOCKED;
             logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
             bloquear_pcb(pcb_actualizado);
 
