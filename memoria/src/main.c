@@ -78,8 +78,8 @@ void inciar_listas()
 
 void *atender_cliente(void *socket_cliente)
 {
-    t_paquete *paquete = malloc(sizeof(t_paquete));
-    paquete->buffer = malloc(sizeof(t_buffer));
+    t_paquete *paquete;
+    //paquete->buffer = malloc(sizeof(t_buffer));
 
     while (1)
     {
@@ -92,7 +92,7 @@ void *atender_cliente(void *socket_cliente)
             break;
         }
         // uint32_t pid, pc;
-        t_instruccion *instruccion = malloc(sizeof(t_instruccion));
+        
 
         op_code codigo_operacion = paquete->codigo_operacion;
         t_buffer *buffer = paquete->buffer;
@@ -122,21 +122,25 @@ void *atender_cliente(void *socket_cliente)
         case SOLICITUD_INSTRUCCION:
         {
             log_info(logger_memoria, "Se recibio una solicitud de instruccion");
+            t_instruccion *instruccion;
             t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
 
             buffer_read(buffer, &(soli->pid), sizeof(uint32_t));
             buffer_read(buffer, &(soli->pc), sizeof(uint32_t));
             //  quiza hay que poner un semaforo para esperar a que las instruccione esten cargadas en el proceso
             instruccion = buscar_instruccion(procesos_en_memoria, soli->pid, soli->pc);
-            imprimir_instruccion(instruccion);
-            paquete = crear_paquete(INSTRUCCION);
-            agregar_instruccion_a_paquete(paquete, instruccion);
+            //imprimir_instruccion(instruccion);
+            t_paquete *paquete_instruccion = crear_paquete(INSTRUCCION);
+            agregar_instruccion_a_paquete(paquete_instruccion, instruccion);
 
             // t_buffer *buffer_prueba = paquete->buffer;
             // t_instruccion *inst = instruccion_deserializar(buffer_prueba, 0);
 
             // enviar_paquete(paquete, (int)(long int)socket_cliente);
-            enviar_paquete(paquete, (int)(long int)socket_cliente);
+            enviar_paquete(paquete_instruccion, (int)(long int)socket_cliente);
+            //free(instruccion); //no c si tiene que ir o no porque si lo libero si tiene que volver a leerla no va a estar
+            free(soli);
+            eliminar_paquete(paquete_instruccion);
             // Probar mandar algo al cliente
             // sem_post(&semaforo);
             break;
@@ -145,7 +149,7 @@ void *atender_cliente(void *socket_cliente)
         {
             // char *path;
 
-            t_solicitudCreacionProcesoEnMemoria *solicitud = malloc(sizeof(t_solicitudCreacionProcesoEnMemoria));
+            t_solicitudCreacionProcesoEnMemoria *solicitud;
 
             solicitud = deserializar_solicitud_crear_proceso(buffer);
             log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
@@ -153,6 +157,8 @@ void *atender_cliente(void *socket_cliente)
             log_info(logger_memoria,"PID: %d - Tamaño: %d",solicitud->pid,list_size(proceso_creado->tabla_paginas));
             printf("--------------------------PROCESO CREADO-----------------\n");
             enviar_codigo_operacion(CREAR_PROCESO,(int)(long int)socket_cliente);
+            free(solicitud->path);
+            free(solicitud);
             break;
         }
         case END_PROCESS:

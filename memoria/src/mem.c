@@ -203,6 +203,7 @@ t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
     proceso->tabla_paginas = list_create();
     // wait semáforo contador (con grado multiprogramación)
     list_add(lista_procesos, proceso);
+    free(path_final);
     // signal semáforo contador (con grado multiprogramación)
     return proceso;
 
@@ -263,8 +264,8 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
 // Funcion que busque una instruccion en un proceso a partir de un PID y un PC
 t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t pc) {
     printf("Buscando instrucción con PID %d y PC %d\n", pid, pc);
-    t_proceso* proceso = malloc(sizeof(t_proceso));
-    t_proceso* proceso_actual = malloc(sizeof(t_proceso));
+    t_proceso* proceso;
+    t_proceso* proceso_actual;
     for (int i = 0; i < list_size(lista_procesos); i++) {
         proceso_actual = list_get(lista_procesos, i);
         if (proceso_actual->pid == pid) {

@@ -728,7 +728,8 @@ t_list *parsear_instrucciones(FILE *archivo_instrucciones)
             i++;
         }
 		free(tokens);
-		list_destroy(lista_de_parametros);
+		//list_destroy(lista_de_parametros);
+		list_destroy_and_destroy_elements(lista_de_parametros,free);
 	}
 
 	free(line);
@@ -821,9 +822,10 @@ void enviar_interrupcion(u_int32_t pid,op_code interrupcion_code,u_int32_t socke
 	interrupcion->pid = pid;
 
 	t_paquete *paquete = crear_paquete(INTERRUPTION);
-	paquete->buffer = serializar_interrupcion(interrupcion);
+	buffer_add(paquete->buffer, &interrupcion->pid, sizeof(uint32_t));
+	buffer_add(paquete->buffer, &interrupcion->motivo, sizeof(op_code));
 	enviar_paquete(paquete, socket);
-
+	free(interrupcion);
 	eliminar_paquete(paquete);
 }
 

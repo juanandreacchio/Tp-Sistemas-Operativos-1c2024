@@ -105,13 +105,21 @@ void *verificar_quantum()
         pthread_mutex_lock(&mutex_flag_cpu_libre);
         while (flag_cpu_libre == 0 && temporal_gettime(tiempo_transcurrido) < quantum)
         {
-            // Esperar hasta que la condición se cumpla o se alcance el tiempo límite
-            if (pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts) == ETIMEDOUT)
+            int wait_result = pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts);
+            if (wait_result == ETIMEDOUT)
             {
+                // Si el tiempo límite se alcanza, romper el bucle
+                pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                break;
+            }
+            else if (wait_result != 0)
+            {
+                // Manejar otros posibles errores de pthread_cond_timedwait
+                log_error(logger_kernel,"Error en pthread_cond_timedwait");
                 break;
             }
         }
-
+        
         // Manejar el caso cuando la CPU está libre o el tiempo se ha agotado
         if (flag_cpu_libre == 1)
         {
@@ -157,12 +165,21 @@ void *verificar_quantum_vrr()
         pthread_mutex_lock(&mutex_flag_cpu_libre);
         while (flag_cpu_libre == 0 && temporal_gettime(tiempo_transcurrido) < pcb_en_ejecucion->quantum)
         {
-            if (pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts) == ETIMEDOUT)
+            int wait_result = pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts);
+            if (wait_result == ETIMEDOUT)
             {
+                // Si el tiempo límite se alcanza, romper el bucle
+                pthread_mutex_unlock(&mutex_flag_cpu_libre);
+                break;
+            }
+            else if (wait_result != 0)
+            {
+                // Manejar otros posibles errores de pthread_cond_timedwait
+                log_error(logger_kernel,"Error en pthread_cond_timedwait");
                 break;
             }
         }
-
+        
         if (flag_cpu_libre == 1)
         {
             flag_cpu_libre = 0;

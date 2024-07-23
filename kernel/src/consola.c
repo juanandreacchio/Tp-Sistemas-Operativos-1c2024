@@ -53,10 +53,10 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
-        char base_path[] = "/home/utnso";
+        char *base_path = "/home/utnso";
         // Calcula el tamaño necesario para la cadena final
         size_t path_size = strlen(base_path) + strlen(consola[1]) + 1; // +1 para el carácter nulo
-        char *full_path = (char *)malloc(path_size);
+        char *full_path = malloc(path_size);
         if (full_path == NULL)
         {
             fprintf(stderr, "Error al asignar memoria\n");
@@ -83,6 +83,7 @@ void ejecutar_comando(char *comando)
             ejecutar_comando(linea);
         }
         free(linea);
+        free(full_path);
         fclose(archivo);
     }
     else if (strcmp(consola[0], "INICIAR_PROCESO") == 0)
@@ -101,10 +102,13 @@ void ejecutar_comando(char *comando)
 
         dictionary_put(recursos_asignados_por_proceso, string_itoa(contador_pid), list_create());
 
-        t_buffer *buffer = serializar_solicitud_crear_proceso(ptr_solicitud);
-        paquete->buffer = buffer;
+        buffer_add(paquete->buffer, &ptr_solicitud->pid, sizeof(uint32_t));
+	    buffer_add(paquete->buffer, &ptr_solicitud->path_length, sizeof(uint32_t));
+	    buffer_add(paquete->buffer, ptr_solicitud->path, ptr_solicitud->path_length);
 
         enviar_paquete(paquete, conexion_memoria);
+        eliminar_paquete(paquete);
+        free(ptr_solicitud);
         if (recibir_operacion(conexion_memoria) != CREAR_PROCESO)
         {
             log_error(logger_kernel, "error: no c recibio correctamente la respuesta de creacion de proceso de memoria");
@@ -125,7 +129,7 @@ void ejecutar_comando(char *comando)
         contador_pid++;
         pthread_mutex_unlock(&mutex_pid);
 
-        eliminar_paquete(paquete);
+        
     }
     else if (strcmp(consola[0], "FINALIZAR_PROCESO") == 0)
     {
