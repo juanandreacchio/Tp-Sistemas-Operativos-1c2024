@@ -40,7 +40,7 @@ void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t
 
 t_pcb *buscar_pcb_por_pid(u_int32_t pid, t_list *lista)
 {
-    t_pcb *pcb = malloc(sizeof(t_pcb));
+    t_pcb *pcb;
     t_pcb *pcb_a_comparar;
     for (int i = 0; i < list_size(lista); i++)
     {

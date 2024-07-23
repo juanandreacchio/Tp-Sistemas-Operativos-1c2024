@@ -73,6 +73,7 @@ void ejecutar_instruccion_io(char *nombre_interfaz, t_info_en_io *info_io, t_int
     buffer_add(paquete->buffer, &info_io->pid, sizeof(u_int32_t));
     buffer_add(paquete->buffer, info_io->info_necesaria, info_io->tam_info);
     enviar_paquete(paquete, conexion_io->conexion);
+    eliminar_paquete(paquete);
 }
 
 void atender_interfaz(char *nombre_interfaz)
@@ -140,6 +141,8 @@ void atender_interfaz(char *nombre_interfaz)
         default:
             break;
         }
+        free(info_io->info_necesaria);
+        free(info_io);
     }
 }
 

@@ -23,6 +23,7 @@ void *recibir_dispatch()
         switch (motivo_desalojo)
         {
         case OPERACION_IO:
+        {
             t_paquete *respuesta_kernel = recibir_paquete(conexion_dispatch);
             u_int32_t nombre_length;
             t_identificador identificador;
@@ -30,7 +31,6 @@ void *recibir_dispatch()
             buffer_read(respuesta_kernel->buffer, &nombre_length, sizeof(u_int32_t));
             char *nombre_io = malloc(nombre_length + 1);
             buffer_read(respuesta_kernel->buffer, nombre_io, nombre_length);
-
 
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
@@ -53,7 +53,7 @@ void *recibir_dispatch()
                 break;
             }
 
-            //pcb_actualizado->estado_actual = BLOCKED;
+            // pcb_actualizado->estado_actual = BLOCKED;
             logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
             bloquear_pcb(pcb_actualizado);
 
@@ -61,7 +61,7 @@ void *recibir_dispatch()
             interfaz_causante_bloqueo = nombre_io;
             pthread_mutex_unlock(&mutex_nombre_interfaz_bloqueante);
 
-            //signal_contador(semaforo_multi);
+            // signal_contador(semaforo_multi);
 
             // 1. La agregamos a la cola de blocks io. datos necesarios para ahhacer el io y PID
             t_info_en_io *info_io = malloc(sizeof(t_info_en_io));
@@ -80,26 +80,30 @@ void *recibir_dispatch()
             sem_post(&semaforos_interfaz->instruccion_en_cola);
 
             free(nombre_io);
+            eliminar_paquete(respuesta_kernel);
 
             sem_post(&cpu_libre);
             break;
+        }
         case FIN_CLOCK:
-
+        {
             log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum", pcb_actualizado->pid);
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
             actualizar_pcb_en_procesos_del_sistema(pcb_actualizado);
 
             logear_cambio_estado(pcb_actualizado, EXEC, READY);
             sem_post(&hay_proceso_a_ready);
-            log_info(logger_kernel,"hola estoy cerca de ahcer el sempost");
+            log_info(logger_kernel, "hola estoy cerca de ahcer el sempost");
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             sem_post(&cpu_libre);
-            log_info(logger_kernel,"hice el sem post de cpu_libre");
+            log_info(logger_kernel, "hice el sem post de cpu_libre");
             break;
+        }
         case END_PROCESS:
+        {
             finalizar_pcb(pcb_actualizado, SUCCESS);
 
             pthread_mutex_lock(&mutex_flag_cpu_libre);
@@ -108,7 +112,9 @@ void *recibir_dispatch()
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             sem_post(&cpu_libre);
             break;
+        }
         case WAIT_SOLICITADO:
+        {
             t_paquete *respuesta = recibir_paquete(conexion_dispatch);
             t_instruccion *utlima = instruccion_deserializar(respuesta->buffer, 0);
             char *recurso_solicitado = utlima->parametros[0];
@@ -145,7 +151,7 @@ void *recibir_dispatch()
                     pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
                     sem_post(&cpu_libre);
-                    //signal_contador(semaforo_multi);
+                    // signal_contador(semaforo_multi);
                 }
                 else
                 {
@@ -155,7 +161,9 @@ void *recibir_dispatch()
             }
 
             break;
+        }
         case SIGNAL_SOLICITADO:
+        {
             t_paquete *respuesta_signal = recibir_paquete(conexion_dispatch);
             t_instruccion *instruccion_signal = instruccion_deserializar(respuesta_signal->buffer, 0);
             char *recurso_signal = instruccion_signal->parametros[0];
@@ -173,21 +181,26 @@ void *recibir_dispatch()
             }
             else
             {
-                sumar_instancia_a_recurso(recurso_solicitado);
+                sumar_instancia_a_recurso(recurso_signal);
                 enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
             }
 
             break;
+        }
         case KILL_PROCESS:
+        {
             sem_post(&podes_eliminar_loko);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
+        }
         case OUT_OF_MEMORY:
+        {
             finalizar_pcb(pcb_actualizado, OUT_OF_MEMORY);
             sem_post(&cpu_libre);
+        }
         case RESOURCE_BLOCKED:
             break;
         default:
