@@ -119,6 +119,7 @@ void *iniciar_servidor_interrupt(void *arg)
         {
             log_info(logger_cpu, "operacion desconocida dentro de interrupciones");
         }
+        eliminar_paquete(respuesta_kernel);
     }
     return NULL;
 }
