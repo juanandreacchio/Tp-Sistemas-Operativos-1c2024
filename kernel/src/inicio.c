@@ -71,6 +71,7 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_cola_interfaces, NULL);
     pthread_mutex_init(&mutex_diccionario_interfaces_de_semaforos, NULL);
     pthread_mutex_init(&mutex_flag_cpu_libre, NULL);
+    pthread_cond_init(&cond_flag_cpu_libre,NULL);
     pthread_mutex_init(&mutex_motivo_ultimo_desalojo, NULL);
     pthread_mutex_init(&mutex_cola_de_exit, NULL);
     pthread_mutex_init(&mutex_procesos_en_sistema, NULL);
@@ -133,6 +134,7 @@ void destruir_semaforos()
     pthread_mutex_destroy(&mutex_cola_interfaces);
     pthread_mutex_destroy(&mutex_diccionario_interfaces_de_semaforos);
     pthread_mutex_destroy(&mutex_flag_cpu_libre);
+    pthread_cond_destroy(&cond_flag_cpu_libre);
     pthread_mutex_destroy(&mutex_motivo_ultimo_desalojo);
     pthread_mutex_destroy(&mutex_cola_de_exit);
     pthread_mutex_destroy(&mutex_procesos_en_sistema);

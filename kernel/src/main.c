@@ -36,6 +36,7 @@ pthread_mutex_t mutex_interfaces_conectadas;
 pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de la cola de cada interfaz
 pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 pthread_mutex_t mutex_flag_cpu_libre;
+pthread_cond_t cond_flag_cpu_libre;
 pthread_mutex_t mutex_motivo_ultimo_desalojo;
 pthread_mutex_t mutex_procesos_en_sistema;
 pthread_mutex_t mutex_cola_de_ready_plus;

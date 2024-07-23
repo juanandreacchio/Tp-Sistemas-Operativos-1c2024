@@ -75,42 +75,64 @@ void iniciar_planificador_corto_plazo()
 
 void *verificar_quantum()
 {
+    struct timespec ts;
     t_temporal *tiempo_transcurrido;
 
     while (1)
     {
-
+        // Espera hasta que arrancar_quantum esté disponible
         sem_wait(&arrancar_quantum);
 
+        // Bloqueo y actualización de la bandera
         pthread_mutex_lock(&mutex_flag_cpu_libre);
         flag_cpu_libre = 0;
         pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
+        // Crear temporizador
         tiempo_transcurrido = temporal_create();
 
-        while (tiempo_transcurrido != NULL)
+        // Obtener el tiempo actual y calcular el límite de tiempo
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += quantum / 1000;
+        ts.tv_nsec += (quantum % 1000) * 1000000;
+        if (ts.tv_nsec >= 1000000000)
         {
-            pthread_mutex_lock(&mutex_flag_cpu_libre);
-            if (flag_cpu_libre == 1)
-            {
-                flag_cpu_libre = 0;
-                temporal_destroy(tiempo_transcurrido);
-                tiempo_transcurrido = NULL;
-            }
-            else if (temporal_gettime(tiempo_transcurrido) >= quantum)
-            {
-                pcb_en_ejecucion->quantum = 0;
-                enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                temporal_destroy(tiempo_transcurrido);
-                tiempo_transcurrido = NULL;
-            }
-            pthread_mutex_unlock(&mutex_flag_cpu_libre);
+            ts.tv_sec += 1;
+            ts.tv_nsec -= 1000000000;
         }
+
+        // Bloqueo para esperar la señal de condición o el tiempo límite
+        pthread_mutex_lock(&mutex_flag_cpu_libre);
+        while (flag_cpu_libre == 0 && temporal_gettime(tiempo_transcurrido) < quantum)
+        {
+            // Esperar hasta que la condición se cumpla o se alcance el tiempo límite
+            if (pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts) == ETIMEDOUT)
+            {
+                break;
+            }
+        }
+
+        // Manejar el caso cuando la CPU está libre o el tiempo se ha agotado
+        if (flag_cpu_libre == 1)
+        {
+            flag_cpu_libre = 0;
+            temporal_destroy(tiempo_transcurrido);
+            tiempo_transcurrido = NULL;
+        }
+        else if (temporal_gettime(tiempo_transcurrido) >= quantum)
+        {
+            pcb_en_ejecucion->quantum = 0;
+            enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
+            temporal_destroy(tiempo_transcurrido);
+            tiempo_transcurrido = NULL;
+        }
+        pthread_mutex_unlock(&mutex_flag_cpu_libre);
     }
 }
 
 void *verificar_quantum_vrr()
 {
+    struct timespec ts;
     t_temporal *tiempo_transcurrido;
 
     while (1)
@@ -123,33 +145,47 @@ void *verificar_quantum_vrr()
 
         tiempo_transcurrido = temporal_create();
 
-        while (tiempo_transcurrido != NULL)
+        clock_gettime(CLOCK_REALTIME, &ts);
+        ts.tv_sec += pcb_en_ejecucion->quantum / 1000;
+        ts.tv_nsec += (pcb_en_ejecucion->quantum % 1000) * 1000000;
+        if (ts.tv_nsec >= 1000000000)
         {
-            pthread_mutex_lock(&mutex_flag_cpu_libre);
-            if (flag_cpu_libre == 1)
-            {
-                flag_cpu_libre = 0;
-                if (temporal_gettime(tiempo_transcurrido) >= ultimo_pcb_ejecutado->quantum)
-                {
-                    ultimo_pcb_ejecutado->quantum = 0;
-                }
-                else
-                {
-                    ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
-                    log_info(logger_kernel, "PID: %d - Quantum restante: %d", ultimo_pcb_ejecutado->pid, ultimo_pcb_ejecutado->quantum);
-                }
-                temporal_destroy(tiempo_transcurrido);
-                tiempo_transcurrido = NULL;
-            }
-            else if (temporal_gettime(tiempo_transcurrido) >= pcb_en_ejecucion->quantum)
-            {
-                pcb_en_ejecucion->quantum = 0;
-                enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-                temporal_destroy(tiempo_transcurrido);
-                tiempo_transcurrido = NULL;
-            }
-            pthread_mutex_unlock(&mutex_flag_cpu_libre);
+            ts.tv_sec += 1;
+            ts.tv_nsec -= 1000000000;
         }
+
+        pthread_mutex_lock(&mutex_flag_cpu_libre);
+        while (flag_cpu_libre == 0 && temporal_gettime(tiempo_transcurrido) < pcb_en_ejecucion->quantum)
+        {
+            if (pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts) == ETIMEDOUT)
+            {
+                break;
+            }
+        }
+
+        if (flag_cpu_libre == 1)
+        {
+            flag_cpu_libre = 0;
+            if (temporal_gettime(tiempo_transcurrido) >= ultimo_pcb_ejecutado->quantum)
+            {
+                ultimo_pcb_ejecutado->quantum = 0;
+            }
+            else
+            {
+                ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
+                log_info(logger_kernel, "PID: %d - Quantum restante: %d", ultimo_pcb_ejecutado->pid, ultimo_pcb_ejecutado->quantum);
+            }
+            temporal_destroy(tiempo_transcurrido);
+            tiempo_transcurrido = NULL;
+        }
+        else if (temporal_gettime(tiempo_transcurrido) >= pcb_en_ejecucion->quantum)
+        {
+            pcb_en_ejecucion->quantum = 0;
+            enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
+            temporal_destroy(tiempo_transcurrido);
+            tiempo_transcurrido = NULL;
+        }
+        pthread_mutex_unlock(&mutex_flag_cpu_libre);
     }
 }
 

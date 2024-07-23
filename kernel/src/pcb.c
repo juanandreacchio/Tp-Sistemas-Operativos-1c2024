@@ -24,6 +24,14 @@ void set_add_pcb_cola(t_pcb *pcb, estados estado, t_queue *cola, pthread_mutex_t
     queue_push(cola, pcb);
     pthread_mutex_unlock(&mutex);
 
+    if (cola == cola_procesos_ready)
+    {
+        listar_procesos_en_ready();
+    }
+    if (cola == cola_ready_plus){
+        listar_procesos_en_ready_plus();
+    }
+    
     
 }
 
@@ -206,4 +214,8 @@ uint32_t buscar_index_pid_bloqueado(uint32_t pid)
 
 bool tiene_mismo_pid(uint32_t pid1, uint32_t pid2){
     return pid1 == pid2;
+}
+
+void agregar_pid_alista(){
+    
 }

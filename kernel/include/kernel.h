@@ -59,6 +59,7 @@ extern sem_t podes_revisar_lista_bloqueados;
 
 
 
+
 extern t_dictionary *conexiones_io;
 extern t_dictionary *colas_blocks_io; // cola de cada interfaz individual, adentro están las isntrucciones a ejecutar
 extern t_dictionary *diccionario_semaforos_io;
@@ -77,6 +78,7 @@ extern pthread_mutex_t mutex_interfaces_conectadas;
 extern pthread_mutex_t mutex_cola_interfaces; // PARA AGREGAR AL DICCIOANRIO de la cola de cada interfaz
 extern pthread_mutex_t mutex_diccionario_interfaces_de_semaforos;
 extern pthread_mutex_t mutex_flag_cpu_libre;
+extern pthread_cond_t cond_flag_cpu_libre;
 extern pthread_mutex_t mutex_procesos_en_sistema;
 extern pthread_mutex_t mutex_cola_de_ready_plus;
 extern sem_t hay_proceso_a_ready, cpu_libre, arrancar_quantum;

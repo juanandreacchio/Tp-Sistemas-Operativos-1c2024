@@ -283,6 +283,7 @@ void ejecutar_comando(char *comando)
             }
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
+            pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
         }
         /*

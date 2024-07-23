@@ -26,7 +26,6 @@ void creacion_de_procesos()
         pthread_mutex_unlock(&mutex_cola_de_new);
 
         set_add_pcb_cola(pcb_ready, READY, cola_procesos_ready, mutex_cola_de_readys);
-        listar_procesos_en_ready();
         logear_cambio_estado(pcb_ready, NEW, READY);
 
         sem_post(&hay_proceso_a_ready);

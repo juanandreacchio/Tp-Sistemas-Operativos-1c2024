@@ -34,6 +34,7 @@ void *recibir_dispatch()
 
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
+            pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
             if (!interfaz_conectada(nombre_io))
@@ -86,22 +87,24 @@ void *recibir_dispatch()
 
             log_info(logger_kernel, "PID: %d - Desalojado por Fin de Quantum", pcb_actualizado->pid);
             set_add_pcb_cola(pcb_actualizado, READY, cola_procesos_ready, mutex_cola_de_readys);
-            listar_procesos_en_ready();
             actualizar_pcb_en_procesos_del_sistema(pcb_actualizado);
 
             logear_cambio_estado(pcb_actualizado, EXEC, READY);
             sem_post(&hay_proceso_a_ready);
-
+            log_info(logger_kernel,"hola estoy cerca de ahcer el sempost");
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
+            pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             sem_post(&cpu_libre);
+            log_info(logger_kernel,"hice el sem post de cpu_libre");
             break;
         case END_PROCESS:
             finalizar_pcb(pcb_actualizado, SUCCESS);
 
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
+            pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             sem_post(&cpu_libre);
             break;
@@ -116,6 +119,7 @@ void *recibir_dispatch()
                 enviar_codigo_operacion(RESOURCE_FAIL, conexion_dispatch);
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
+                pthread_cond_signal(&cond_flag_cpu_libre);
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 sem_post(&podes_revisar_lista_bloqueados);
                 sem_post(&cpu_libre);
@@ -137,6 +141,7 @@ void *recibir_dispatch()
 
                     pthread_mutex_lock(&mutex_flag_cpu_libre);
                     flag_cpu_libre = 1;
+                    pthread_cond_signal(&cond_flag_cpu_libre);
                     pthread_mutex_unlock(&mutex_flag_cpu_libre);
 
                     sem_post(&cpu_libre);
@@ -162,6 +167,7 @@ void *recibir_dispatch()
 
                 pthread_mutex_lock(&mutex_flag_cpu_libre);
                 flag_cpu_libre = 1;
+                pthread_cond_signal(&cond_flag_cpu_libre);
                 pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 sem_post(&cpu_libre);
             }
@@ -176,6 +182,7 @@ void *recibir_dispatch()
             sem_post(&podes_eliminar_loko);
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
+            pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             break;
         case OUT_OF_MEMORY:

@@ -91,7 +91,6 @@ void sumar_instancia_a_recurso(char *nombre)
                 logear_cambio_estado(pcb, BLOCKED, READY);
                 set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
                 //wait_contador(semaforo_multi);
-                listar_procesos_en_ready();
                 sem_post(&hay_proceso_a_ready);
             }
         }

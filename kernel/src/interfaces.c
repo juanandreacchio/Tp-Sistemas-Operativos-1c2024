@@ -120,7 +120,6 @@ void atender_interfaz(char *nombre_interfaz)
                 {
                     set_add_pcb_cola(pcb, READY, cola_ready_plus, mutex_cola_de_ready_plus);
                     logear_cambio_estado(pcb, BLOCKED, READY);
-                    listar_procesos_en_ready_plus();
                     sem_post(&hay_proceso_a_ready);
                     sem_post(&(semaforos_interfaz->binario_io_libre));
                 }
@@ -128,7 +127,6 @@ void atender_interfaz(char *nombre_interfaz)
                 {
                     set_add_pcb_cola(pcb, READY, cola_procesos_ready, mutex_cola_de_readys);
                     logear_cambio_estado(pcb, BLOCKED, READY);
-                    listar_procesos_en_ready();
                     sem_post(&hay_proceso_a_ready);
                     sem_post(&(semaforos_interfaz->binario_io_libre));
                 }
