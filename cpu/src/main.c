@@ -90,6 +90,8 @@ void *iniciar_servidor_dispatch(void *arg)
         registros_cpu = pcb->registros;
         registros_cpu.PC = pcb->pc;
         comenzar_proceso(pcb, conexion_memoria, conexion_kernel_dispatch);
+        if(pcb != NULL)
+            destruir_pcb(pcb);
     }
     return NULL;
 }
@@ -576,8 +578,6 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
         enviar_pcb(pcb, socket_Kernel);
     }
     input_ouput_flag = 0;
-    if(pcb != NULL)
-        destruir_pcb(pcb);
 }
 //------------------------FUNCIONES DE OPERACIONES------------------------------
 

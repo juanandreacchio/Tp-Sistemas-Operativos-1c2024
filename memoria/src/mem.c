@@ -213,6 +213,7 @@ t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
 void liberar_proceso(t_proceso* proceso) {
     uint32_t index = posicion_proceso(procesos_en_memoria, proceso->pid);
     liberar_tabla_paginas(proceso->tabla_paginas);
+    list_destroy_and_destroy_elements(proceso->lista_instrucciones,(void (*)(void *))liberar_t_instruccion_memoria);
     free(proceso);
     list_remove(procesos_en_memoria, index);
 }

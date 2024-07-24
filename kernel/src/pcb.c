@@ -12,9 +12,7 @@ void setear_pcb_en_ejecucion(t_pcb *pcb)
     logear_cambio_estado(pcb, pcb->estado_actual, EXEC);
     pcb->estado_actual = EXEC;
 
-    if(pcb_en_ejecucion != NULL){
-        destruir_pcb(pcb_en_ejecucion);
-    }
+    
     pthread_mutex_lock(&mutex_proceso_en_ejecucion);
     pcb_en_ejecucion = pcb;
     pthread_mutex_unlock(&mutex_proceso_en_ejecucion);

@@ -103,19 +103,18 @@ void *verificar_quantum()
 
         // Bloqueo para esperar la señal de condición o el tiempo límite
         pthread_mutex_lock(&mutex_flag_cpu_libre);
-        while (flag_cpu_libre == 0 && temporal_gettime(tiempo_transcurrido) < quantum)
+        while (flag_cpu_libre == 0)
         {
             int wait_result = pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts);
             if (wait_result == ETIMEDOUT)
             {
                 // Si el tiempo límite se alcanza, romper el bucle
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 break;
             }
             else if (wait_result != 0)
             {
                 // Manejar otros posibles errores de pthread_cond_timedwait
-                log_error(logger_kernel,"Error en pthread_cond_timedwait");
+                log_error(logger_kernel, "Error en pthread_cond_timedwait");
                 break;
             }
         }
@@ -124,17 +123,16 @@ void *verificar_quantum()
         if (flag_cpu_libre == 1)
         {
             flag_cpu_libre = 0;
-            temporal_destroy(tiempo_transcurrido);
-            tiempo_transcurrido = NULL;
         }
-        else if (temporal_gettime(tiempo_transcurrido) >= quantum)
+        else
         {
             pcb_en_ejecucion->quantum = 0;
             enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-            temporal_destroy(tiempo_transcurrido);
-            tiempo_transcurrido = NULL;
         }
+
+        // Desbloquear el mutex y destruir el temporizador
         pthread_mutex_unlock(&mutex_flag_cpu_libre);
+        temporal_destroy(tiempo_transcurrido);
     }
 }
 
@@ -163,25 +161,26 @@ void *verificar_quantum_vrr()
         }
 
         pthread_mutex_lock(&mutex_flag_cpu_libre);
-        while (flag_cpu_libre == 0 && temporal_gettime(tiempo_transcurrido) < pcb_en_ejecucion->quantum)
+        while (flag_cpu_libre == 0)
         {
             int wait_result = pthread_cond_timedwait(&cond_flag_cpu_libre, &mutex_flag_cpu_libre, &ts);
             if (wait_result == ETIMEDOUT)
             {
                 // Si el tiempo límite se alcanza, romper el bucle
-                pthread_mutex_unlock(&mutex_flag_cpu_libre);
                 break;
             }
             else if (wait_result != 0)
             {
                 // Manejar otros posibles errores de pthread_cond_timedwait
-                log_error(logger_kernel,"Error en pthread_cond_timedwait");
+                log_error(logger_kernel, "Error en pthread_cond_timedwait");
                 break;
             }
         }
-        
+
+        // Manejar el caso cuando la CPU está libre o el tiempo se ha agotado
         if (flag_cpu_libre == 1)
         {
+            log_info(logger_kernel,"entre por el caso de que la cpu libre estaa en 1");
             flag_cpu_libre = 0;
             if (temporal_gettime(tiempo_transcurrido) >= ultimo_pcb_ejecutado->quantum)
             {
@@ -192,17 +191,17 @@ void *verificar_quantum_vrr()
                 ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
                 log_info(logger_kernel, "PID: %d - Quantum restante: %d", ultimo_pcb_ejecutado->pid, ultimo_pcb_ejecutado->quantum);
             }
-            temporal_destroy(tiempo_transcurrido);
-            tiempo_transcurrido = NULL;
         }
-        else if (temporal_gettime(tiempo_transcurrido) >= pcb_en_ejecucion->quantum)
+        else
         {
+            log_info(logger_kernel,"entre por el caso de que la cpu libre estaa en 0");
             pcb_en_ejecucion->quantum = 0;
             enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
-            temporal_destroy(tiempo_transcurrido);
-            tiempo_transcurrido = NULL;
         }
+
+        // Desbloquear el mutex y destruir el temporizador
         pthread_mutex_unlock(&mutex_flag_cpu_libre);
+        temporal_destroy(tiempo_transcurrido);
     }
 }
 

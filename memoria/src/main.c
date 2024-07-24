@@ -164,14 +164,14 @@ void *atender_cliente(void *socket_cliente)
         case END_PROCESS:
         {
             log_info(logger_memoria, "Se recibio un mensaje para finalizar un proceso");
-            imprimir_pids(procesos_en_memoria);
+            //imprimir_pids(procesos_en_memoria);
             uint32_t pid;
             buffer_read(buffer, &pid, sizeof(uint32_t));
             // liberar el proceso y sacarlo de la lista
             t_proceso *proceso = buscar_proceso_por_pid(procesos_en_memoria, pid);
             log_info(logger_memoria,"PID: %d - Tamaño: %d",proceso->pid,list_size(proceso->tabla_paginas));
             liberar_proceso(proceso);
-            imprimir_pids(procesos_en_memoria);
+            //imprimir_pids(procesos_en_memoria);
             enviar_codigo_operacion(END_PROCESS,(int)(long int)socket_cliente);
             break;
         }

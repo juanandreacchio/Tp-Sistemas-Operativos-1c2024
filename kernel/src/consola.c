@@ -267,6 +267,7 @@ void ejecutar_comando(char *comando)
         t_paquete *paquete = crear_paquete(END_PROCESS);
         buffer_add(paquete->buffer, &pid, sizeof(uint32_t));
         enviar_paquete(paquete, conexion_memoria);
+        eliminar_paquete(paquete);
         if (recibir_operacion(conexion_memoria) != END_PROCESS)
         {
             log_error(logger_kernel, "error de end process del PID %d", pid);

@@ -20,6 +20,14 @@ void *recibir_dispatch()
         ultimo_pcb_ejecutado = pcb_actualizado;
         pthread_mutex_unlock(&mutex_ultimo_pcb);
 
+        /*
+        pthread_mutex_lock(&mutex_proceso_en_ejecucion);
+        if (pcb_en_ejecucion != NULL) {
+        destruir_pcb(pcb_en_ejecucion); 
+        }
+        pthread_mutex_unlock(&mutex_proceso_en_ejecucion);
+        */
+
         switch (motivo_desalojo)
         {
         case OPERACION_IO:

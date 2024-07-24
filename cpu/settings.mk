@@ -12,5 +12,5 @@ CRELEASE=-O3 -Wall -DNDEBUG -fcommon
 ARGS=
 
 # Valgrind flags
-MEMCHECK_FLAGS=--track-origins=yes
+MEMCHECK_FLAGS=--leak-check=full --track-origins=yes --leak-resolution=high
 HELGRIND_FLAGS=

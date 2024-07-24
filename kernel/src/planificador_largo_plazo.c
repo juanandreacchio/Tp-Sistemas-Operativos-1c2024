@@ -53,6 +53,7 @@ void eliminacion_de_procesos()
         t_paquete *paquete = crear_paquete(END_PROCESS);
         buffer_add(paquete->buffer, &pcb_exit->pid, sizeof(uint32_t));
         enviar_paquete(paquete, conexion_memoria);
+        eliminar_paquete(paquete);
         if (recibir_operacion(conexion_memoria) != END_PROCESS)
         {
             log_error(logger_kernel, "error de end process del PID %d", pcb_exit->pid);

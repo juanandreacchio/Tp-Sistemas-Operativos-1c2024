@@ -659,26 +659,25 @@ void agregar_parametro_a_instruccion(t_list *parametros, t_instruccion *instrucc
 
 t_instruccion *crear_instruccion(t_identificador identificador, t_list *parametros)
 {
-	t_instruccion *instruccionNueva = malloc(sizeof(t_instruccion));
+    t_instruccion *instruccionNueva = (t_instruccion*)malloc(sizeof(t_instruccion));
+    
 
-	instruccionNueva->identificador = identificador;
-	if (list_size(parametros) < 1)
-	{
-		instruccionNueva->cant_parametros = 0;
-		instruccionNueva->parametros = NULL;
-		instruccionNueva->param1_length = 0;
-		instruccionNueva->param2_length = 0;
-		instruccionNueva->param3_length = 0;
-		instruccionNueva->param4_length = 0;
-		instruccionNueva->param5_length = 0;
-	}
-	else
-	{
-		instruccionNueva->cant_parametros = list_size(parametros);
-		instruccionNueva->parametros = malloc(sizeof(char *) * instruccionNueva->cant_parametros);
-		agregar_parametro_a_instruccion(parametros, instruccionNueva);
-	}
-	return instruccionNueva;
+    instruccionNueva->identificador = identificador;
+    instruccionNueva->cant_parametros = list_size(parametros);
+
+    if (instruccionNueva->cant_parametros == 0) {
+        instruccionNueva->parametros = NULL;
+        instruccionNueva->param1_length = 0;
+        instruccionNueva->param2_length = 0;
+        instruccionNueva->param3_length = 0;
+        instruccionNueva->param4_length = 0;
+        instruccionNueva->param5_length = 0;
+    } else {
+        instruccionNueva->parametros = (char**)malloc(sizeof(char*) * instruccionNueva->cant_parametros);
+        agregar_parametro_a_instruccion(parametros, instruccionNueva);
+    }
+
+    return instruccionNueva;
 }
 
 void agregar_instruccion_a_paquete(t_paquete *paquete, t_instruccion *instruccion)
@@ -728,8 +727,8 @@ t_list *parsear_instrucciones(FILE *archivo_instrucciones)
             i++;
         }
 		free(tokens);
-		//list_destroy(lista_de_parametros);
-		list_destroy_and_destroy_elements(lista_de_parametros,free);
+		list_destroy(lista_de_parametros);
+		//list_destroy_and_destroy_elements(lista_de_parametros,free);
 	}
 
 	free(line);
@@ -1037,6 +1036,20 @@ const char* op_code_to_string(op_code code) {
     }
 }
 void liberar_t_instruccion(t_instruccion *instruccion)
+{
+    if (instruccion != NULL) {
+        // Si los parámetros fueron asignados, liberarlos
+        if (instruccion->parametros != NULL) {
+            if (instruccion->cant_parametros > 0 && instruccion->parametros[0] != NULL) {
+                free(instruccion->parametros[0]); // Liberar el bloque de memoria contiguo
+            }
+            free(instruccion->parametros); // Liberar el array de punteros
+        }
+        // Liberar la estructura
+        free(instruccion);
+    }
+}
+void liberar_t_instruccion_memoria(t_instruccion *instruccion)
 {
     // Liberar cada uno de los parámetros
     for (uint32_t i = 0; i < instruccion->cant_parametros; i++)
