@@ -34,7 +34,6 @@ bool esOperacionValida(t_identificador identificador, cod_interfaz tipo)
 
 void crear_interfaz(op_code tipo, char *nombre, uint32_t conexion)
 {
-    log_info(logger_kernel, "Se conectó la I/O llamada: %s", nombre);
 
     t_interfaz_en_kernel *interfaz = malloc(sizeof(t_interfaz_en_kernel));
     interfaz->conexion = conexion;

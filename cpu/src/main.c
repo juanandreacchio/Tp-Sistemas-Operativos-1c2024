@@ -459,6 +459,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         t_paquete *paquete = crear_paquete(WAIT_SOLICITADO);
         paquete->buffer = serializar_instruccion(instruccion);
         enviar_paquete(paquete, conexion_kernel_dispatch);
+        eliminar_paquete(paquete);
         op_code estado_operacion = recibir_operacion(conexion_kernel_dispatch);
         if (estado_operacion == RESOURCE_FAIL)
         {
@@ -481,6 +482,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         t_paquete *paquete = crear_paquete(SIGNAL_SOLICITADO);
         paquete->buffer = serializar_instruccion(instruccion);
         enviar_paquete(paquete, conexion_kernel_dispatch);
+        eliminar_paquete(paquete);
         op_code estado_operacion = recibir_operacion(conexion_kernel_dispatch);
         if (estado_operacion == RESOURCE_FAIL)
         {

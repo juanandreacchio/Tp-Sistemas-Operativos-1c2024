@@ -1,6 +1,7 @@
 #include <../include/kernel.h>
 
 t_config *config_kernel;
+t_config *config_conexiones;
 
 t_log *logger_kernel;
 char *ip_memoria;
@@ -77,8 +78,18 @@ sem_t podes_manejar_recepcion_de_interfaces;
 
 
 
-int main(void)
+int main(int argc, char *argv[]) // make start config/<nombre>.config
 {
+    /*
+    // if(argc != 2){
+                printf("falta ingresar algun parametro\n");
+        exit(1);
+    // }
+
+    char *ruta = argv[2];
+
+    iniciar_config_kernel(ruta);
+    */
     iniciar_config();
     iniciar_variables();
     iniciar_listas();
@@ -115,13 +126,11 @@ int main(void)
 
     if (strcmp(algoritmo_planificacion, "RR") == 0)
     {
-        log_info(logger_kernel, "iniciando contador de quantum");
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum, NULL);
         pthread_detach(hilo_quantum);
     }
 
     if(strcmp(algoritmo_planificacion, "VRR") == 0){
-        log_info(logger_kernel, "iniciando contador de quantum");
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum_vrr, NULL);
         pthread_detach(hilo_quantum);
     }
@@ -138,6 +147,9 @@ int main(void)
     log_info(logger_kernel, "Se cerrará la conexión.");
     
     destruir_semaforos();
+    eliminar_diccionarios();
+    eliminar_listas();
+    eliminar_colas();
     terminar_programa(socket_servidor_kernel, logger_kernel, config_kernel);
 }
 

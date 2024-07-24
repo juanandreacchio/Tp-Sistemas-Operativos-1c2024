@@ -168,3 +168,31 @@ void eliminar_colas()
     queue_destroy_and_destroy_elements(cola_procesos_exit, free);
     queue_destroy_and_destroy_elements(cola_ready_plus, free);
 }
+
+/*
+    void iniciar_config_kernel(char *ruta){
+        config_ips = config_create("config/conexion_kernel.config");
+    if ((config_prueba = config_create(ruta)) == NULL)
+    {
+        printf("la ruta ingresada no existe\n");
+        exit(2);
+    };
+    logger_kernel = iniciar_logger("config/kernel.log", "KERNEL", LOG_LEVEL_INFO);
+ip_memoria = config_get_string_value(config_ips, "IP_MEMORIA");
+    ip_cpu = config_get_string_value(config_ips, "IP_CPU");
+    puerto_dispatch = config_get_string_value(config_ips, "PUERTO_CPU_DISPATCH");
+    puerto_interrupt = config_get_string_value(config_ips, "PUERTO_CPU_INTERRUPT");
+    puerto_memoria = config_get_string_value(config_ips, "PUERTO_MEMORIA");
+    puerto_escucha = config_get_string_value(config_ips, "PUERTO_ESCUCHA");
+        quantum = config_get_int_value(config_prueba, "QUANTUM");
+    algoritmo_planificacion = config_get_string_value(config_prueba, "ALGORITMO_PLANIFICACION");
+    grado_multiprogramacion = config_get_int_value(config_prueba, "GRADO_MULTIPROGRAMACION");
+    recursos = config_get_array_value(config_prueba, "RECURSOS");
+    instancias_recursos = config_get_array_value(config_prueba, "INSTANCIAS_RECURSOS");
+        if (string_array_size(recursos) != string_array_size(instancias_recursos))
+    {
+        log_error(logger_kernel, "La cantidad de recursos y de instancias de recursos no coincide");
+        exit(EXIT_FAILURE);
+    }
+    }
+ */

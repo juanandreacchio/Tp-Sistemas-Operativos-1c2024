@@ -51,7 +51,6 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
 
     iniciar_conexion_kernel(interfaz_creada);
     
-    log_info(logger_entradasalida, "I/O %s terminada", interfaz_creada->nombre);
     config_destroy(config_entradasalida);
     log_destroy(logger_entradasalida);
     free(interfaz_creada);
@@ -401,7 +400,6 @@ void* leer_desde_teclado(uint32_t tamanio) {
         return NULL;
     }
 
-    log_info(logger_entradasalida, "Ingrese el dato a escribir en la memoria: ");
     if (fgets(dato, tamanio+2, stdin) == NULL) {
         log_error(logger_entradasalida, "Error al leer el dato desde el STDIN");
         free(dato);

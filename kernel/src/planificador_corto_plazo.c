@@ -13,7 +13,6 @@ void iniciar_planificador_corto_plazo()
 
         if (strcmp(algoritmo_planificacion, "FIFO") == 0)
         {
-            log_info(logger_kernel, "algoritmo de planificacion: FIFO");
 
             pthread_mutex_lock(&mutex_cola_de_readys);
             t_pcb *pcb_a_ejecutar = queue_pop(cola_procesos_ready);
@@ -25,7 +24,6 @@ void iniciar_planificador_corto_plazo()
         }
         else if (strcmp(algoritmo_planificacion, "RR") == 0)
         {
-            log_info(logger_kernel, "algoritmo de planificacion: RR");
 
             pthread_mutex_lock(&mutex_cola_de_readys);
             t_pcb *pcb_a_ejecutar = queue_pop(cola_procesos_ready);
@@ -38,7 +36,6 @@ void iniciar_planificador_corto_plazo()
         }
         else if (strcmp(algoritmo_planificacion, "VRR") == 0)
         {
-            log_info(logger_kernel, "algoritmo de planificacion: VRR");
             t_pcb *pcb_a_ejecutar;
 
             pthread_mutex_lock(&mutex_cola_de_ready_plus);
@@ -180,7 +177,6 @@ void *verificar_quantum_vrr()
         // Manejar el caso cuando la CPU está libre o el tiempo se ha agotado
         if (flag_cpu_libre == 1)
         {
-            log_info(logger_kernel,"entre por el caso de que la cpu libre estaa en 1");
             flag_cpu_libre = 0;
             if (temporal_gettime(tiempo_transcurrido) >= ultimo_pcb_ejecutado->quantum)
             {
@@ -189,12 +185,10 @@ void *verificar_quantum_vrr()
             else
             {
                 ultimo_pcb_ejecutado->quantum -= temporal_gettime(tiempo_transcurrido);
-                log_info(logger_kernel, "PID: %d - Quantum restante: %d", ultimo_pcb_ejecutado->pid, ultimo_pcb_ejecutado->quantum);
             }
         }
         else
         {
-            log_info(logger_kernel,"entre por el caso de que la cpu libre estaa en 0");
             pcb_en_ejecucion->quantum = 0;
             enviar_interrupcion(pcb_en_ejecucion->pid, FIN_CLOCK, conexion_interrupt);
         }

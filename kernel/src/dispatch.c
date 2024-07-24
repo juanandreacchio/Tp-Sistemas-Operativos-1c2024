@@ -47,7 +47,6 @@ void *recibir_dispatch()
 
             if (!interfaz_conectada(nombre_io))
             {
-                log_error(logger_kernel, "La interfaz %s no está conectada", nombre_io);
                 finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
                 sem_post(&cpu_libre);
                 break;
@@ -55,7 +54,6 @@ void *recibir_dispatch()
             t_interfaz_en_kernel *interfaz = dictionary_get(conexiones_io, nombre_io);
             if (!esOperacionValida(identificador, interfaz->tipo_interfaz))
             {
-                log_error(logger_kernel, "La operacion %d no es valida para la interfaz %s", identificador, nombre_io);
                 finalizar_pcb(pcb_actualizado, INVALID_INTERFACE);
                 sem_post(&cpu_libre);
                 break;
@@ -101,13 +99,11 @@ void *recibir_dispatch()
 
             logear_cambio_estado(pcb_actualizado, EXEC, READY);
             sem_post(&hay_proceso_a_ready);
-            log_info(logger_kernel, "hola estoy cerca de ahcer el sempost");
             pthread_mutex_lock(&mutex_flag_cpu_libre);
             flag_cpu_libre = 1;
             pthread_cond_signal(&cond_flag_cpu_libre);
             pthread_mutex_unlock(&mutex_flag_cpu_libre);
             sem_post(&cpu_libre);
-            log_info(logger_kernel, "hice el sem post de cpu_libre");
             break;
         }
         case END_PROCESS:
@@ -125,7 +121,7 @@ void *recibir_dispatch()
         {
             t_paquete *respuesta = recibir_paquete(conexion_dispatch);
             t_instruccion *utlima = instruccion_deserializar(respuesta->buffer, 0);
-            char *recurso_solicitado = utlima->parametros[0];
+            char *recurso_solicitado = strdup(utlima->parametros[0]);
             bool flag_recurso_no_existe = false;
 
             if (!existe_recurso(recurso_solicitado))
@@ -164,11 +160,17 @@ void *recibir_dispatch()
                 else
                 {
                     enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
+                    if(pcb_actualizado!=NULL){
+                        destruir_pcb(pcb_actualizado);
+                    }
                 }
-                sem_post(&podes_revisar_lista_bloqueados);
             }
+                sem_post(&podes_revisar_lista_bloqueados);
+            liberar_t_instruccion(utlima);
+            eliminar_paquete(respuesta);
 
             break;
+            
         }
         case SIGNAL_SOLICITADO:
         {
@@ -191,8 +193,11 @@ void *recibir_dispatch()
             {
                 sumar_instancia_a_recurso(recurso_signal);
                 enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
+                if(pcb_actualizado!=NULL)
+                    destruir_pcb(pcb_actualizado);
             }
-
+            liberar_t_instruccion(instruccion_signal);
+            eliminar_paquete(respuesta_signal);
             break;
         }
         case KILL_PROCESS:

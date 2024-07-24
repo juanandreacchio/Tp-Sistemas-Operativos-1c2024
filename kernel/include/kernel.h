@@ -34,6 +34,7 @@ typedef struct{
 } t_semaforo_contador;
 
 extern t_config *config_kernel;
+extern t_config *config_conexiones;
 
 extern t_log *logger_kernel;
 extern char *ip_memoria;
