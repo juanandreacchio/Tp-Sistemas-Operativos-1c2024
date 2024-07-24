@@ -1040,6 +1040,7 @@ void copy_string(u_int32_t pid, size_t tamanio)
     log_info(logger_cpu, "PID: %d - Acción: ESCRIBIR - Dirección Física: %d - Valor: %s", pid, primer_direc_fisica_di->direccion_fisica, valor);
 
     free(buffer);
+    free(valor);
     list_destroy_and_destroy_elements(direc_fisicas_si, free);
     list_destroy_and_destroy_elements(direc_fisicas_di, free);
 }

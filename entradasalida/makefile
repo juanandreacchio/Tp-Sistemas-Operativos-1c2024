@@ -56,7 +56,9 @@ $(BIN): $(OBJS) | $(dir $(BIN))
 
 .PHONY: memcheck
 memcheck: debug
-	valgrind --leak-check=full $(MEMCHECK_FLAGS) ./$(BIN) $(ARGS)
+	valgrind --leak-check=full $(MEMCHECK_FLAGS) ./$(BIN) $(filter-out $@,$(MAKECMDGOALS))
+$(BIN): $(OBJS) | $(dir $(BIN))
+	$(CC) $(CFLAGS) -o "$@" $^ $(IDIRS:%=-I%) $(LIBDIRS:%=-L%) $(LIBS:%=-l%)
 
 .PHONY: helgrind
 helgrind: debug
