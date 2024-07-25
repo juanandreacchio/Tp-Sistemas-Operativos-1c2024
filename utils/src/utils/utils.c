@@ -544,7 +544,7 @@ t_buffer *serializar_instruccion(t_instruccion *instruccion)
 	{
 		buffer_add(buffer, instruccion->parametros[4], instruccion->param5_length);
 	}
-	printf("breakpoint");
+	//printf("breakpoint");
 	return buffer;
 }
 

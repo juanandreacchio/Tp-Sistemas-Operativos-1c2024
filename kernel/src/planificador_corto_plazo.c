@@ -16,7 +16,7 @@ void iniciar_planificador_corto_plazo()
 
             pthread_mutex_lock(&mutex_cola_de_readys);
             t_pcb *pcb_a_ejecutar = queue_pop(cola_procesos_ready);
-            log_info(logger_kernel, "PID: %d - EJECUTANDO", pcb_a_ejecutar->pid);
+            //log_info(logger_kernel, "PID: %d - EJECUTANDO", pcb_a_ejecutar->pid);
             pthread_mutex_unlock(&mutex_cola_de_readys);
 
 
@@ -58,7 +58,7 @@ void iniciar_planificador_corto_plazo()
 
                 pcb_a_ejecutar->quantum = quantum;
             }
-            log_info(logger_kernel, "El PID: %d tiene para ejecutar: %d", pcb_a_ejecutar->pid, pcb_a_ejecutar->quantum);
+            //log_info(logger_kernel, "El PID: %d tiene para ejecutar: %d", pcb_a_ejecutar->pid, pcb_a_ejecutar->quantum);
             ejecutar_PCB(pcb_a_ejecutar);
 
             sem_post(&arrancar_quantum);

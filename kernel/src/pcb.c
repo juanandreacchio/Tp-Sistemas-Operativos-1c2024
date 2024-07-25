@@ -3,7 +3,7 @@
 void ejecutar_PCB(t_pcb *pcb)
 {
     setear_pcb_en_ejecucion(pcb);
-    log_info(logger_kernel, "Se envio el PCB con PID %d a CPU Dispatch", pcb->pid);
+    //log_info(logger_kernel, "Se envio el PCB con PID %d a CPU Dispatch", pcb->pid);
     enviar_pcb(pcb, conexion_dispatch);
 }
 
@@ -74,7 +74,7 @@ void finalizar_pcb(t_pcb *pcb, op_code motivo)
     sem_post(&hay_proceso_exit);
 }
 
-void logear_bloqueo_proceso(uint32_t pid, char *motivo)
+void logear_bloqueo_proceso(uint32_t pid, char *motivo)//TODO
 {
     log_info(logger_kernel, "PID: %d - Bloqueado por: %s", pid, motivo);
 }
@@ -156,12 +156,12 @@ void bloquear_pcb(t_pcb *pcb)
     pthread_mutex_unlock(&mutex_lista_de_blocked);
     actualizar_pcb_en_procesos_del_sistema(pcb);
 
-    logear_lista_blocked();
+    //logear_lista_blocked();
 }
 
-void logear_lista_blocked()
+void logear_lista_blocked()//TODO
 {
-    log_info(logger_kernel, "Procesos en cola de Blocked:");
+    //log_info(logger_kernel, "Procesos en cola de Blocked:");
     for (size_t i = 0; i < list_size(lista_procesos_blocked); i++)
     {
         pthread_mutex_lock(&mutex_lista_de_blocked);

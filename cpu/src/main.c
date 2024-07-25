@@ -89,7 +89,7 @@ void *iniciar_servidor_dispatch(void *arg)
 {
     socket_servidor_dispatch = iniciar_servidor(logger_cpu, puerto_dispatch, "DISPATCH");
     conexion_kernel_dispatch = esperar_cliente(socket_servidor_dispatch, logger_cpu);
-    log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Dispatch", cod_op_to_string(recibir_operacion(conexion_kernel_dispatch)));
+    log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Dispatch", op_code_to_string(recibir_operacion(conexion_kernel_dispatch)));
     recibir_mensaje(conexion_kernel_dispatch, logger_cpu);
     while (1)
     {
@@ -109,7 +109,7 @@ void *iniciar_servidor_interrupt(void *arg)
 {
     socket_servidor_interrupt = iniciar_servidor(logger_cpu, puerto_interrupt, "INTERRUPT");
     conexion_kernel_interrupt = esperar_cliente(socket_servidor_interrupt, logger_cpu);
-    log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Interrupt", cod_op_to_string(recibir_operacion(conexion_kernel_interrupt)));
+    log_info(logger_cpu, "Se recibio un mensaje del modulo %s en el Interrupt", op_code_to_string(recibir_operacion(conexion_kernel_interrupt)));
     recibir_mensaje(conexion_kernel_interrupt, logger_cpu);
     while (1)
     {
@@ -122,11 +122,11 @@ void *iniciar_servidor_interrupt(void *arg)
                 free(interrupcion_recibida);
             }
             interrupcion_recibida = deserializar_interrupcion(respuesta_kernel->buffer);
-            log_info(logger_cpu, "ME LLEGO UNA INTERRUPCION DEL KERNEL DEL PROCESO: %d", interrupcion_recibida->pid);
+            //log_info(logger_cpu, "ME LLEGO UNA INTERRUPCION DEL KERNEL DEL PROCESO: %d", interrupcion_recibida->pid);
         }
         else
         {
-            log_info(logger_cpu, "operacion desconocida dentro de interrupciones");
+            log_error(logger_cpu, "operacion desconocida dentro de interrupciones");
         }
         eliminar_paquete(respuesta_kernel);
     }
@@ -142,7 +142,7 @@ void accion_interrupt(t_pcb *pcb, op_code motivo, int socket)
     }
 
     interruption_flag = 0;
-    log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion motivo: %s", op_code_to_string(motivo));
+    //log_info(logger_cpu, "estaba ejecutando y encontre una interrupcion motivo: %s", op_code_to_string(motivo));
     enviar_motivo_desalojo(motivo, socket);
     enviar_pcb(pcb, socket);
 }
@@ -444,9 +444,9 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         else if (operacion != OK)
         {
             log_error(logger_cpu, "error: recibi un codigo de operacion desconocido dentro de RESIZE");
-        }
+        }/*
         else if (operacion == OK)
-            log_info(logger_cpu, "RESIZE hecho");
+            log_info(logger_cpu, "RESIZE hecho");*/
         break;
     }
     case COPY_STRING:
@@ -507,7 +507,7 @@ void decode_y_execute_instruccion(t_instruccion *instruccion, t_pcb *pcb)
         break;
     }
     // log_info(logger_cpu, "PID: %d - EJECUTANDO ", pcb->pid);
-    imprimir_instruccion(instruccion);
+    //imprimir_instruccion(instruccion);
 }
 
 bool check_interrupt(uint32_t pid)
@@ -553,14 +553,14 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
 
         if (check_interrupt(pcb->pid))
         {
-            log_info(logger_cpu, "el chequeo de interrupcion encontro que hay una interrupcion");
+            //log_info(logger_cpu, "el chequeo de interrupcion encontro que hay una interrupcion");
             interruption_flag = 1;
         }
         log_instruccion(pcb->pid, instruccion);
         // usleep(500000); este es el que no iba
     }
 
-    imprimir_registros_por_pantalla(registros_cpu);
+    //imprimir_registros_por_pantalla(registros_cpu);
     pcb->registros = registros_cpu;
     pcb->pc = registros_cpu.PC;
 
@@ -573,7 +573,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
         interruption_flag = 0;
         enviar_motivo_desalojo(END_PROCESS, socket_Kernel);
         enviar_pcb(pcb, socket_Kernel);
-        log_info(logger_cpu, "Se envio el pcb al kernel con motivo de desalojo END_PROCESS");
+        //log_info(logger_cpu, "Se envio el pcb al kernel con motivo de desalojo END_PROCESS");
         return;
     }
     if (interruption_flag == 1 && input_ouput_flag == 0)
@@ -780,7 +780,7 @@ void sum_registro(char *registroDestino, char *registroOrigen)
 
     if (!dest_addr)
     {
-        printf("Error: no se encontró el registro destino\n");
+        log_error(logger_cpu,"Error: no se encontró el registro destino");
         return;
     }
 
@@ -1193,7 +1193,7 @@ void agregar_entrada_tlb(u_int32_t id_proceso, u_int32_t numero_pagina, u_int32_
     nueva_entrada->ultimo_acceso = tiempo_actual;
 
     list_add(TLB, nueva_entrada);
-    log_info(logger_cpu, "Entrada TLB agregada");
+    //log_info(logger_cpu, "Entrada TLB agregada");
 }
 
 void liberar_entrada_tlb(entrada_tlb *entrada)
@@ -1205,13 +1205,13 @@ void reemplazo_tlb(int id_proceso, int numero_pagina, int numero_marco)
 {
     if (cant_entradas_tlb == 0)
     {
-        log_info(logger_cpu, "La cantidad de entradas de la TLB es 0");
+        //log_info(logger_cpu, "La cantidad de entradas de la TLB es 0");
         return;
     }
     if (list_size(TLB) < cant_entradas_tlb)
     {
         agregar_entrada_tlb(id_proceso, numero_pagina, numero_marco);
-        log_info(logger_cpu, "Agrege una entrada a la TLB");
+        //log_info(logger_cpu, "Agrege una entrada a la TLB");
     }
     else
     {
@@ -1225,7 +1225,7 @@ void reemplazo_tlb(int id_proceso, int numero_pagina, int numero_marco)
         }
 
         agregar_entrada_tlb(id_proceso, numero_pagina, numero_marco);
-        log_info(logger_cpu, "Remplace una entrada a la TLB");
+        //log_info(logger_cpu, "Remplace una entrada a la TLB");
     }
 }
 
@@ -1310,7 +1310,7 @@ void log_instruccion(int pid, const t_instruccion *instruccion)
 
     if (!message)
     {
-        fprintf(stderr, "Error al asignar memoria para el mensaje de log\n");
+        log_error(logger_cpu, "Error al asignar memoria para el mensaje de log");
         return;
     }
 

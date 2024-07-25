@@ -61,6 +61,7 @@ void *recibir_dispatch()
 
             // pcb_actualizado->estado_actual = BLOCKED;
             logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
+            logear_bloqueo_proceso(pcb_actualizado->pid,nombre_io);
             bloquear_pcb(pcb_actualizado);
 
             pthread_mutex_lock(&mutex_nombre_interfaz_bloqueante);
@@ -147,7 +148,7 @@ void *recibir_dispatch()
 
                     logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
                     bloquear_pcb(pcb_actualizado);
-                    logear_lista_blocked();
+                    //logear_lista_blocked();
 
                     pthread_mutex_lock(&mutex_flag_cpu_libre);
                     flag_cpu_libre = 1;

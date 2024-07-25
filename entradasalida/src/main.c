@@ -158,7 +158,7 @@ void *atender_cliente(int socket_cliente)
         // Leer desde el STDIN
         void *dato = leer_desde_teclado(total_tamanio);
         if (dato == NULL) {
-            log_info(logger_entradasalida,"error: el dato dio null");
+            log_error(logger_entradasalida,"error: el dato dio null");
         }
 
         t_paquete *paquete_escritura = crear_paquete(ESCRITURA_MEMORIA);

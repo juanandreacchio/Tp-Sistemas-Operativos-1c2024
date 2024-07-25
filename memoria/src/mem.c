@@ -11,7 +11,7 @@ void enviar_tamanio_pagina(int socket)
 void inicializar_memoria_principal(){
     memoria_principal = malloc(TAM_MEMORIA);
     if (memoria_principal == NULL) {
-        printf("Error: no se pudo asignar memoria para la memoria principal\n");
+        log_error(logger_memoria,"Error: no se pudo asignar memoria para la memoria principal\n");
         exit(1);
     }
     inicializar_bitarray(TAM_MEMORIA / TAM_PAGINA);
@@ -40,12 +40,12 @@ void inicializar_bitarray(size_t size) {
     int bytes = (size + 7) / 8;  // Convertir el tamaño a bytes
     void *bitarray_mem = malloc(bytes);
     if (bitarray_mem == NULL) {
-        printf("Error: no se pudo asignar memoria para el bitarray\n");
+        log_error(logger_memoria,"Error: no se pudo asignar memoria para el bitarray\n");
         exit(1);
     }
     marcos_ocupados = bitarray_create_with_mode(bitarray_mem, bytes, LSB_FIRST);
     if (marcos_ocupados == NULL) {
-        printf("Error: no se pudo crear el bitarray\n");
+        log_error(logger_memoria,"Error: no se pudo crear el bitarray\n");
         free(bitarray_mem);
         exit(1);
     }
@@ -65,7 +65,7 @@ void destruir_bitarray() {
 t_pagina *inicializar_pagina(int numero_marco) {
     t_pagina* pagina = malloc(sizeof(t_pagina));
     if (pagina == NULL) {
-        printf("Error: no se pudo asignar memoria para la página\n");
+        log_error(logger_memoria,"Error: no se pudo asignar memoria para la página\n");
         exit(1);
     }
     pagina->numero_marco = numero_marco;
@@ -169,19 +169,19 @@ t_solicitudCreacionProcesoEnMemoria *deserializar_solicitud_crear_proceso(t_buff
 // Función que a partir de un archivo de instrucciones, devuelve la lista de instrucciones
 
 t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
-    printf("ENTRE A CREAR PROCESO PAAAA");
+    //printf("ENTRE A CREAR PROCESO PAAAA");
     size_t path_final_size = strlen(PATH_INSTRUCCIONES) + strlen(path) + 1;
     char *path_final = malloc(path_final_size); 
     strcpy(path_final, PATH_INSTRUCCIONES);
     strcat(path_final, path);
     FILE* archivo_instrucciones = fopen(path_final, "r");
     if (archivo_instrucciones == NULL) {
-        printf("Error: no se pudo abrir el archivo %s\n", path);
+        log_error(logger_memoria,"Error: no se pudo abrir el archivo %s\n", path);
         exit(1);
     }
     t_proceso* proceso = malloc(sizeof(t_proceso));
     if (proceso == NULL) {
-        printf("Error: no se pudo asignar memoria para el proceso con PID %d\n", pid);
+        log_error(logger_memoria,"Error: no se pudo asignar memoria para el proceso con PID %d\n", pid);
         exit(1);
     }
     proceso->pid = pid;
@@ -227,12 +227,12 @@ void liberar_proceso_por_pid(uint32_t pid){
 t_instruccion *leer_instruccion(char* path, uint32_t pc) {
     FILE* archivo = fopen(path, "r");
     if (archivo == NULL) {
-        printf("Error: no se pudo abrir el archivo %s\n", path);
+        log_error(logger_memoria,"Error: no se pudo abrir el archivo %s\n", path);
         exit(1);
     }
     t_instruccion* instruccion = malloc(sizeof(t_instruccion));
     if (instruccion == NULL) {
-        printf("Error: no se pudo asignar memoria para la instrucción\n");
+        log_error(logger_memoria,"Error: no se pudo asignar memoria para la instrucción\n");
         exit(1);
     }
 
@@ -242,7 +242,7 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
         size_t buffer_size = 0;
         ssize_t bytes_leidos = getline(&buffer, &buffer_size, archivo);
         if (bytes_leidos == -1) {
-            printf("Error: no se pudo leer la instrucción del archivo %s\n", path);
+            log_error(logger_memoria,"Error: no se pudo leer la instrucción del archivo %s\n", path);
             exit(1);
         }
         free(buffer);
@@ -253,7 +253,7 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
     size_t buffer_size = 0;
     ssize_t bytes_leidos = getline(&buffer, &buffer_size, archivo);
     if (bytes_leidos == -1) {
-        printf("Error: no se pudo leer la instrucción del archivo %s\n", path);
+        log_error(logger_memoria,"Error: no se pudo leer la instrucción del archivo %s\n", path);
         exit(1);
     }
     instruccion = string_to_instruccion(buffer);
@@ -264,7 +264,7 @@ t_instruccion *leer_instruccion(char* path, uint32_t pc) {
 
 // Funcion que busque una instruccion en un proceso a partir de un PID y un PC
 t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t pc) {
-    printf("Buscando instrucción con PID %d y PC %d\n", pid, pc);
+    //printf("Buscando instrucción con PID %d y PC %d\n", pid, pc);
     t_proceso* proceso;
     t_proceso* proceso_actual;
     for (int i = 0; i < list_size(lista_procesos); i++) {
@@ -275,7 +275,7 @@ t_instruccion *buscar_instruccion(t_list* lista_procesos, uint32_t pid, uint32_t
         }
     }
     if (proceso == NULL) {
-        printf("Error: no se encontró el proceso con PID %d\n", pid);
+        log_error(logger_memoria,"Error: no se encontró el proceso con PID %d\n", pid);
         exit(1);
     }
     if(list_size(proceso->lista_instrucciones) == 0){

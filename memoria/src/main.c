@@ -102,7 +102,7 @@ void *atender_cliente(void *socket_cliente)
 
         op_code codigo_operacion = paquete->codigo_operacion;
         t_buffer *buffer = paquete->buffer;
-        log_info(logger_memoria, "codigo de operacion: %s", op_code_to_string(codigo_operacion));
+        //log_info(logger_memoria, "codigo de operacion: %s", op_code_to_string(codigo_operacion));
 
         // NO SE SI ESTO ESTA BIEN, CREO QUE DA LO MISMO DONDE SE PONGA
         usleep(RETARDO_RESPUESTA * 1000);
@@ -127,7 +127,7 @@ void *atender_cliente(void *socket_cliente)
         }
         case SOLICITUD_INSTRUCCION:
         {
-            log_info(logger_memoria, "Se recibio una solicitud de instruccion");
+            //log_info(logger_memoria, "Se recibio una solicitud de instruccion");
             t_instruccion *instruccion;
             t_solicitudInstruccionEnMemoria *soli = malloc(sizeof(t_solicitudInstruccionEnMemoria));
 
@@ -158,10 +158,10 @@ void *atender_cliente(void *socket_cliente)
             t_solicitudCreacionProcesoEnMemoria *solicitud;
 
             solicitud = deserializar_solicitud_crear_proceso(buffer);
-            log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
+            //log_info(logger_memoria, "Se recibio un mensaje para crear un proceso con pid %d y path %s", solicitud->pid, solicitud->path);
             t_proceso *proceso_creado = crear_proceso(procesos_en_memoria, solicitud->pid, solicitud->path);
             log_info(logger_memoria, "PID: %d - Tamaño: %d", solicitud->pid, list_size(proceso_creado->tabla_paginas));
-            printf("--------------------------PROCESO CREADO-----------------\n");
+            //printf("--------------------------PROCESO CREADO-----------------\n");
             enviar_codigo_operacion(CREAR_PROCESO, (int)(long int)socket_cliente);
             free(solicitud->path);
             free(solicitud);
@@ -169,7 +169,7 @@ void *atender_cliente(void *socket_cliente)
         }
         case END_PROCESS:
         {
-            log_info(logger_memoria, "Se recibio un mensaje para finalizar un proceso");
+            //log_info(logger_memoria, "Se recibio un mensaje para finalizar un proceso");
             // imprimir_pids(procesos_en_memoria);
             uint32_t pid;
             buffer_read(buffer, &pid, sizeof(uint32_t));
@@ -183,7 +183,7 @@ void *atender_cliente(void *socket_cliente)
         }
         case ACCESO_TABLA_PAGINAS:
         {
-            log_info(logger_memoria, "Se recibió un mensaje para acceder a la tabla de páginas");
+            //log_info(logger_memoria, "Se recibió un mensaje para acceder a la tabla de páginas");
             uint32_t pid, num_paginas;
             buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &num_paginas, sizeof(uint32_t));
@@ -217,7 +217,7 @@ void *atender_cliente(void *socket_cliente)
         }
         case AJUSTAR_TAMANIO_PROCESO:
         {
-            log_info(logger_memoria, "Se recibio un mensaje para ajustar el tamaño de un proceso");
+            //log_info(logger_memoria, "Se recibio un mensaje para ajustar el tamaño de un proceso");
             uint32_t pid, nuevo_tamanio;
             bool flag_break = false;
             buffer_read(buffer, &pid, sizeof(uint32_t));
@@ -258,13 +258,13 @@ void *atender_cliente(void *socket_cliente)
             if (!flag_break)
             {
                 enviar_codigo_operacion(OK, (int)(long int)socket_cliente);
-                log_info(logger_memoria, "mande el OK");
+                //log_info(logger_memoria, "mande el OK");
             }
             break;
         }
         case ESCRITURA_MEMORIA:
         {
-            log_info(logger_memoria, "Se recibio un mensaje para escribir en memoria");
+            //log_info(logger_memoria, "Se recibio un mensaje para escribir en memoria");
             // Llegan: cantidad de marcos a escribir, marco, offset, tamanio, buffer_escritura
             uint32_t cantidad_marcos;
             u_int32_t primer_direccion_fisica;
@@ -291,7 +291,7 @@ void *atender_cliente(void *socket_cliente)
         }
         case LECTURA_MEMORIA:
         {
-            log_info(logger_memoria, "Se recibio un mensaje para leer de memoria");
+            //log_info(logger_memoria, "Se recibio un mensaje para leer de memoria");
             // Llegan: cantidad de marcos a leer, marco, offset, tamanio
             uint32_t cantidad_marcos, total_tamanio, primer_direccion_fisica, pid;
             buffer_read(buffer, &pid, sizeof(uint32_t));
