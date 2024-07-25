@@ -13,6 +13,7 @@
 
 extern t_log *logger_cpu;
 extern t_config *config_cpu;
+extern t_config *config_conexiones;
 extern char *ip_memoria;
 extern char *puerto_memoria;
 extern char *puerto_dispatch;
@@ -42,7 +43,7 @@ typedef struct {
 
 
 // ------------------------- FUNCIONES DE INICIO ---------------------------
-void iniciar_config();
+void iniciar_config(char *ruta_config, char *ruta_logger);
 void inicializar_flags();
 
 //--------------------------RECIBIR TAMAÑO "handshake"---------------------------

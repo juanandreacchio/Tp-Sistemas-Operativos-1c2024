@@ -10,6 +10,7 @@
 
 extern t_log *logger_memoria;
 extern t_config *config_memoria;
+extern t_config *config_conexiones;
 
 extern char *PUERTO_MEMORIA;
 extern int TAM_MEMORIA;
@@ -27,7 +28,7 @@ extern t_bitarray *marcos_ocupados;
 extern void* memoria_principal;
 
 // ---------------------------FUNCIONES DE INICIO-------------------------------------
-void iniciar_config();
+void iniciar_config(char *ruta_config, char *ruta_logger);
 void iniciar_semaforos();
 void inciar_listas();
 

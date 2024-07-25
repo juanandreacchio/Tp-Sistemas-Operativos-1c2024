@@ -1,27 +1,27 @@
 #include "../include/kernel.h"
 
-void iniciar_config(void)
-{
-    config_kernel = config_create("config/kernel.config");
-    logger_kernel = iniciar_logger("config/kernel.log", "KERNEL", LOG_LEVEL_INFO);
-    ip_memoria = config_get_string_value(config_kernel, "IP_MEMORIA");
-    ip_cpu = config_get_string_value(config_kernel, "IP_CPU");
-    puerto_dispatch = config_get_string_value(config_kernel, "PUERTO_CPU_DISPATCH");
-    puerto_interrupt = config_get_string_value(config_kernel, "PUERTO_CPU_INTERRUPT");
-    puerto_memoria = config_get_string_value(config_kernel, "PUERTO_MEMORIA");
-    puerto_escucha = config_get_string_value(config_kernel, "PUERTO_ESCUCHA");
-    quantum = config_get_int_value(config_kernel, "QUANTUM");
-    algoritmo_planificacion = config_get_string_value(config_kernel, "ALGORITMO_PLANIFICACION");
-    grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MULTIPROGRAMACION");
-    recursos = config_get_array_value(config_kernel, "RECURSOS");
-    instancias_recursos = config_get_array_value(config_kernel, "INSTANCIAS_RECURSOS");
+// void iniciar_config(void)
+// {
+//     config_kernel = config_create("config/kernel.config");
+//     logger_kernel = iniciar_logger("config/kernel.log", "KERNEL", LOG_LEVEL_INFO);
+//     ip_memoria = config_get_string_value(config_kernel, "IP_MEMORIA");
+//     ip_cpu = config_get_string_value(config_kernel, "IP_CPU");
+//     puerto_dispatch = config_get_string_value(config_kernel, "PUERTO_CPU_DISPATCH");
+//     puerto_interrupt = config_get_string_value(config_kernel, "PUERTO_CPU_INTERRUPT");
+//     puerto_memoria = config_get_string_value(config_kernel, "PUERTO_MEMORIA");
+//     puerto_escucha = config_get_string_value(config_kernel, "PUERTO_ESCUCHA");
+//     quantum = config_get_int_value(config_kernel, "QUANTUM");
+//     algoritmo_planificacion = config_get_string_value(config_kernel, "ALGORITMO_PLANIFICACION");
+//     grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MULTIPROGRAMACION");
+//     recursos = config_get_array_value(config_kernel, "RECURSOS");
+//     instancias_recursos = config_get_array_value(config_kernel, "INSTANCIAS_RECURSOS");
 
-    if (string_array_size(recursos) != string_array_size(instancias_recursos))
-    {
-        log_error(logger_kernel, "La cantidad de recursos y de instancias de recursos no coincide");
-        exit(EXIT_FAILURE);
-    }
-}
+//     if (string_array_size(recursos) != string_array_size(instancias_recursos))
+//     {
+//         log_error(logger_kernel, "La cantidad de recursos y de instancias de recursos no coincide");
+//         exit(EXIT_FAILURE);
+//     }
+// }
 
 void iniciar_colas_de_estados_procesos()
 {
@@ -71,7 +71,7 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_cola_interfaces, NULL);
     pthread_mutex_init(&mutex_diccionario_interfaces_de_semaforos, NULL);
     pthread_mutex_init(&mutex_flag_cpu_libre, NULL);
-    pthread_cond_init(&cond_flag_cpu_libre,NULL);
+    pthread_cond_init(&cond_flag_cpu_libre, NULL);
     pthread_mutex_init(&mutex_motivo_ultimo_desalojo, NULL);
     pthread_mutex_init(&mutex_cola_de_exit, NULL);
     pthread_mutex_init(&mutex_procesos_en_sistema, NULL);
@@ -80,7 +80,7 @@ void iniciar_semaforos()
     pthread_mutex_init(&mutex_flag_planificar_plus, NULL);
     pthread_mutex_init(&mutex_nombre_interfaz_bloqueante, NULL);
 
-    //iniciar_semaforo_contador(semaforo_multi, grado_multiprogramacion);
+    // iniciar_semaforo_contador(semaforo_multi, grado_multiprogramacion);
 }
 
 void iniciar_variables()
@@ -169,30 +169,26 @@ void eliminar_colas()
     queue_destroy_and_destroy_elements(cola_ready_plus, free);
 }
 
-/*
-    void iniciar_config_kernel(char *ruta){
-        config_ips = config_create("config/conexion_kernel.config");
-    if ((config_prueba = config_create(ruta)) == NULL)
-    {
-        printf("la ruta ingresada no existe\n");
-        exit(2);
-    };
-    logger_kernel = iniciar_logger("config/kernel.log", "KERNEL", LOG_LEVEL_INFO);
-ip_memoria = config_get_string_value(config_ips, "IP_MEMORIA");
-    ip_cpu = config_get_string_value(config_ips, "IP_CPU");
-    puerto_dispatch = config_get_string_value(config_ips, "PUERTO_CPU_DISPATCH");
-    puerto_interrupt = config_get_string_value(config_ips, "PUERTO_CPU_INTERRUPT");
-    puerto_memoria = config_get_string_value(config_ips, "PUERTO_MEMORIA");
-    puerto_escucha = config_get_string_value(config_ips, "PUERTO_ESCUCHA");
-        quantum = config_get_int_value(config_prueba, "QUANTUM");
-    algoritmo_planificacion = config_get_string_value(config_prueba, "ALGORITMO_PLANIFICACION");
-    grado_multiprogramacion = config_get_int_value(config_prueba, "GRADO_MULTIPROGRAMACION");
-    recursos = config_get_array_value(config_prueba, "RECURSOS");
-    instancias_recursos = config_get_array_value(config_prueba, "INSTANCIAS_RECURSOS");
-        if (string_array_size(recursos) != string_array_size(instancias_recursos))
+void iniciar_config_kernel(char *ruta_config, char* ruta_logger)
+{
+
+    config_conexiones = config_create("config/conexion_kernel.config");
+    config_kernel = config_create(ruta_config);
+    logger_kernel = iniciar_logger(ruta_logger, "KERNEL", LOG_LEVEL_INFO);
+    ip_memoria = config_get_string_value(config_conexiones, "IP_MEMORIA");
+    ip_cpu = config_get_string_value(config_conexiones, "IP_CPU");
+    puerto_dispatch = config_get_string_value(config_conexiones, "PUERTO_CPU_DISPATCH");
+    puerto_interrupt = config_get_string_value(config_conexiones, "PUERTO_CPU_INTERRUPT");
+    puerto_memoria = config_get_string_value(config_conexiones, "PUERTO_MEMORIA");
+    puerto_escucha = config_get_string_value(config_conexiones, "PUERTO_ESCUCHA");
+    quantum = config_get_int_value(config_kernel, "QUANTUM");
+    algoritmo_planificacion = config_get_string_value(config_kernel, "ALGORITMO_PLANIFICACION");
+    grado_multiprogramacion = config_get_int_value(config_kernel, "GRADO_MULTIPROGRAMACION");
+    recursos = config_get_array_value(config_kernel, "RECURSOS");
+    instancias_recursos = config_get_array_value(config_kernel, "INSTANCIAS_RECURSOS");
+    if (string_array_size(recursos) != string_array_size(instancias_recursos))
     {
         log_error(logger_kernel, "La cantidad de recursos y de instancias de recursos no coincide");
         exit(EXIT_FAILURE);
     }
-    }
- */
+}

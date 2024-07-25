@@ -53,7 +53,7 @@ void ejecutar_comando(char *comando)
 
     if (strcmp(consola[0], "EJECUTAR_SCRIPT") == 0)
     {
-        char *base_path = "/home/utnso";
+        char *base_path = "/home/ubuntu";
         // Calcula el tamaño necesario para la cadena final
         size_t path_size = strlen(base_path) + strlen(consola[1]) + 1; // +1 para el carácter nulo
         char *full_path = malloc(path_size);

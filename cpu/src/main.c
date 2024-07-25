@@ -1,9 +1,10 @@
 #include <../include/cpu.h>
 
 // // inicializacion
+t_config *config_cpu;
+t_config *config_conexiones;
 
 t_log *logger_cpu;
-t_config *config_cpu;
 char *ip_memoria;
 char *puerto_memoria;
 char *puerto_dispatch;
@@ -25,9 +26,13 @@ uint8_t flag_bloqueado_por_resource;
 
 // ------------------------- MAIN---------------------------
 
-int main(void)
+int main(int argc, char *argv[]) // make start ARGS="config/<nombre>.config config/<nombre>.log"
 {
-    iniciar_config();
+
+    char *ruta_config = argv[1];
+    char *ruta_logger = argv[2];
+
+    iniciar_config(ruta_config, ruta_logger);
     inicializar_flags();
     TLB = list_create();
     registros_cpu = inicializar_registros();
@@ -44,19 +49,21 @@ int main(void)
     pthread_join(hilo_interrupt, NULL);
 
     liberar_conexion(socket_servidor_interrupt);
+    config_destroy(config_conexiones);
     terminar_programa(socket_servidor_dispatch, logger_cpu, config_cpu);
 }
 
 //------------------------FUNCIONES DE INICIO------------------------
 
-void iniciar_config()
+void iniciar_config(char *ruta_config, char *ruta_logger)
 {
-    config_cpu = config_create("./config/cpu.config");
-    logger_cpu = iniciar_logger("config/cpu.log", "CPU", LOG_LEVEL_INFO);
-    ip_memoria = config_get_string_value(config_cpu, "IP_MEMORIA");
-    puerto_dispatch = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_DISPATCH");
-    puerto_memoria = config_get_string_value(config_cpu, "PUERTO_MEMORIA");
-    puerto_interrupt = config_get_string_value(config_cpu, "PUERTO_ESCUCHA_INTERRUPT");
+    config_conexiones = config_create("config/conexion_cpu.config");
+    config_cpu = config_create(ruta_config);
+    logger_cpu = iniciar_logger(ruta_logger, "CPU", LOG_LEVEL_INFO);
+    ip_memoria = config_get_string_value(config_conexiones, "IP_MEMORIA");
+    puerto_dispatch = config_get_string_value(config_conexiones, "PUERTO_ESCUCHA_DISPATCH");
+    puerto_memoria = config_get_string_value(config_conexiones, "PUERTO_MEMORIA");
+    puerto_interrupt = config_get_string_value(config_conexiones, "PUERTO_ESCUCHA_INTERRUPT");
     algoritmo_tlb = config_get_string_value(config_cpu, "ALGORITMO_TLB");
     cant_entradas_tlb = config_get_int_value(config_cpu, "CANTIDAD_ENTRADAS_TLB");
 }
@@ -90,7 +97,7 @@ void *iniciar_servidor_dispatch(void *arg)
         registros_cpu = pcb->registros;
         registros_cpu.PC = pcb->pc;
         comenzar_proceso(pcb, conexion_memoria, conexion_kernel_dispatch);
-        if(pcb != NULL)
+        if (pcb != NULL)
             destruir_pcb(pcb);
     }
     return NULL;
@@ -535,7 +542,7 @@ void comenzar_proceso(t_pcb *pcb, int socket_Memoria, int socket_Kernel)
             liberar_t_instruccion(instruccion);
 
         instruccion = siguiente_instruccion(pcb, socket_Memoria);
-        //log_info(logger_cpu, "el length de parametro1: %d", instruccion->param1_length);
+        // log_info(logger_cpu, "el length de parametro1: %d", instruccion->param1_length);
         if (instruccion == NULL)
         {
             // Manejar error: siguiente_instruccion no debería devolver NULL
@@ -739,8 +746,10 @@ u_int32_t get_registro_generico(char *registro)
     return -1;
 }
 
-void sum_registro(char *registroDestino, char *registroOrigen) {
-    struct {
+void sum_registro(char *registroDestino, char *registroOrigen)
+{
+    struct
+    {
         char *nombre;
         void *direccion;
         size_t size;
@@ -755,39 +764,46 @@ void sum_registro(char *registroDestino, char *registroOrigen) {
         {"EDX", &(registros_cpu.EDX), sizeof(uint32_t)},
         {"SI", &(registros_cpu.SI), sizeof(uint32_t)},
         {"DI", &(registros_cpu.DI), sizeof(uint32_t)},
-        {"PC", &(registros_cpu.PC), sizeof(uint32_t)}
-    };
+        {"PC", &(registros_cpu.PC), sizeof(uint32_t)}};
 
     void *dest_addr = NULL;
     size_t dest_size = 0;
-    for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++) {
-        if (strcasecmp(registroDestino, mapa[i].nombre) == 0) {
+    for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++)
+    {
+        if (strcasecmp(registroDestino, mapa[i].nombre) == 0)
+        {
             dest_addr = mapa[i].direccion;
             dest_size = mapa[i].size;
             break;
         }
     }
 
-    if (!dest_addr) {
+    if (!dest_addr)
+    {
         printf("Error: no se encontró el registro destino\n");
         return;
     }
 
-    if (dest_size == sizeof(uint8_t)) {
+    if (dest_size == sizeof(uint8_t))
+    {
         *(uint8_t *)dest_addr += (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
-                                  strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
-                                  ? get_registro_int8(registroOrigen) 
-                                  : (uint8_t)get_registro_int32(registroOrigen);
-    } else if (dest_size == sizeof(uint32_t)) {
+                                  strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0)
+                                     ? get_registro_int8(registroOrigen)
+                                     : (uint8_t)get_registro_int32(registroOrigen);
+    }
+    else if (dest_size == sizeof(uint32_t))
+    {
         *(uint32_t *)dest_addr += (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
-                                   strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
-                                   ? (uint32_t)get_registro_int8(registroOrigen) 
-                                   : get_registro_int32(registroOrigen);
+                                   strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0)
+                                      ? (uint32_t)get_registro_int8(registroOrigen)
+                                      : get_registro_int32(registroOrigen);
     }
 }
 
-void sub_registro(char *registroDestino, char *registroOrigen) {
-    struct {
+void sub_registro(char *registroDestino, char *registroOrigen)
+{
+    struct
+    {
         char *nombre;
         void *direccion;
         size_t size;
@@ -802,34 +818,39 @@ void sub_registro(char *registroDestino, char *registroOrigen) {
         {"EDX", &(registros_cpu.EDX), sizeof(uint32_t)},
         {"SI", &(registros_cpu.SI), sizeof(uint32_t)},
         {"DI", &(registros_cpu.DI), sizeof(uint32_t)},
-        {"PC", &(registros_cpu.PC), sizeof(uint32_t)}
-    };
+        {"PC", &(registros_cpu.PC), sizeof(uint32_t)}};
 
     void *dest_addr = NULL;
     size_t dest_size = 0;
-    for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++) {
-        if (strcasecmp(registroDestino, mapa[i].nombre) == 0) {
+    for (size_t i = 0; i < sizeof(mapa) / sizeof(mapa[0]); i++)
+    {
+        if (strcasecmp(registroDestino, mapa[i].nombre) == 0)
+        {
             dest_addr = mapa[i].direccion;
             dest_size = mapa[i].size;
             break;
         }
     }
 
-    if (!dest_addr) {
+    if (!dest_addr)
+    {
         printf("Error: no se encontró el registro destino\n");
         return;
     }
 
-    if (dest_size == sizeof(uint8_t)) {
+    if (dest_size == sizeof(uint8_t))
+    {
         *(uint8_t *)dest_addr -= (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
-                                  strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
-                                  ? get_registro_int8(registroOrigen) 
-                                  : (uint8_t)get_registro_int32(registroOrigen);
-    } else if (dest_size == sizeof(uint32_t)) {
+                                  strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0)
+                                     ? get_registro_int8(registroOrigen)
+                                     : (uint8_t)get_registro_int32(registroOrigen);
+    }
+    else if (dest_size == sizeof(uint32_t))
+    {
         *(uint32_t *)dest_addr -= (strcasecmp(registroOrigen, "AX") == 0 || strcasecmp(registroOrigen, "BX") == 0 ||
-                                   strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0) 
-                                   ? (uint32_t)get_registro_int8(registroOrigen) 
-                                   : get_registro_int32(registroOrigen);
+                                   strcasecmp(registroOrigen, "CX") == 0 || strcasecmp(registroOrigen, "DX") == 0)
+                                      ? (uint32_t)get_registro_int8(registroOrigen)
+                                      : get_registro_int32(registroOrigen);
     }
 }
 void JNZ_registro(char *registro, u_int32_t valor)
@@ -926,9 +947,12 @@ void mov_in(u_int32_t pid, char *registro_datos, char *registro_direccion)
             buffer_read(paquete_recibido->buffer, buffer, size_of_element);
             memcpy(mapa[i].direccion, buffer, size_of_element);
             t_direc_fisica *primer_direc_fisica = list_get(direcciones_fisicas, 0);
-            if (size_of_element == sizeof(uint8_t)) {
+            if (size_of_element == sizeof(uint8_t))
+            {
                 log_info(logger_cpu, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", pid, primer_direc_fisica->direccion_fisica, *(uint8_t *)buffer);
-            } else {
+            }
+            else
+            {
                 log_info(logger_cpu, "PID: %d - Acción: LEER - Dirección Física: %d - Valor: %d", pid, primer_direc_fisica->direccion_fisica, *(uint32_t *)buffer);
             }
             free(buffer);

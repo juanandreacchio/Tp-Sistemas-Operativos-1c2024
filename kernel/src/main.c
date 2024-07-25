@@ -12,7 +12,7 @@ char *puerto_dispatch;
 char *puerto_interrupt;
 char *algoritmo_planificacion;
 char *ip;
-u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt, flag_cpu_libre,flag_grado_multi;
+u_int32_t conexion_memoria, conexion_dispatch, conexion_interrupt, flag_cpu_libre, flag_grado_multi;
 int socket_servidor_kernel;
 int contador_pcbs;
 uint32_t contador_pid;
@@ -72,25 +72,19 @@ sem_t podes_eliminar_loko;
 int grado_multiprogramacion;
 pthread_mutex_t mutex_ultimo_pcb;
 pthread_mutex_t mutex_flag_planificar_plus;
-char* interfaz_causante_bloqueo;
+char *interfaz_causante_bloqueo;
 pthread_mutex_t mutex_nombre_interfaz_bloqueante;
 sem_t podes_manejar_recepcion_de_interfaces;
 
-
-
-int main(int argc, char *argv[]) // make start config/<nombre>.config
+int main(int argc, char *argv[]) // make start ARGS=config/<nombre>.config
 {
-    /*
-    // if(argc != 2){
-                printf("falta ingresar algun parametro\n");
-        exit(1);
-    // }
+    
+    char *ruta_config = argv[1];
+    char *ruta_logger = argv[2];
 
-    char *ruta = argv[2];
+    iniciar_config_kernel(ruta_config, ruta_logger);
 
-    iniciar_config_kernel(ruta);
-    */
-    iniciar_config();
+    // iniciar_config();
     iniciar_variables();
     iniciar_listas();
     iniciar_colas_de_estados_procesos();
@@ -130,7 +124,8 @@ int main(int argc, char *argv[]) // make start config/<nombre>.config
         pthread_detach(hilo_quantum);
     }
 
-    if(strcmp(algoritmo_planificacion, "VRR") == 0){
+    if (strcmp(algoritmo_planificacion, "VRR") == 0)
+    {
         pthread_create(&hilo_quantum, NULL, (void *)verificar_quantum_vrr, NULL);
         pthread_detach(hilo_quantum);
     }
@@ -145,11 +140,11 @@ int main(int argc, char *argv[]) // make start config/<nombre>.config
     }
 
     log_info(logger_kernel, "Se cerrará la conexión.");
-    
+
     destruir_semaforos();
     eliminar_diccionarios();
     eliminar_listas();
     eliminar_colas();
+    config_destroy(config_conexiones);
     terminar_programa(socket_servidor_kernel, logger_kernel, config_kernel);
 }
-

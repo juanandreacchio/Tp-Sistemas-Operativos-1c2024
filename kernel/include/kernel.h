@@ -123,7 +123,7 @@ void iniciar_semaforos();
 void iniciar_diccionarios();
 void iniciar_listas();
 void iniciar_colas_de_estados_procesos();
-void iniciar_config();
+void iniciar_config_kernel(char *ruta_config, char* ruta_logger);
 void iniciar_recursos();
 void iniciar_variables();
 
