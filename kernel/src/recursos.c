@@ -119,11 +119,12 @@ void retener_instancia_de_recurso(char *nombre_recurso, uint32_t pid)
     recurso_nuevo->nombre_recurso = nombre_recurso;
     recurso_nuevo->instancias_asignadas = 1;
     list_add(recursos, recurso_nuevo);
-
+    /*
     for (size_t i = 0; i < list_size(recursos); i++)
     {
         t_recurso_asignado_a_proceso *recursito = list_get(recursos, i);
-    }
+    }   
+    */
 }
 
 void liberar_recursos(uint32_t pid)

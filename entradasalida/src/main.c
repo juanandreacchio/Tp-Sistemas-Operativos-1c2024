@@ -3,7 +3,7 @@
 // inicializacion
 t_log *logger_entradasalida;
 t_config *config_entradasalida;
-
+t_config *config_conexiones;
 char *ip_kernel;
 char *puerto_kernel;
 char *ip_memoria;
@@ -64,13 +64,13 @@ void iniciar_config(char *ruta)
         printf("la ruta ingresada no existe\n");
         exit(2);
     };
+    config_conexiones = config_create("config/conexion_io.config");
+    ip_kernel = config_get_string_value(config_conexiones, "IP_KERNEL");
+    puerto_kernel = config_get_string_value(config_conexiones, "PUERTO_KERNEL");
+    ip_memoria = config_get_string_value(config_conexiones, "IP_MEMORIA");
+    puerto_memoria = config_get_string_value(config_conexiones, "PUERTO_MEMORIA");
 
     logger_entradasalida = iniciar_logger("config/entradasalida.log", "ENTRADA_SALIDA", LOG_LEVEL_INFO);
-    ip_kernel = config_get_string_value(config_entradasalida, "IP_KERNEL");
-    puerto_kernel = config_get_string_value(config_entradasalida, "PUERTO_KERNEL");
-    ip_memoria = config_get_string_value(config_entradasalida, "IP_MEMORIA");
-    puerto_memoria = config_get_string_value(config_entradasalida, "PUERTO_MEMORIA");
-
     tiempo_unidad_trabajo = config_get_int_value(config_entradasalida, "TIEMPO_UNIDAD_TRABAJO");
 
     char *tipo_interfaz_str = config_get_string_value(config_entradasalida, "TIPO_INTERFAZ");
