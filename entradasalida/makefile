@@ -86,7 +86,7 @@ GENERICA:
 	make start GENERICA GENERICA.config generica.log
 
 .PHONY: IO_GEN_SLEEP
-plani_fifo:
+IO_GEN_SLEEP:
 	make start IO_GEN_SLEEP IO_GEN_SLEEP.config io_gen_sleep.log
 
 .PHONY: fs
