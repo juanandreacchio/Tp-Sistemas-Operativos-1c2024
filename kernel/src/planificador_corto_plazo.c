@@ -206,4 +206,5 @@ void iniciar_planificacion()
     sem_post(&podes_eliminar_procesos);
     sem_post(&podes_planificar_corto_plazo);
     sem_post(&podes_manejar_desalojo);
+    sem_post(&podes_manejar_recepcion_de_interfaces);
 }
