@@ -19,8 +19,7 @@ uint32_t socket_conexion_kernel, socket_conexion_memoria;
 t_interfaz *interfaz_creada;
 t_bitarray* bitmap;
 
-//                                                                   <NOMBRE>          <RUTA>
-int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 config/entradasalida.config
+int main(int argc, char *argv[]) 
 {
     if (argc != 4)
     {
@@ -400,26 +399,27 @@ void *atender_cliente(int socket_cliente)
 }
 
 void* leer_desde_teclado(uint32_t tamanio) {
-    char *dato = malloc(tamanio+2);
+    char *dato = malloc(tamanio + 1); // tamanio + 1 para el carácter nulo
     if (!dato) {
         log_error(logger_entradasalida, "Error al asignar memoria para el dato");
         return NULL;
     }
 
-    if (fgets(dato, tamanio+2, stdin) == NULL) {
+    if (fgets(dato, tamanio + 1, stdin) == NULL) { // tamanio + 1 para el carácter nulo
         log_error(logger_entradasalida, "Error al leer el dato desde el STDIN");
         free(dato);
         return NULL;
     }
 
-    // Elimina el carácter de nueva línea si está presente.
     char *newline = strchr(dato, '\n');
     if (newline) {
         *newline = '\0';
+    } else {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF);
     }
 
-    // Asignar memoria para el buffer de tipo void*
-    void *buffer = malloc(tamanio); // No incluimos el carácter nulo
+    void *buffer = malloc(tamanio);
     if (!buffer) {
         log_error(logger_entradasalida, "Error al asignar memoria para el buffer");
         free(dato);
