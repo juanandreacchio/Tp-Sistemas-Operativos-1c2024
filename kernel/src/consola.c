@@ -262,6 +262,7 @@ void ejecutar_comando(char *comando)
         pthread_mutex_lock(&mutex_procesos_en_sistema);
         list_remove(procesos_en_sistema, index);
         pthread_mutex_unlock(&mutex_procesos_en_sistema);
+        
         liberar_recursos(pid);
 
         t_paquete *paquete = crear_paquete(END_PROCESS);

@@ -147,7 +147,9 @@ void *recibir_dispatch()
                     agregar_pcb_a_cola_bloqueados_de_recurso(pcb_actualizado, recurso_solicitado);
 
                     logear_bloqueo_proceso(pcb_actualizado->pid, recurso_solicitado);
+                    logear_cambio_estado(pcb_actualizado, EXEC, BLOCKED);
                     bloquear_pcb(pcb_actualizado);
+
                     //logear_lista_blocked();
 
                     pthread_mutex_lock(&mutex_flag_cpu_libre);
@@ -193,6 +195,7 @@ void *recibir_dispatch()
             else
             {
                 sumar_instancia_a_recurso(recurso_signal);
+                restar_instancia_retenida_a_proceso(recurso_signal, pcb_actualizado->pid);
                 enviar_codigo_operacion(RESOURCE_OK, conexion_dispatch);
                 if(pcb_actualizado!=NULL)
                     destruir_pcb(pcb_actualizado);

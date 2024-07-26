@@ -78,7 +78,6 @@ void eliminacion_de_procesos()
         }else{
             flag_grado_multi -=1;
         }
-            
         destruir_pcb(pcb_exit);
         free(proceso_exit);
     }

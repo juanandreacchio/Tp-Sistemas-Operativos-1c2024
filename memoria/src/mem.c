@@ -174,7 +174,9 @@ t_proceso *crear_proceso(t_list* lista_procesos, int pid, char* path) {
     char *path_final = malloc(path_final_size); 
     strcpy(path_final, PATH_INSTRUCCIONES);
     strcat(path_final, path);
+
     FILE* archivo_instrucciones = fopen(path_final, "r");
+    log_info(logger_memoria,"Path final: %s", path_final);
     if (archivo_instrucciones == NULL) {
         log_error(logger_memoria,"Error: no se pudo abrir el archivo %s\n", path);
         exit(1);

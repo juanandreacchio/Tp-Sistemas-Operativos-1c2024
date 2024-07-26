@@ -214,7 +214,8 @@ typedef struct
 typedef struct{
 	pthread_mutex_t mutex;
 	pthread_mutex_t mutex_cola_recurso;
-	uint32_t instancias;
+	int32_t instancias;
+	int32_t instancias_maximas;
 } t_recurso_en_kernel;
 
 typedef struct{

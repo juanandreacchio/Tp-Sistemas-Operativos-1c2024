@@ -76,9 +76,9 @@ char *interfaz_causante_bloqueo;
 pthread_mutex_t mutex_nombre_interfaz_bloqueante;
 sem_t podes_manejar_recepcion_de_interfaces;
 
-int main(int argc, char *argv[]) // make start ARGS=config/<nombre>.config
+int main(int argc, char *argv[])
 {
-    
+
     char *ruta_config = argv[1];
     char *ruta_logger = argv[2];
 
@@ -91,6 +91,7 @@ int main(int argc, char *argv[]) // make start ARGS=config/<nombre>.config
     iniciar_diccionarios();
     iniciar_semaforos();
     iniciar_recursos();
+
 
     // iniciar conexion con Kernel
     conexion_memoria = crear_conexion(ip_memoria, puerto_memoria, logger_kernel);
@@ -138,6 +139,8 @@ int main(int argc, char *argv[]) // make start ARGS=config/<nombre>.config
         pthread_create(&thread, NULL, (void *)atender_cliente, socket_cliente);
         pthread_detach(thread);
     }
+
+  
 
     log_info(logger_kernel, "Se cerrará la conexión.");
 

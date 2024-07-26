@@ -190,6 +190,8 @@ int32_t restar_instancia_a_recurso(char *nombre);
 void sumar_instancia_a_recurso(char *nombre);
 void logear_recursos_por_proceso(uint32_t pid);
 void eliminar_pcb_de_cola_bloqueados_de_recurso(uint32_t pid, char *nombre);
+void imprimir_recursos();
+void restar_instancia_retenida_a_proceso(char *recurso, uint32_t pid);
 // ---------------------- FUNCIONES DE LOGS --------------------------
 void logear_bloqueo_proceso(uint32_t pid, char* motivo);
 void logear_cambio_estado(t_pcb *pcb, estados estado_anterior, estados estado_actual);
