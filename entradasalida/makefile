@@ -63,3 +63,32 @@ $(BIN): $(OBJS) | $(dir $(BIN))
 .PHONY: helgrind
 helgrind: debug
 	valgrind --tool=helgrind $(HELGRIND_FLAGS) ./$(BIN) $(ARGS)
+
+# Definir reglas específicas para pruebas
+.PHONY: SLP1
+SLP1: 
+	make start SLP1 SLP1.config slp1.log
+
+.PHONY: ESPERA
+ESPERA: 
+	make start ESPERA ESPERA.config espera.log
+
+.PHONY: TECLADO
+TECLADO: 
+	make start TECLADO TECLADO.config teclado.log
+
+.PHONY: MONITOR
+MONITOR: 
+	make start MONITOR MONITOR.config monitor.log
+
+.PHONY: GENERICA
+fs:
+	make start GENERICA GENERICA.config generica.log
+
+.PHONY: IO_GEN_SLEEP
+plani_fifo:
+	make start IO_GEN_SLEEP IO_GEN_SLEEP.config io_gen_sleep.log
+
+.PHONY: FS
+FS:
+	make start FS FS.config fs.log

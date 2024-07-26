@@ -66,3 +66,39 @@ helgrind: debug
 # Evitar que make interprete argumentos adicionales como objetivos
 %:
 	@:
+# Definir reglas específicas para pruebas
+.PHONY: salvation_edge
+salvation_edge: 
+	make start salvations_edge.config salvations_edge.log
+
+.PHONY: memoria_fifo
+memoria_fifo: 
+	make start tlb_fifo.config tlb_fifo.log
+
+.PHONY: memoria_lru
+memoria_lru: 
+	make start tlb_lru.config tlb_lru.log
+
+.PHONY: io
+io: 
+	make start io.config io.log
+
+.PHONY: fs
+fs:
+	make start fs.config fs.log
+
+.PHONY: plani_fifo
+plani_fifo:
+	make start plani.config plani_fifo.log
+
+.PHONY: plani_rr
+plani_rr:
+	make start plani.config plani_rr.log
+
+.PHONY: plani_vrr
+plani_vrr:
+	make start plani.config plani_vrr.log
+	
+.PHONY: deadlock
+deadlock:
+	make start deadlock.config deadlock.log
