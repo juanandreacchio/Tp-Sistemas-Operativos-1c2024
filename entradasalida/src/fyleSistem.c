@@ -1,8 +1,30 @@
 #include <../include/entradasalida.h>
-char* path_archivo_bloques = "bloques.dat"; // Ruta del archivo de bloques
-char* path_bitmap = "bitmap.dat"; // Ruta del archivo de bitmap
+char* path_archivo_bloques; // Ruta del archivo de bloques
+char* path_bitmap; // Ruta del archivo de bitmap
 void levantarFileSystem(){
-     
+    // Concatenar path_fs y "bloques.dat"
+    size_t path_fs_len = strlen(path_fs);
+    size_t bloques_len = strlen("bloques.dat");
+    
+    path_archivo_bloques = malloc(path_fs_len + bloques_len + 2); // +2 para '/' y '\0'
+    if (path_archivo_bloques == NULL) {
+        log_error(logger_entradasalida, "Error al asignar memoria para path_archivo_bloques");
+        exit(EXIT_FAILURE);
+    }
+    
+    snprintf(path_archivo_bloques, path_fs_len + bloques_len + 2, "%s/%s", path_fs, "bloques.dat");
+
+    // Concatenar path_fs y "bitmap.dat"
+    size_t bitmap_len = strlen("bitmap.dat");
+    
+    path_bitmap = malloc(path_fs_len + bitmap_len + 2); // +2 para '/' y '\0'
+    if (path_bitmap == NULL) {
+        log_error(logger_entradasalida, "Error al asignar memoria para path_bitmap");
+        exit(EXIT_FAILURE);
+    }
+    
+    snprintf(path_bitmap, path_fs_len + bitmap_len + 2, "%s/%s", path_fs, "bitmap.dat");
+
     create_archivos_bloques();
     crear_bitmap();
 }

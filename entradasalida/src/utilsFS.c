@@ -210,44 +210,72 @@ archivo_info* listar_archivos(int* cantidad_archivos) {
     }
 
     struct dirent* entry;
-    // Contar la cantidad de archivos 
-    while ((entry = readdir(dir)) != NULL) { 
+
+    while ((entry = readdir(dir)) != NULL) {
         if (entry->d_type == DT_REG) {
-            (*cantidad_archivos)++;
+            // Excluir bloques.dat y bitmap.dat
+            if (strcmp(entry->d_name, "bloques.dat") != 0 && strcmp(entry->d_name, "bitmap.dat") != 0) {
+                (*cantidad_archivos)++;
+            }
         }
     }
 
     if (*cantidad_archivos > 0) {
         archivos = malloc((*cantidad_archivos) * sizeof(archivo_info));
+        if (archivos == NULL) {
+            log_error(logger_entradasalida, "No se pudo asignar memoria para archivos");
+            closedir(dir);
+            return NULL;
+        }
         rewinddir(dir);  // rewinddir reinicia el puntero del directorio
         int index = 0;
         while ((entry = readdir(dir)) != NULL) {
             if (entry->d_type == DT_REG) { // Solo archivos regulares
-                archivo_info* info = &archivos[index++];
-                snprintf(info->nombre_archivo, sizeof(info->nombre_archivo), "%s", entry->d_name);
+                // Excluir bloques.dat y bitmap.dat
+                if (strcmp(entry->d_name, "bloques.dat") != 0 && strcmp(entry->d_name, "bitmap.dat") != 0) {
+                    archivo_info* info = &archivos[index++];
+                    snprintf(info->nombre_archivo, sizeof(info->nombre_archivo), "%s", entry->d_name);
 
-                size_t path_fs_tamanio = strlen(path_fs);
-                uint32_t tamanio_nombre_archivo = strlen(entry->d_name);
-                uint32_t metadata_path_tamanio = path_fs_tamanio + tamanio_nombre_archivo + 1; // +1 por el '\0'
-                char* metadata_path = malloc(metadata_path_tamanio * sizeof(char));
-                
-                // Copiar path_fs al buffer
-                memcpy(metadata_path, path_fs, path_fs_tamanio);
+                    size_t path_fs_tamanio = strlen(path_fs);
+                    uint32_t tamanio_nombre_archivo = strlen(entry->d_name);
+                    uint32_t metadata_path_tamanio = path_fs_tamanio + tamanio_nombre_archivo + 2; // +2 por el '/' y '\0'
 
-                // Copiar filename al buffer
-                memcpy(metadata_path + path_fs_tamanio, entry->d_name, tamanio_nombre_archivo);
+                    char* metadata_path = malloc(metadata_path_tamanio * sizeof(char));
+                    if (metadata_path == NULL) {
+                        log_error(logger_entradasalida, "No se pudo asignar memoria para metadata_path");
+                        free(archivos);
+                        closedir(dir);
+                        return NULL;
+                    }
 
-                // Asegurar el terminador nulo al final
-                metadata_path[metadata_path_tamanio - 1] = '\0';
+                    // Copiar path_fs al buffer
+                    snprintf(metadata_path, metadata_path_tamanio, "%s/%s", path_fs, entry->d_name);
 
-                info->bloque_inicial = obtener_bloque_inicial(metadata_path);
-                uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
-                uint32_t cantidad_bloques = (uint32_t)ceil((double)tamanio_archivo / (double)block_size);
-                if(cantidad_bloques == 0){
-                    cantidad_bloques += 1;
+                    info->bloque_inicial = obtener_bloque_inicial(metadata_path);
+                    if (info->bloque_inicial == (uint32_t)-1) {
+                        log_error(logger_entradasalida, "Error al obtener el bloque inicial para %s", metadata_path);
+                        free(metadata_path);
+                        free(archivos);
+                        closedir(dir);
+                        return NULL;
+                    }
+
+                    uint32_t tamanio_archivo = obtener_tamanio_archivo(metadata_path);
+                    if (tamanio_archivo == (uint32_t)-1) {
+                        log_error(logger_entradasalida, "Error al obtener el tamaño del archivo para %s", metadata_path);
+                        free(metadata_path);
+                        free(archivos);
+                        closedir(dir);
+                        return NULL;
+                    }
+
+                    uint32_t cantidad_bloques = (uint32_t)ceil((double)tamanio_archivo / (double)block_size);
+                    if (cantidad_bloques == 0) {
+                        cantidad_bloques += 1;
+                    }
+                    info->cantidad_bloques = cantidad_bloques;
+                    free(metadata_path);
                 }
-                info->cantidad_bloques = cantidad_bloques;
-                free(metadata_path);
             }
         }
     }
