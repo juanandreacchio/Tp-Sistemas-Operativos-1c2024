@@ -82,13 +82,13 @@ MONITOR:
 	make start MONITOR MONITOR.config monitor.log
 
 .PHONY: GENERICA
-fs:
+GENERICA:
 	make start GENERICA GENERICA.config generica.log
 
 .PHONY: IO_GEN_SLEEP
 plani_fifo:
 	make start IO_GEN_SLEEP IO_GEN_SLEEP.config io_gen_sleep.log
 
-.PHONY: FS
-FS:
+.PHONY: fs
+fs:
 	make start FS FS.config fs.log
