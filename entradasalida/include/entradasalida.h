@@ -44,7 +44,7 @@ typedef struct {
 } archivo_info;
 
 // ------------------------ FUNCIONES DE INICIO --------------------
-void iniciar_config();
+void iniciar_config(char *ruta_config,char* ruta_logger);
 void *iniciar_conexion_kernel(void *arg);
 t_interfaz *iniciar_interfaz(char* nombre,char* ruta);
 void* leer_desde_teclado(uint32_t tamanio);

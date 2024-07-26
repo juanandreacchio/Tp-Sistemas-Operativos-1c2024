@@ -285,4 +285,5 @@ const char* identificador_to_string(t_identificador id);
 const char* op_code_to_string(op_code code);
 void liberar_t_instruccion(t_instruccion *instruccion);
 void liberar_t_instruccion_memoria(t_instruccion *instruccion);
+char* agregar_prefijo(const char *prefijo, const char *ruta);
 #endif /* UTILS_H_ */

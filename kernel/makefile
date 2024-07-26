@@ -48,14 +48,22 @@ $(DEPS): $$(shell find $$(patsubst %bin/,%src/,$$(dir $$@)) -iname "*.c" -or -in
 $(sort $(dir $(BIN) $(OBJS))):
 	mkdir -pv $@
 
+# Modificado para aceptar argumentos
 .PHONY: start
 start: debug
+	$(eval ARGS := $(filter-out $@,$(MAKECMDGOALS)))
 	valgrind --tool=none ./$(BIN) $(ARGS)
 
 .PHONY: memcheck
 memcheck: debug
+	$(eval ARGS := $(filter-out $@,$(MAKECMDGOALS)))
 	valgrind --leak-check=full $(MEMCHECK_FLAGS) ./$(BIN) $(ARGS)
 
 .PHONY: helgrind
 helgrind: debug
+	$(eval ARGS := $(filter-out $@,$(MAKECMDGOALS)))
 	valgrind --tool=helgrind $(HELGRIND_FLAGS) ./$(BIN) $(ARGS)
+
+# Evitar que make interprete argumentos adicionales como objetivos
+%:
+	@:

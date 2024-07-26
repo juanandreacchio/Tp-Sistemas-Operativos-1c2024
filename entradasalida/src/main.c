@@ -22,18 +22,19 @@ t_bitarray* bitmap;
 //                                                                   <NOMBRE>          <RUTA>
 int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 config/entradasalida.config
 {
-    if (argc != 3)
+    if (argc != 4)
     {
         printf("falta ingresar algun parametro\n");
         exit(1);
     }
 
     char *nombre = argv[1];
-    char *ruta = argv[2];
+    char *ruta_config = argv[2];
+    char *ruta_logger = argv[3];
 
-    iniciar_config(ruta);
+    iniciar_config(ruta_config,ruta_logger);
 
-    interfaz_creada = iniciar_interfaz(nombre, ruta);
+    interfaz_creada = iniciar_interfaz(nombre, ruta_config);
 
     if ((int)(long int)tipo_interfaz != GENERICA)
     {
@@ -57,22 +58,27 @@ int main(int argc, char *argv[]) // se corre haciendo --> make start generica1 c
     return 0;
 }
 
-void iniciar_config(char *ruta)
+void iniciar_config(char *ruta_config,char* ruta_logger)
 {
-    if ((config_entradasalida = config_create(ruta)) == NULL)
+    char *ruta_config_completa = agregar_prefijo("config/", ruta_config);
+    char *ruta_logger_completa = agregar_prefijo("config/", ruta_logger);
+
+    config_conexiones = config_create("config/conexion_io.config");
+    if ((config_entradasalida = config_create(ruta_config_completa)) == NULL)
     {
         printf("la ruta ingresada no existe\n");
         exit(2);
     };
-    config_conexiones = config_create("config/conexion_io.config");
+    logger_entradasalida = iniciar_logger(ruta_logger_completa, "ENTRADA_SALIDA", LOG_LEVEL_INFO);
+    
+    free(ruta_config_completa);
+    free(ruta_logger_completa);
+
     ip_kernel = config_get_string_value(config_conexiones, "IP_KERNEL");
     puerto_kernel = config_get_string_value(config_conexiones, "PUERTO_KERNEL");
     ip_memoria = config_get_string_value(config_conexiones, "IP_MEMORIA");
     puerto_memoria = config_get_string_value(config_conexiones, "PUERTO_MEMORIA");
-
-    logger_entradasalida = iniciar_logger("config/entradasalida.log", "ENTRADA_SALIDA", LOG_LEVEL_INFO);
     tiempo_unidad_trabajo = config_get_int_value(config_entradasalida, "TIEMPO_UNIDAD_TRABAJO");
-
     char *tipo_interfaz_str = config_get_string_value(config_entradasalida, "TIPO_INTERFAZ");
     if (strcmp(tipo_interfaz_str, "GENERICA") == 0)
     {

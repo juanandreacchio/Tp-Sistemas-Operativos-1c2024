@@ -1063,3 +1063,16 @@ void liberar_t_instruccion_memoria(t_instruccion *instruccion)
     // Liberar la estructura
     free(instruccion);
 }
+char* agregar_prefijo(const char *prefijo, const char *ruta)
+{
+    size_t longitud_prefijo = strlen(prefijo);
+    size_t longitud_ruta = strlen(ruta);
+    char *ruta_completa = malloc(longitud_prefijo + longitud_ruta + 1); // +1 para el carácter nulo
+    if (ruta_completa == NULL) {
+        fprintf(stderr, "Error al asignar memoria\n");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(ruta_completa, prefijo);
+    strcat(ruta_completa, ruta);
+    return ruta_completa;
+}

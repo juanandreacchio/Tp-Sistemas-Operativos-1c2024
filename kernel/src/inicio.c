@@ -171,10 +171,16 @@ void eliminar_colas()
 
 void iniciar_config_kernel(char *ruta_config, char* ruta_logger)
 {
+    char *ruta_config_completa = agregar_prefijo("config/", ruta_config);
+    char *ruta_logger_completa = agregar_prefijo("config/", ruta_logger);
 
     config_conexiones = config_create("config/conexion_kernel.config");
-    config_kernel = config_create(ruta_config);
-    logger_kernel = iniciar_logger(ruta_logger, "KERNEL", LOG_LEVEL_INFO);
+    config_kernel = config_create(ruta_config_completa);
+    logger_kernel = iniciar_logger(ruta_logger_completa, "KERNEL", LOG_LEVEL_INFO);
+
+    free(ruta_config_completa);
+    free(ruta_logger_completa);
+
     ip_memoria = config_get_string_value(config_conexiones, "IP_MEMORIA");
     ip_cpu = config_get_string_value(config_conexiones, "IP_CPU");
     puerto_dispatch = config_get_string_value(config_conexiones, "PUERTO_CPU_DISPATCH");

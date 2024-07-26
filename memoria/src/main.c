@@ -62,9 +62,15 @@ int main(int argc, char *argv[]) // make start ARGS="config/<nombre>.config conf
 
 void iniciar_config(char *ruta_config, char *ruta_logger)
 {
+    char *ruta_config_completa = agregar_prefijo("config/", ruta_config);
+    char *ruta_logger_completa = agregar_prefijo("config/", ruta_logger);
+
     config_conexiones = config_create("config/conexion_memoria.config");
-    config_memoria = config_create(ruta_config);
-    logger_memoria = iniciar_logger(ruta_logger, "MEMORIA", LOG_LEVEL_INFO);
+    config_memoria = config_create(ruta_config_completa);
+    logger_memoria = iniciar_logger(ruta_logger_completa, "MEMORIA", LOG_LEVEL_INFO);
+
+    free(ruta_config_completa);
+    free(ruta_logger_completa);
 
     PUERTO_MEMORIA = config_get_string_value(config_conexiones, "PUERTO_ESCUCHA");
     PATH_INSTRUCCIONES = config_get_string_value(config_conexiones, "PATH_INSTRUCCIONES");
@@ -268,7 +274,7 @@ void *atender_cliente(void *socket_cliente)
             // Llegan: cantidad de marcos a escribir, marco, offset, tamanio, buffer_escritura
             uint32_t cantidad_marcos;
             u_int32_t primer_direccion_fisica;
-            u_int32_t tamanio_total;
+            u_int32_t tamanio_total = 0;
             u_int32_t pid;
             buffer_read(buffer, &pid, sizeof(uint32_t));
             buffer_read(buffer, &cantidad_marcos, sizeof(uint32_t));

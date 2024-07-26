@@ -57,9 +57,16 @@ int main(int argc, char *argv[]) // make start ARGS="config/<nombre>.config conf
 
 void iniciar_config(char *ruta_config, char *ruta_logger)
 {
+    char *ruta_config_completa = agregar_prefijo("config/", ruta_config);
+    char *ruta_logger_completa = agregar_prefijo("config/", ruta_logger);
+
     config_conexiones = config_create("config/conexion_cpu.config");
-    config_cpu = config_create(ruta_config);
-    logger_cpu = iniciar_logger(ruta_logger, "CPU", LOG_LEVEL_INFO);
+    config_cpu = config_create(ruta_config_completa);
+    logger_cpu = iniciar_logger(ruta_logger_completa, "CPU", LOG_LEVEL_INFO);
+
+    free(ruta_config_completa);
+    free(ruta_logger_completa);
+
     ip_memoria = config_get_string_value(config_conexiones, "IP_MEMORIA");
     puerto_dispatch = config_get_string_value(config_conexiones, "PUERTO_ESCUCHA_DISPATCH");
     puerto_memoria = config_get_string_value(config_conexiones, "PUERTO_MEMORIA");
