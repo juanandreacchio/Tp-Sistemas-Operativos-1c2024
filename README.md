@@ -3,7 +3,7 @@
 Esta es una plantilla de proyecto diseñada para generar un TP de Sistemas
 Operativos de la UTN FRBA.
 
-## Enunciado
+[Enunciado](https://github.com/juanandreacchio/Tp-Sistemas-Operativos-1c2024/blob/main/C-comenta.pdf)
 
 
 ## Dependencias
